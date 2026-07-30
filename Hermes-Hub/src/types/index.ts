@@ -66,7 +66,10 @@ export interface MemoryFile {
   content: string
   /** Taille + date : sert a refuser un enregistrement si Hermes a ecrit entre-temps. */
   stamp: string
+  /** Une version d'avant le dernier enregistrement existe. */
   backup: boolean
+  /** La version deposee par l'installateur existe. */
+  origine: boolean
 }
 
 export const FICHIERS_MEMOIRE = ['MEMORY.md', 'USER.md', 'SOUL.md'] as const

@@ -62,6 +62,13 @@ export const api = {
     request<MemoryFile>(`/memory/${enc(file)}`, { method: 'PUT', body: body({ content, stamp }) }),
   restoreMemory: (file: string) =>
     request<MemoryFile>(`/memory/${enc(file)}/restore`, { method: 'POST', body: body({}) }),
+  resetMemory: (file: string) =>
+    request<MemoryFile>(`/memory/${enc(file)}/reset`, { method: 'POST', body: body({}) }),
+  reformulateMemory: (file: string, content: string) =>
+    request<{ file: string; proposition: string }>(`/memory/${enc(file)}/reformuler`, {
+      method: 'POST',
+      body: body({ content }),
+    }),
 
   autoStart: () => request<{ enabled: boolean; path: string }>('/autostart'),
   setAutoStart: (enabled: boolean) =>

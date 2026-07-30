@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   FileText,
   FolderOpen,
+  History,
   RotateCcw,
   Info,
   Palette,
@@ -12,9 +13,11 @@ import {
   Save,
   Settings,
   SlidersHorizontal,
+  Sparkles,
   Terminal as TerminalIcon,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { ConfirmDialog } from '../components/Modal'
 import { PageHeader } from '../components/PageHeader'
 import { api } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
@@ -115,6 +118,9 @@ export function ConfigView({ onMenu }: Props) {
   const [fichier, setFichier] = useState<string>('MEMORY.md')
   const [memoire, setMemoire] = useState<MemoryFile | null>(null)
   const [texteMemoire, setTexteMemoire] = useState('')
+  const [proposition, setProposition] = useState<string | null>(null)
+  const [reformulation, setReformulation] = useState(false)
+  const [reinit, setReinit] = useState(false)
 
   useEffect(() => {
     api
@@ -145,6 +151,34 @@ export function ConfigView({ onMenu }: Props) {
       notify('success', `${fichier} enregistre.`)
     } catch (err) {
       notify('error', err instanceof Error ? err.message : 'Enregistrement impossible')
+    }
+  }
+
+  // La proposition ne touche jamais le fichier : elle s'affiche a cote, et
+  // c'est l'utilisateur qui la reprend ou la jette.
+  const reformuler = async () => {
+    setReformulation(true)
+    try {
+      const r = await api.reformulateMemory(fichier, texteMemoire)
+      setProposition(r.proposition)
+    } catch (err) {
+      notify('error', err instanceof Error ? err.message : 'Reformulation impossible')
+    } finally {
+      setReformulation(false)
+    }
+  }
+
+  const reinitialiserMemoire = async () => {
+    try {
+      const m = await api.resetMemory(fichier)
+      setMemoire(m)
+      setTexteMemoire(m.content)
+      setProposition(null)
+      notify('success', `${fichier} est revenu a sa version d'origine.`)
+    } catch (err) {
+      notify('error', err instanceof Error ? err.message : 'Reinitialisation impossible')
+    } finally {
+      setReinit(false)
     }
   }
 
@@ -381,7 +415,47 @@ export function ConfigView({ onMenu }: Props) {
                   spellCheck={false}
                 />
                 <p className="mt-1 break-all font-mono text-[10px] muted">{memoire.path}</p>
+                {proposition !== null && (
+                  <div className="mt-3 rounded-lg border border-sky-300 bg-sky-50/60 p-3 dark:border-sky-500/30 dark:bg-sky-500/10">
+                    <p className="text-xs font-medium">Proposition d'Hermes</p>
+                    <p className="mt-0.5 text-[11px] muted">
+                      Rien n'est enregistre tant que tu n'as pas applique. Compare, puis decide.
+                    </p>
+                    <textarea
+                      readOnly
+                      className="input mt-2 h-56 resize-y font-mono text-[11px] leading-relaxed"
+                      value={proposition}
+                    />
+                    <div className="mt-2 flex justify-end gap-2">
+                      <button
+                        onClick={() => setProposition(null)}
+                        className="btn-ghost px-3 py-2 text-xs"
+                      >
+                        Ignorer
+                      </button>
+                      <button
+                        onClick={() => {
+                          setTexteMemoire(proposition)
+                          setProposition(null)
+                        }}
+                        className="btn-primary px-3 py-2 text-xs"
+                      >
+                        Reprendre cette version
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                  <button
+                    onClick={() => void reformuler()}
+                    className="btn-ghost mr-auto px-3 py-2 text-xs"
+                    disabled={reformulation}
+                    title="Hermes propose une version condensee. Tu la valides avant qu'elle ne soit ecrite."
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {reformulation ? 'Hermes reflechit...' : 'Mettre au propre'}
+                  </button>
                   {memoire.backup && (
                     <button
                       onClick={() => void restaurerMemoire()}
@@ -389,6 +463,15 @@ export function ConfigView({ onMenu }: Props) {
                       title="Revenir a la version d'avant le dernier enregistrement"
                     >
                       <RotateCcw className="h-4 w-4" /> Version precedente
+                    </button>
+                  )}
+                  {memoire.origine && (
+                    <button
+                      onClick={() => setReinit(true)}
+                      className="btn-ghost px-3 py-2 text-xs text-amber-700 dark:text-amber-400"
+                      title="Repartir du fichier tel que l'installateur l'a ecrit"
+                    >
+                      <History className="h-4 w-4" /> Version d'origine
                     </button>
                   )}
                   <button
@@ -567,6 +650,27 @@ export function ConfigView({ onMenu }: Props) {
           )}
         </div>
       </div>
+
+      {reinit && (
+        <ConfirmDialog
+          title={`Revenir a la version d'origine de ${fichier} ?`}
+          danger
+          confirmLabel="Revenir a l'origine"
+          onConfirm={reinitialiserMemoire}
+          onClose={() => setReinit(false)}
+          message={
+            <>
+              <p>
+                Le fichier repart de ce que l'installateur avait ecrit. Tes modifications, et ce
+                qu'Hermes a memorise depuis, disparaissent du fichier.
+              </p>
+              <p className="mt-2 muted">
+                La version actuelle est sauvegardee : le bouton "Version precedente" la ramene.
+              </p>
+            </>
+          }
+        />
+      )}
     </div>
   )
 }

@@ -53,6 +53,11 @@ Avant meme d'executer, pour chaque variable definie dans la cible : est-elle
 lue ailleurs ? Pour chaque saisie utilisateur : sa valeur est-elle utilisee ?
 Un `grep` du nom suffit, il faut seulement penser a le faire.
 
+Faux positif classique : une variable transmise a un processus fils **par
+l'environnement** (`$env:MA_VAR` en PowerShell, `os.environ` en Python) n'est
+jamais relue sous la forme `%MA_VAR%` dans le script parent. Verifier l'usage
+dans les scripts generes avant de conclure.
+
 Symptomes a nommer :
 - **ecriture morte** : variable assignee, jamais lue
 - **no-op silencieux** : question posee dont la reponse n'a aucun effet

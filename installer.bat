@@ -11,9 +11,13 @@ if errorlevel 1 (
 
 setlocal EnableDelayedExpansion
 
+REM Version unique de la livraison : reprise dans les fichiers generes, pour
+REM savoir de quelle generation vient le profil d'un poste.
+set "HERMES_VERSION=1.0.0"
+
 echo.
 echo  ============================================
-echo   HERMES HUB + OBSIDIAN - INSTALLER
+echo   HERMES HUB + OBSIDIAN - INSTALLER v%HERMES_VERSION%
 echo   Installation complete - 1 dossier organise
 echo  ============================================
 echo.
@@ -339,6 +343,8 @@ REM -- SOUL.md
 (
 echo Tu es Hermes, un agent IA cree par Nous Research.
 echo.
+echo ^(profil Hermes Hub v%HERMES_VERSION%^)
+echo.
 echo PERSONNALITE:
 echo - Honnete et direct. Tu dis quand tu ne sais pas.
 echo - Pedagogique. Tu expliques simplement, sans jargon inutile.
@@ -360,6 +366,7 @@ echo - Verifier vaut mieux que supposer.
 echo - Une architecture evolutive vaut mieux qu'une solution rigide.
 echo - Ne jamais sur-coder. Faire simple, faire juste.
 ) > "!HERMES_HOME!\SOUL.md"
+copy /y "!HERMES_HOME!\SOUL.md" "!HERMES_HOME!\SOUL.default.md" >nul 2>&1
 
 REM -- Skills maison livrees avec l'installeur (audit-livraison, etc.)
 if exist "%INSTALLER_DIR%skills" (
@@ -395,6 +402,8 @@ set "PS_HERMES=%WORKSPACE%\Lancer-Hermes.ps1"
 REM -- README principal
 (
 echo # Hermes-%PRENOM% - Espace de travail
+echo.
+echo Installe avec Hermes Hub v%HERMES_VERSION%
 echo.
 echo ## Structure
 echo - Vault/           - Coffre memoire ^(cerveau long terme^)
@@ -543,6 +552,8 @@ mkdir "!HERMES_HOME!\memories" 2>nul
 (
 echo # Qui je suis
 echo.
+echo ^<^!-- Hermes Hub v%HERMES_VERSION% - modifiable depuis le Hub, Configuration ^> Memoire --^>
+echo.
 echo - Prenom : %PRENOM%
 echo - Metier ou role : %METIER%
 echo - Langue de travail : %LANGUE%
@@ -560,6 +571,7 @@ echo.
 echo ## Pourquoi j'utilise Hermes
 echo - %RAISON%
 ) > "!HERMES_HOME!\memories\USER.md"
+copy /y "!HERMES_HOME!\memories\USER.md" "!HERMES_HOME!\memories\USER.default.md" >nul 2>&1
 echo   OK - Profil ecrit dans la memoire d'Hermes.
 exit /b 0
 
@@ -575,6 +587,8 @@ REM ================================================
 mkdir "!HERMES_HOME!\memories" 2>nul
 (
 echo # Regles de travail
+echo.
+echo ^<^!-- Hermes Hub v%HERMES_VERSION% - modifiable depuis le Hub, Configuration ^> Memoire --^>
 echo.
 echo ## JAMAIS
 echo - Prendre une decision irreversible sans mon accord
@@ -614,6 +628,9 @@ echo   - si oui, le peaufiner ensemble
 echo   - si non, me guider par questions
 echo - Valider le plan avec moi avant d'ecrire plan.md
 ) > "!HERMES_HOME!\memories\MEMORY.md"
+REM Copie de reference : c'est elle que le bouton "Version d'origine" du Hub
+REM restaure. Le Hub ne connait ainsi aucun texte par defaut.
+copy /y "!HERMES_HOME!\memories\MEMORY.md" "!HERMES_HOME!\memories\MEMORY.default.md" >nul 2>&1
 echo   OK - Regles ecrites dans la memoire d'Hermes.
 exit /b 0
 

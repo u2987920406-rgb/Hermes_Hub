@@ -803,6 +803,70 @@ function fichierMemoire(nom) {
   return entree
 }
 
+/**
+ * Rangement deterministe applique a chaque enregistrement : il normalise la
+ * mise en forme sans jamais toucher aux mots. Reformuler en silence serait un
+ * autre metier - on ecrirait autre chose que ce que l'utilisateur a tape, et
+ * sur des regles qui pilotent l'agent une nuance perdue change son
+ * comportement. Ca, c'est le bouton "Mettre au propre", et il demande l'accord.
+ */
+function rangerMarkdown(texte) {
+  const lignes = String(texte)
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((l) => l.replace(/\s+$/, '')) // espaces en fin de ligne
+    .map((l) => l.replace(/^(\s*)[*•]\s+/, '$1- ')) // puces homogenes
+
+  const sortie = []
+  for (const ligne of lignes) {
+    // Un titre respire : une ligne vide avant, jamais deux.
+    if (/^#{1,6}\s/.test(ligne) && sortie.length && sortie[sortie.length - 1] !== '') {
+      sortie.push('')
+    }
+    // Pas plus d'une ligne vide d'affilee.
+    if (ligne === '' && sortie.length && sortie[sortie.length - 1] === '') continue
+    sortie.push(ligne)
+  }
+
+  return sortie.join('\n').replace(/\n+$/, '') + '\n'
+}
+
+/**
+ * Demande a Hermes une version condensee, et ne fait que la renvoyer : c'est
+ * l'utilisateur qui decide de l'appliquer, apres l'avoir lue.
+ */
+function reformulerMemoire(nom, contenu) {
+  fichierMemoire(nom)
+  const consigne = [
+    'Tu remets au propre un fichier de memoire pour un agent IA.',
+    'Rends-le concis et bien range, en gardant EXACTEMENT le meme sens.',
+    "N'ajoute aucune regle, n'en retire aucune, ne change pas la force des",
+    'formulations ("jamais" reste "jamais").',
+    'Garde le markdown et les memes sections.',
+    'Reponds uniquement avec le contenu du fichier, sans commentaire ni balise.',
+    '',
+    '--- FICHIER ---',
+    String(contenu || ''),
+  ].join('\n')
+
+  const res = spawnSync('hermes', ['-z', consigne], {
+    windowsHide: true,
+    timeout: 180000,
+    encoding: 'utf8',
+    maxBuffer: 4 * 1024 * 1024,
+  })
+
+  const proposition = String(res.stdout || '').trim()
+  if (res.status !== 0 || !proposition) {
+    const err = new Error(
+      "Hermes n'a pas repondu. Le fichier n'a pas ete touche - reessaie, ou verifie le modele dans Diagnostic."
+    )
+    err.status = 502
+    throw err
+  }
+  return { file: nom, proposition: rangerMarkdown(proposition) }
+}
+
 /** Empreinte taille+date : sert a detecter une ecriture concurrente d'Hermes. */
 function empreinte(chemin) {
   try {
@@ -811,6 +875,15 @@ function empreinte(chemin) {
   } catch {
     return 'absent'
   }
+}
+
+/**
+ * Version d'origine, deposee par l'installateur a cote du fichier. Le Hub ne
+ * connait donc aucun texte par defaut : c'est l'installateur qui reste seul
+ * proprietaire du contenu livre, sinon les deux finiraient par diverger.
+ */
+function cheminOrigine(chemin) {
+  return chemin.replace(/\.md$/, '.default.md')
 }
 
 function lireMemoire(nom) {
@@ -825,7 +898,24 @@ function lireMemoire(nom) {
     content: existe ? fs.readFileSync(chemin, 'utf8') : '',
     stamp: empreinte(chemin),
     backup: fs.existsSync(chemin + '.bak'),
+    origine: fs.existsSync(cheminOrigine(chemin)),
   }
+}
+
+/** Repart de la version installee. L'etat courant part quand meme en .bak. */
+function reinitialiserMemoire(nom) {
+  const { chemin } = fichierMemoire(nom)
+  const origine = cheminOrigine(chemin)
+  if (!fs.existsSync(origine)) {
+    const err = new Error(
+      "Aucune version d'origine sur ce poste. Elle est deposee par l'installateur; une installation anterieure a la v1.0.0 n'en a pas."
+    )
+    err.status = 404
+    throw err
+  }
+  if (fs.existsSync(chemin)) fs.copyFileSync(chemin, chemin + '.bak')
+  fs.copyFileSync(origine, chemin)
+  return lireMemoire(nom)
 }
 
 /**
@@ -853,7 +943,7 @@ function ecrireMemoire(nom, contenu, stamp) {
 
   fs.mkdirSync(path.dirname(chemin), { recursive: true })
   if (fs.existsSync(chemin)) fs.copyFileSync(chemin, chemin + '.bak')
-  fs.writeFileSync(chemin, contenu, 'utf8')
+  fs.writeFileSync(chemin, rangerMarkdown(contenu), 'utf8')
   return lireMemoire(nom)
 }
 
@@ -1065,6 +1155,13 @@ async function handleApi(req, res, url) {
     if (method === 'GET') return sendJson(res, 200, lireMemoire(nom))
     if (rest[2] === 'restore' && method === 'POST') {
       return sendJson(res, 200, restaurerMemoire(nom))
+    }
+    if (rest[2] === 'reset' && method === 'POST') {
+      return sendJson(res, 200, reinitialiserMemoire(nom))
+    }
+    if (rest[2] === 'reformuler' && method === 'POST') {
+      const body = await readBody(req)
+      return sendJson(res, 200, reformulerMemoire(nom, body.content))
     }
     if (method === 'PUT') {
       const body = await readBody(req)

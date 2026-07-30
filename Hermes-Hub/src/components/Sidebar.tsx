@@ -126,6 +126,7 @@ export function Sidebar({ current, onNavigate, open, onClose, onRechercher }: Si
   const connected = useHubStore((s) => s.connected)
   const workspace = useHubStore((s) => s.workspace)
   const trash = useHubStore((s) => s.trash)
+  const version = useHubStore((s) => s.version)
 
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -175,6 +176,7 @@ export function Sidebar({ current, onNavigate, open, onClose, onRechercher }: Si
           <img src="./hermes-hub.png" alt="" className="h-10 w-10 flex-shrink-0 object-contain" />
           <div className={`min-w-0 flex-1 ${collapsed ? 'lg:hidden' : ''}`}>
             <h1 className="truncate text-base font-bold text-white">Hermes Hub</h1>
+            {version && <p className="truncate text-[10px] text-slate-400">v{version}</p>}
           </div>
           <button
             onClick={toggle}
