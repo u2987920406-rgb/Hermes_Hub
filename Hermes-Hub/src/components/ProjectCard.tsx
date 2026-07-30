@@ -97,8 +97,8 @@ export function ProjectCard({ project, onOpen }: Props) {
           <button
             onClick={() => setConfirming(true)}
             className="btn-ghost px-2.5 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
-            title="Supprimer le projet"
-            aria-label="Supprimer le projet"
+            title="Mettre le projet a la corbeille"
+            aria-label="Mettre le projet a la corbeille"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -107,21 +107,21 @@ export function ProjectCard({ project, onOpen }: Props) {
 
       {confirming && (
         <ConfirmDialog
-          title="Supprimer ce projet ?"
+          title="Mettre ce projet a la corbeille ?"
           danger
           busy={busy}
-          confirmLabel="Supprimer definitivement"
+          confirmLabel="Mettre a la corbeille"
           onConfirm={remove}
           onClose={() => setConfirming(false)}
           message={
             <>
               <p>
                 Le dossier <strong>{project.name}</strong> et ses {project.files.length} fichiers
-                seront effaces du disque.
+                partent dans la corbeille Windows.
               </p>
               <p className="mt-2 break-all font-mono text-[11px]">{project.path}</p>
-              <p className="mt-2 font-medium text-red-600 dark:text-red-400">
-                Cette action est irreversible.
+              <p className="mt-2 muted">
+                Tu peux les restaurer depuis la corbeille tant qu'elle n'a pas ete videe.
               </p>
             </>
           }

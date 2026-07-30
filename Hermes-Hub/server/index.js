@@ -7,7 +7,7 @@
  *
  *   node server/index.js [--port 4317] [--open]
  */
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import http from 'node:http'
 import os from 'node:os'
@@ -288,6 +288,36 @@ function updateProject(id, patch) {
   return readProject(current)
 }
 
+/**
+ * Envoie un fichier ou un dossier a la corbeille Windows.
+ *
+ * Le bouton de suppression est a cote de "Lancer Hermes" sur une carte : une
+ * erreur de clic doit rester rattrapable. fs.rmSync effacait definitivement.
+ * Si la corbeille est indisponible, on echoue plutot que de supprimer sans
+ * retour possible - l'utilisateur garde l'explorateur pour forcer.
+ */
+function recycle(target, kind) {
+  const method = kind === 'dir' ? 'DeleteDirectory' : 'DeleteFile'
+  // Le chemin passe par l'environnement: aucun probleme de guillemets ou
+  // d'apostrophe dans un nom de projet.
+  const script =
+    'Add-Type -AssemblyName Microsoft.VisualBasic; ' +
+    `[Microsoft.VisualBasic.FileIO.FileSystem]::${method}(` +
+    "$env:HUB_RECYCLE_TARGET, 'OnlyErrorDialogs', 'SendToRecycleBin')"
+
+  const res = spawnSync(
+    'powershell',
+    ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
+    { env: { ...process.env, HUB_RECYCLE_TARGET: target }, windowsHide: true }
+  )
+
+  if (res.status !== 0) {
+    const err = new Error("Impossible d'envoyer a la corbeille Windows. Rien n'a ete supprime.")
+    err.status = 500
+    throw err
+  }
+}
+
 function deleteProject(id) {
   const dir = safeJoin(PROJECTS_DIR, id)
   if (!fs.existsSync(dir)) {
@@ -295,8 +325,8 @@ function deleteProject(id) {
     err.status = 404
     throw err
   }
-  fs.rmSync(dir, { recursive: true, force: true })
-  return { deleted: id }
+  recycle(dir, 'dir')
+  return { deleted: id, recycled: true }
 }
 
 function readProjectFile(id, file) {
@@ -407,8 +437,8 @@ function deleteVaultNote(rel) {
     err.status = 404
     throw err
   }
-  fs.rmSync(target, { force: true })
-  return { deleted: rel }
+  recycle(target, 'file')
+  return { deleted: rel, recycled: true }
 }
 
 // -----------------------------------------------------------------------------

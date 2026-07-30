@@ -259,18 +259,19 @@ export function VaultView({ onMenu }: Props) {
 
       {deleting && (
         <ConfirmDialog
-          title="Supprimer cette note ?"
+          title="Mettre cette note a la corbeille ?"
           danger
-          confirmLabel="Supprimer"
+          confirmLabel="Mettre a la corbeille"
           onConfirm={confirmDelete}
           onClose={() => setDeleting(null)}
           message={
             <>
               <p>
-                Le fichier <strong>{deleting}</strong> sera efface du vault Obsidian.
+                Le fichier <strong>{deleting}</strong> quitte le vault Obsidian pour la corbeille
+                Windows.
               </p>
-              <p className="mt-2 font-medium text-red-600 dark:text-red-400">
-                Cette action est irreversible.
+              <p className="mt-2 muted">
+                Tu peux le restaurer depuis la corbeille tant qu'elle n'a pas ete videe.
               </p>
             </>
           }

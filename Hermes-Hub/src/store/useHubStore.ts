@@ -155,7 +155,7 @@ export const useHubStore = create<HubState>((set, get) => {
     deleteProject: async (id) => {
       const res = await withError(() => api.deleteProject(id), null)
       if (res) {
-        notify('success', `Projet "${id}" supprime du disque.`)
+        notify('success', `Projet "${id}" envoye a la corbeille Windows.`)
         await get().refresh()
         return true
       }
@@ -214,7 +214,7 @@ export const useHubStore = create<HubState>((set, get) => {
     deleteNote: async (path) => {
       const res = await withError(() => api.deleteNote(path), null)
       if (res) {
-        notify('success', 'Note supprimee.')
+        notify('success', 'Note envoyee a la corbeille Windows.')
         await get().refreshVault()
         return true
       }
