@@ -22,7 +22,7 @@ export function HomeView({ onNavigate, onMenu }: Props) {
     { label: 'Projets', value: stats?.projects ?? 0, icon: FolderOpen, tone: 'text-sky-600 bg-sky-100 dark:bg-sky-500/15 dark:text-sky-300' },
     { label: 'En cours', value: stats?.active ?? 0, icon: Play, tone: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-300' },
     { label: 'Termines', value: stats?.done ?? 0, icon: CheckCircle2, tone: 'text-violet-600 bg-violet-100 dark:bg-violet-500/15 dark:text-violet-300' },
-    { label: 'Notes vault', value: stats?.notes ?? 0, icon: BookOpen, tone: 'text-gold-600 bg-gold-300/40 dark:bg-gold-500/15 dark:text-gold-300' },
+    { label: 'Notes du coffre', value: stats?.notes ?? 0, icon: BookOpen, tone: 'text-gold-600 bg-gold-300/40 dark:bg-gold-500/15 dark:text-gold-300' },
   ]
 
   return (

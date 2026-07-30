@@ -4,7 +4,7 @@
 - Liste de projets visuelle avec statut (En cours / Terminé / Factory Setup)
 - Lancement d'Hermes par clic sur un projet
 - Mode Hermes Factory Setup (session sans mémoire, vierge)
-- Accès au Vault Obsidian
+- Accès au Coffre Obsidian
 - Gestion de la configuration mémoire/profil
 
 ## Architecture
@@ -46,7 +46,7 @@ Hermes-Hub/
 │   │   ├── ProjectCard.tsx    # Carte projet
 │   │   ├── HomeView.tsx       # Vue d'accueil
 │   │   ├── FactoryView.tsx    # Vue Hermes Factory Setup
-│   │   ├── VaultView.tsx      # Vue Vault Obsidian
+│   │   ├── VaultView.tsx      # Vue Coffre Obsidian
 │   │   └── ConfigView.tsx     # Vue configuration
 │   ├── hooks/         # Hooks personnalisés
 │   ├── store/         # Zustand state management
@@ -76,7 +76,7 @@ Hermes-Hub/
 - Liste des projets récents
 - Bouton "Nouveau Projet"
 - Lien direct vers Hermes Factory Setup
-- Lien direct vers Vault Obsidian
+- Lien direct vers Coffre Obsidian
 
 ### Vue Projets
 - Grille de cartes de projets
@@ -90,8 +90,8 @@ Hermes-Hub/
 - Bouton "Lancer Hermes Factory Setup"
 - Après utilisation, option pour sauvegarder ou supprimer la session
 
-### Vue Vault Obsidian
-- Arbre des dossiers du vault
+### Vue Coffre Obsidian
+- Arbre des dossiers du coffre
 - Lien pour ouvrir Obsidian
 - Dossiers visibles : Scripts, Lessons, Decisions, Bugs, Projects, Changelogs
 

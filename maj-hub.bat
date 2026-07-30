@@ -9,7 +9,7 @@ echo  ============================================
 echo.
 echo  Met a jour l'interface d'une installation existante,
 echo  sans refaire l'installation complete ni toucher a
-echo  tes projets, ton vault ou ta memoire.
+echo  tes projets, ton coffre ou ta memoire.
 echo.
 
 REM -- Source: le Hub du depot (ou le dossier frere pour les copies anciennes)
@@ -104,7 +104,7 @@ echo  ============================================
 echo   MISE A JOUR TERMINEE
 echo  ============================================
 echo.
-echo  Tes projets, ton vault et ta memoire n'ont pas ete touches.
+echo  Tes projets, ton coffre et ta memoire n'ont pas ete touches.
 echo.
 echo  1. Double-clic sur "Hermes Hub" sur le Bureau
 echo  2. Dans le navigateur, Ctrl+F5 pour forcer le rechargement

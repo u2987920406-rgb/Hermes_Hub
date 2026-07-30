@@ -18,7 +18,7 @@ const EDITABLE: { key: keyof AppConfig; label: string; hint: string; placeholder
 const READONLY: { key: keyof AppConfig; label: string }[] = [
   { key: 'workspace', label: 'Dossier de travail' },
   { key: 'projectsPath', label: 'Dossier des projets' },
-  { key: 'vaultPath', label: 'Vault Obsidian' },
+  { key: 'vaultPath', label: 'Coffre Obsidian' },
 ]
 
 export function ConfigView({ onMenu }: Props) {
@@ -119,7 +119,7 @@ export function ConfigView({ onMenu }: Props) {
                 onClick={() => openFolder({ target: 'vault' })}
                 className="btn-ghost px-3 py-2 text-xs"
               >
-                <FolderOpen className="h-4 w-4" /> Ouvrir le vault
+                <FolderOpen className="h-4 w-4" /> Ouvrir le coffre
               </button>
             </div>
           </section>

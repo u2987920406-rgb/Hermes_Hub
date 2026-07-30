@@ -177,7 +177,7 @@ export const useHubStore = create<HubState>((set, get) => {
 
     openObsidian: async () => {
       const res = await withError(() => api.launchObsidian(), null)
-      if (res) notify('info', 'Obsidian demande a ouvrir le vault.')
+      if (res) notify('info', 'Obsidian demande a ouvrir le coffre.')
     },
 
     saveConfig: async (patch) => {

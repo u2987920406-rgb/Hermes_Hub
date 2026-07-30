@@ -89,7 +89,7 @@ export function VaultView({ onMenu }: Props) {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <PageHeader
-        title="Vault Obsidian"
+        title="Coffre Obsidian"
         subtitle={`${totalNotes} note${totalNotes > 1 ? 's' : ''} dans ${vault.length} dossiers`}
         icon={<BookOpen className="h-4 w-4 text-gold-500" />}
         onMenu={onMenu}
@@ -98,7 +98,7 @@ export function VaultView({ onMenu }: Props) {
             <button
               onClick={() => openFolder({ target: 'vault' })}
               className="btn-ghost hidden px-2.5 py-2 sm:inline-flex"
-              title="Ouvrir le dossier du vault"
+              title="Ouvrir le dossier du coffre"
             >
               <FolderOpen className="h-4 w-4" />
             </button>
@@ -267,7 +267,7 @@ export function VaultView({ onMenu }: Props) {
           message={
             <>
               <p>
-                Le fichier <strong>{deleting}</strong> quitte le vault Obsidian pour la corbeille
+                Le fichier <strong>{deleting}</strong> quitte le coffre Obsidian pour la corbeille
                 Windows.
               </p>
               <p className="mt-2 muted">

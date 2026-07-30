@@ -13,7 +13,7 @@ const NAV: { id: View; label: string; icon: typeof Home; accent: string }[] = [
   { id: 'home', label: 'Accueil', icon: Home, accent: 'text-sky-300' },
   { id: 'projects', label: 'Projets', icon: FolderOpen, accent: 'text-violet-300' },
   { id: 'clean', label: 'Clean Agent', icon: Sparkles, accent: 'text-teal-300' },
-  { id: 'vault', label: 'Vault Obsidian', icon: BookOpen, accent: 'text-gold-400' },
+  { id: 'vault', label: 'Coffre Obsidian', icon: BookOpen, accent: 'text-gold-400' },
   { id: 'config', label: 'Configuration', icon: Settings, accent: 'text-slate-300' },
 ]
 

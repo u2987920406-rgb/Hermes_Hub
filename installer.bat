@@ -237,15 +237,15 @@ mkdir "%WORKSPACE%\icons" 2>nul
 
 echo   OK - %WORKSPACE%
 
-REM == Etape 9: Vault Obsidian (templates) ==
+REM == Etape 9: Coffre Obsidian (templates) ==
 echo.
-echo [9/12] Creation du vault Obsidian...
+echo [9/12] Creation du coffre Obsidian...
 
 call :write_templates "%WORKSPACE%\Vault"
 
-REM -- README du vault
+REM -- README du coffre
 (
-echo # %PRENOM%-Vault - Cerveau long terme
+echo # Coffre Obsidian de %PRENOM% - Cerveau long terme
 echo.
 echo ## Structure
 echo - Projets/ - une note par projet
@@ -257,13 +257,13 @@ echo - Changelog/ - journal mensuel des changements IA
 echo - Templates/ - modeles de notes
 echo.
 echo ## Utilisation
-echo 1. Ouvre ce dossier comme vault dans Obsidian
-echo 2. Hermes nourrit le vault automatiquement apres chaque jalon
+echo 1. Ouvre ce dossier dans Obsidian ^(menu "Open folder as vault"^)
+echo 2. Hermes nourrit le coffre automatiquement apres chaque jalon
 echo 3. Revue mensuelle: verifier notes obsoletes
 ) > "%WORKSPACE%\Vault\README.md"
 
 echo {} > "%WORKSPACE%\Vault\.obsidian\app.json"
-echo   OK - Vault cree.
+echo   OK - Coffre cree.
 
 REM == Etape 9b: Copier Hermes Hub ==
 echo.
@@ -370,7 +370,7 @@ REM -- README principal
 echo # Hermes-%PRENOM% - Espace de travail
 echo.
 echo ## Structure
-echo - Vault/           - Vault Obsidian ^(cerveau long terme^)
+echo - Vault/           - Coffre Obsidian ^(cerveau long terme^)
 echo - Hermes-Clean-Memory/     - Dossier de test ^(profil vierge^)
 echo - Projets/         - Tes projets
 echo - Hermes-Hub/      - Interface web locale ^(serveur Node, http://127.0.0.1:4317^)
@@ -465,7 +465,7 @@ echo.
 echo  Ton dossier: %WORKSPACE%
 echo.
 echo  Contenu:
-echo   - Vault/              (Obsidian)
+echo   - Vault/              (coffre Obsidian)
 echo   - Hermes-Clean-Memory/        (tests)
 echo   - Projets/            (tes projets)
 echo   - Hermes-Hub/         (interface web locale + serveur)

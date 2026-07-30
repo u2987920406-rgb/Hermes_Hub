@@ -12,7 +12,7 @@ En un seul clic, l'installateur va :
 6. Configurer **Hermes** (modèle, provider, outils) — tu sera guidé
 7. Installer **Obsidian** (application de notes)
 8. Créer ton **workspace** Hermes-Raf dans tes Documents
-9. Créer le **Vault Obsidian** avec 6 templates
+9. Créer le **Coffre Obsidian** avec 6 templates
 10. Créer le dossier **Hermes Factory Setup** (session vierge, sans mémoire)
 11. Placer 3 raccourcis sur ton **Bureau** avec icônes
 

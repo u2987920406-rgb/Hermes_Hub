@@ -54,7 +54,7 @@ maj-hub.bat
 
 Il reconstruit l'interface si les sources sont presentes, trouve
 `Documents\Hermes-*`, arrete le Hub s'il tourne, puis remplace `dist/` et
-`server/`. Les projets, le vault, la memoire et les profils ne sont pas
+`server/`. Les projets, le coffre, la memoire et les profils ne sont pas
 touches. Relancer le Hub et faire Ctrl+F5 suffit ensuite.
 
 Pour verifier avant de distribuer que le build correspond bien aux sources :
@@ -83,7 +83,7 @@ Les 4 raccourcis sont places sur le **Bureau** mais pointent vers le workspace d
 
 ```
 Documents/Hermes-{Prenom}/
-  ├─ Vault/                  → Vault Obsidian (cerveau long terme)
+  ├─ Vault/                  → Coffre Obsidian (cerveau long terme)
   │   ├─ Projets/
   │   ├─ Lessons/
   │   ├─ Skills/
@@ -151,7 +151,11 @@ Les questions 6-10 (OS, éditeur, langages, frameworks, paquets) sont automatiqu
 - done.md → historique terminé
 - ADM.md → décisions + raisons (cumulatif, jamais effacé)
 
-## Vault Obsidian
+## Coffre Obsidian
+Le dossier s'appelle toujours `Vault/` sur le disque : c'est le terme d'Obsidian,
+et le renommer casserait les installations existantes. L'interface, elle, parle
+de coffre.
+
 - 7 dossiers: Projets, Lessons, Skills, Decisions, Bugs, Changelog, Templates
 - 6 templates avec champs YAML complets
 - Nourri automatiquement par Hermes après chaque jalon
