@@ -552,24 +552,29 @@ mkdir "!HERMES_HOME!\memories" 2>nul
 (
 echo # Qui je suis
 echo.
-echo ^<^!-- Hermes Hub v%HERMES_VERSION% - modifiable depuis le Hub, Configuration ^> Memoire --^>
+echo _Hermes Hub v%HERMES_VERSION% - modifiable depuis le Hub : Configuration ^> Memoire_
 echo.
-echo - Prenom : %PRENOM%
-echo - Metier ou role : %METIER%
-echo - Langue de travail : %LANGUE%
-echo - Style de reponse attendu : %STYLE%
-echo - Niveau en tech : %NIVEAU%
+REM Expansion differee (!VAR! et non %VAR%) : ces valeurs viennent de l'
+REM utilisateur. Avec %VAR%, une reponse contenant ^& ou une parenthese est
+REM relue par cmd comme du code - "commerce ^& marketing" ecrivait "commerce"
+REM puis tentait d'executer "marketing". Avec !VAR!, la substitution a lieu
+REM apres l'analyse : le texte reste du texte.
+echo - Prenom : !PRENOM!
+echo - Metier ou role : !METIER!
+echo - Langue de travail : !LANGUE!
+echo - Style de reponse attendu : !STYLE!
+echo - Niveau en tech : !NIVEAU!
 echo.
 echo ## Ce sur quoi je travaille
-echo - En ce moment : %PROJET_ACTUEL%
-echo - Type de projets : %TYPE_PROJET%
+echo - En ce moment : !PROJET_ACTUEL!
+echo - Type de projets : !TYPE_PROJET!
 echo.
 echo ## Mes objectifs
-echo - Dans 1 mois : %OBJECTIF_1M%
-echo - Dans 6 a 12 mois : %OBJECTIF_6M%
+echo - Dans 1 mois : !OBJECTIF_1M!
+echo - Dans 6 a 12 mois : !OBJECTIF_6M!
 echo.
 echo ## Pourquoi j'utilise Hermes
-echo - %RAISON%
+echo - !RAISON!
 ) > "!HERMES_HOME!\memories\USER.md"
 copy /y "!HERMES_HOME!\memories\USER.md" "!HERMES_HOME!\memories\USER.default.md" >nul 2>&1
 echo   OK - Profil ecrit dans la memoire d'Hermes.
@@ -588,7 +593,7 @@ mkdir "!HERMES_HOME!\memories" 2>nul
 (
 echo # Regles de travail
 echo.
-echo ^<^!-- Hermes Hub v%HERMES_VERSION% - modifiable depuis le Hub, Configuration ^> Memoire --^>
+echo _Hermes Hub v%HERMES_VERSION% - modifiable depuis le Hub : Configuration ^> Memoire_
 echo.
 echo ## JAMAIS
 echo - Prendre une decision irreversible sans mon accord
