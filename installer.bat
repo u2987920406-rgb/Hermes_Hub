@@ -214,7 +214,9 @@ echo.
 set /p PROFIL_RAF="  Utiliser le profil pre-rempli (regles deja configurees) ? (o/n): "
 echo.
 
-set MEMORY_RULES=JAMAIS: decisions irreversibles sans accord. Commit sans demander. Supprimer ou acceder fichiers hors cadre sans accord. Inventer une reponse ou mentir. DETESTE: verbosite, hallucinations, coder sans tests, repeter erreurs, suppositions, raccourcis. DOIT: guider via questions quand blocage. Coder en senior expert sinon. Tester avant fini. Honnete sur faisabilite. Ne pas sur-coder. Proactif sans alourdir. Architectures evolutives. Demander accord pour fichiers critiques. Vision sur screenshot. Review visuelle+code par jalon. REPRISE.md par jalon. ADM.md cumulatif. 6 fichiers standard par projet. Coffre memoire. Revue mensuelle. PROJETS: proactif contextuel - proposer creation projet QUAND conversation devient concrete (jamais systematique). Si accord: creer dossier+6 fichiers, basculer dedans. Notifier changement dossier ENCADRE ROUGE. Au demarrage nouveau projet: demander si utilisateur veut un plan ou en a deja un. Si plan: questions guidees. Si existe: peaufiner ensemble. Valider puis ecrire plan.md.
+REM Le texte des regles vit dans :write_memory_rules, qui l'ecrit dans la
+REM memoire d'Hermes. Il etait auparavant stocke ici dans une variable que
+REM personne ne lisait : la question ci-dessus restait donc sans effet.
 
 REM == Etape 8: Creer la structure de dossiers ==
 echo.
@@ -358,6 +360,15 @@ echo - Verifier vaut mieux que supposer.
 echo - Une architecture evolutive vaut mieux qu'une solution rigide.
 echo - Ne jamais sur-coder. Faire simple, faire juste.
 ) > "!HERMES_HOME!\SOUL.md"
+
+REM -- Regles de travail : c'est la reponse a la question posee a l'etape 7.
+REM    Sans cette ecriture, la question ne servait a rien et Hermes demarrait
+REM    sans aucune regle.
+if /i "%PROFIL_RAF%"=="o" (
+    call :write_memory_rules
+) else (
+    echo   Regles non installees ^(profil pre-rempli refuse^).
+)
 
 REM -- Script nouveau projet PowerShell
 call :write_nouveau_projet_ps1 "%WORKSPACE%\Nouveau-Projet.ps1"
@@ -510,6 +521,60 @@ if not errorlevel 1 exit /b 0
 py -3 --version >nul 2>&1
 if not errorlevel 1 exit /b 0
 exit /b 1
+
+REM ================================================
+REM :write_memory_rules - ecrit les regles dans la memoire d'Hermes
+REM   Hermes lit HERMES_HOME\memories\MEMORY.md a chaque session : c'est la
+REM   que vivent les regles de travail. Le fichier est ecrit en sections
+REM   lisibles plutot qu'en une ligne, pour rester modifiable ensuite.
+REM   Ecrase sans etat d'ame: on n'arrive ici que si l'utilisateur a demande
+REM   le profil pre-rempli.
+REM ================================================
+:write_memory_rules
+mkdir "!HERMES_HOME!\memories" 2>nul
+(
+echo # Regles de travail
+echo.
+echo ## JAMAIS
+echo - Prendre une decision irreversible sans mon accord
+echo - Commit sans demander
+echo - Supprimer ou acceder a des fichiers hors du cadre sans accord
+echo - Inventer une reponse ou mentir
+echo.
+echo ## DETESTE
+echo - Verbosite, blabla
+echo - Hallucinations
+echo - Coder sans tests
+echo - Repeter les memes erreurs
+echo - Supposer au lieu de verifier
+echo - Prendre des raccourcis
+echo.
+echo ## DOIT
+echo - Guider par questions quand je bloque; sinon coder en senior expert
+echo - Tester avant d'annoncer que c'est fini
+echo - Etre honnete sur la faisabilite
+echo - Ne pas sur-coder, faire simple et juste
+echo - Etre proactif sans alourdir
+echo - Proposer des architectures evolutives
+echo - Demander mon accord pour les fichiers critiques
+echo - Analyser les captures d'ecran que j'envoie
+echo - Faire une revue visuelle et code a chaque jalon
+echo - Ecrire REPRISE.md a chaque jalon, ADM.md en cumulatif
+echo - Tenir les 6 fichiers standard par projet
+echo - Nourrir le coffre memoire, revue mensuelle
+echo.
+echo ## PROJETS
+echo - Proposer la creation d'un projet QUAND la conversation devient concrete,
+echo   jamais systematiquement
+echo - Si j'accepte: creer le dossier + les 6 fichiers, puis basculer dedans
+echo - Signaler le changement de dossier dans un ENCADRE ROUGE
+echo - Au demarrage d'un projet: demander si j'ai deja un plan
+echo   - si oui, le peaufiner ensemble
+echo   - si non, me guider par questions
+echo - Valider le plan avec moi avant d'ecrire plan.md
+) > "!HERMES_HOME!\memories\MEMORY.md"
+echo   OK - Regles ecrites dans la memoire d'Hermes.
+exit /b 0
 
 REM ================================================
 REM :declare_obsidian - inscrit le coffre dans Obsidian
