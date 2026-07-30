@@ -1,8 +1,9 @@
-import { FolderOpen, RefreshCw, Save, Settings } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, FolderOpen, RefreshCw, Save, Settings } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { PageHeader } from '../components/PageHeader'
+import { api } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
-import type { AppConfig } from '../types'
+import type { AppConfig, Diagnostics } from '../types'
 
 interface Props {
   onMenu: () => void
@@ -27,6 +28,34 @@ const SKINS: { key: keyof AppConfig; label: string; hint: string }[] = [
   { key: 'skinProject', label: 'Projets', hint: 'Hermes lance sur un projet' },
 ]
 
+/** Une ligne de diagnostic : etat, valeur, et quoi faire si ca cloche. */
+function Ligne({
+  label,
+  ok,
+  valeur,
+  aide,
+}: {
+  label: string
+  ok: boolean
+  valeur: string
+  aide?: string
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      {ok ? (
+        <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-500" />
+      ) : (
+        <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
+      )}
+      <div className="min-w-0">
+        <p className="text-xs font-medium">{label}</p>
+        <p className="mt-0.5 break-all font-mono text-[11px] muted">{valeur}</p>
+        {aide && <p className="mt-0.5 text-[11px] text-amber-600 dark:text-amber-400">{aide}</p>}
+      </div>
+    </div>
+  )
+}
+
 export function ConfigView({ onMenu }: Props) {
   const config = useHubStore((s) => s.config)
   const skins = useHubStore((s) => s.skins)
@@ -38,10 +67,25 @@ export function ConfigView({ onMenu }: Props) {
 
   const [draft, setDraft] = useState<Partial<AppConfig>>({})
   const [saving, setSaving] = useState(false)
+  const [diag, setDiag] = useState<Diagnostics | null>(null)
 
   useEffect(() => {
     if (config) setDraft({ ...config })
   }, [config])
+
+  // Interroger Hermes coute ~1 s : on ne le fait qu'en ouvrant cette page.
+  useEffect(() => {
+    api.diagnostics().then(setDiag).catch(() => setDiag(null))
+  }, [])
+
+  // Un profil configure ici mais inconnu d'Hermes est une panne silencieuse :
+  // la session part sur le profil par defaut sans rien dire.
+  const profilsOk =
+    !diag ||
+    diag.profiles.length === 0 ||
+    ([config?.profile, config?.cleanProfile].filter(Boolean) as string[]).every((p) =>
+      diag.profiles.includes(p)
+    )
 
   const dirty = config
     ? [...EDITABLE, ...SKINS].some(({ key }) => (draft[key] ?? '') !== (config[key] ?? ''))
@@ -165,6 +209,47 @@ export function ConfigView({ onMenu }: Props) {
             <p className="mt-1 text-[11px] muted">
               Aussi accessible par l'icone lune en haut de l'accueil.
             </p>
+          </section>
+
+          <section className="card p-5">
+            <h3 className="mb-1 text-sm font-semibold">Diagnostic</h3>
+            <p className="mb-4 text-[11px] muted">
+              Ce qu'il faut verifier en premier quand quelque chose ne demarre pas.
+            </p>
+            {diag ? (
+              <div className="space-y-3">
+                <Ligne
+                  label="Hermes Agent"
+                  ok={!!diag.hermes}
+                  valeur={diag.hermes ?? 'introuvable dans le PATH'}
+                  aide={diag.hermes ? undefined : 'Relance installer.bat, puis rouvre ta session.'}
+                />
+                <Ligne label="Node.js" ok valeur={diag.node} />
+                <Ligne
+                  label="Windows Terminal"
+                  ok={diag.terminal}
+                  valeur={diag.terminal ? 'present' : 'absent'}
+                  aide={diag.terminal ? undefined : "Les sessions s'ouvriront dans une fenetre PowerShell classique."}
+                />
+                <Ligne
+                  label="Profils Hermes"
+                  ok={profilsOk}
+                  valeur={diag.profiles.length ? diag.profiles.join(', ') : 'aucun'}
+                  aide={
+                    profilsOk
+                      ? undefined
+                      : `Un profil configure plus haut n'existe pas chez Hermes : la session se lancera sur le profil par defaut.`
+                  }
+                />
+                <Ligne label="Serveur du Hub" ok valeur={`http://127.0.0.1:${diag.port}`} />
+                <div>
+                  <p className="text-xs font-medium">En cas d'echec au demarrage</p>
+                  <p className="mt-0.5 break-all font-mono text-[11px] muted">{diag.log}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-[11px] muted">Lecture de l'etat du systeme...</p>
+            )}
           </section>
 
           <section className="card p-5">

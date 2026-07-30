@@ -581,10 +581,22 @@ function detach(command, args, cwd) {
   child.unref()
 }
 
-function terminalPath() {
+/**
+ * `wt.exe` n'est pas un fichier ordinaire mais un alias d'execution
+ * d'application : un point d'analyse de 0 octet. `fs.existsSync` s'appuie sur
+ * `stat`, qui echoue en EACCES sur ces alias et repond donc "absent" alors que
+ * Windows Terminal est installe. `accessSync` en F_OK, lui, repond juste.
+ */
+function windowsTerminalPath() {
   const wt = path.join(os.homedir(), 'AppData', 'Local', 'Microsoft', 'WindowsApps', 'wt.exe')
-  return fs.existsSync(wt) ? wt : null
+  try {
+    fs.accessSync(wt, fs.constants.F_OK)
+    return wt
+  } catch {
+    return null
+  }
 }
+
 
 // Un skin est un identifiant de preset Hermes, jamais un chemin ni une commande.
 const SKIN_NAME = /^[a-z0-9][a-z0-9_-]{0,31}$/
@@ -602,6 +614,42 @@ const SKINS_CONNUS = [
   { name: 'sisyphus', description: 'Gris austere' },
   { name: 'charizard', description: 'Orange volcanique' },
 ]
+
+/**
+ * Etat de la machine, pour repondre a "pourquoi ca ne marche pas ?" sans
+ * ouvrir un terminal : c'est toujours l'un de ces quatre points qui manque.
+ */
+function diagnostics() {
+  const hermes = spawnSync('hermes', ['--version'], {
+    windowsHide: true,
+    timeout: 8000,
+    encoding: 'utf8',
+  })
+  const versionHermes = String(hermes.stdout || '')
+    .split(/\r?\n/)
+    .find((l) => l.trim())
+
+  const profils = spawnSync('hermes', ['profile', 'list'], {
+    windowsHide: true,
+    timeout: 8000,
+    encoding: 'utf8',
+  })
+  // "  ◆default         poolside/..." : le losange marque le profil actif.
+  const noms = String(profils.stdout || '')
+    .split(/\r?\n/)
+    .map((l) => l.trim().replace(/^◆/, '').split(/\s{2,}/)[0])
+    .filter((n) => n && /^[A-Za-z0-9._-]+$/.test(n) && n !== 'Profile')
+
+  return {
+    hermes: hermes.status === 0 && versionHermes ? versionHermes.trim() : null,
+    node: process.version,
+    terminal: windowsTerminalPath() !== null,
+    profiles: noms,
+    port: PORT,
+    hermesHome: path.join(process.env.LOCALAPPDATA || os.homedir(), 'hermes'),
+    log: path.join(WORKSPACE, 'Hermes-Hub', 'hub-erreurs.log'),
+  }
+}
 
 /**
  * Liste les skins d'Hermes, y compris ceux que l'utilisateur a deposes dans
@@ -657,7 +705,7 @@ function applySkin(skin, profile) {
 /** Open a terminal running `hermes` in `cwd`, with an optional profile. */
 function launchHermes({ cwd, profile }) {
   const cmd = profile ? `hermes -p ${profile}` : 'hermes'
-  const wt = terminalPath()
+  const wt = windowsTerminalPath()
   if (wt) {
     detach(wt, ['-d', cwd, 'powershell', '-NoExit', '-Command', cmd], cwd)
   } else {
@@ -705,6 +753,8 @@ async function handleApi(req, res, url) {
   }
 
   if (rest[0] === 'skins' && method === 'GET') return sendJson(res, 200, listSkins())
+
+  if (rest[0] === 'diagnostics' && method === 'GET') return sendJson(res, 200, diagnostics())
 
   if (rest[0] === 'trash') {
     if (!rest[1] && method === 'GET') return sendJson(res, 200, trashList())

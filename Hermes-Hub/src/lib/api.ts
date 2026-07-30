@@ -4,6 +4,7 @@
  */
 import type {
   AppConfig,
+  Diagnostics,
   Project,
   ProjectStatus,
   Skin,
@@ -52,6 +53,8 @@ export const api = {
     request<AppConfig>('/config', { method: 'PUT', body: body(patch) }),
 
   skins: () => request<Skin[]>('/skins'),
+
+  diagnostics: () => request<Diagnostics>('/diagnostics'),
 
   trash: () => request<TrashItem[]>('/trash'),
   restoreTrash: (id: string) =>

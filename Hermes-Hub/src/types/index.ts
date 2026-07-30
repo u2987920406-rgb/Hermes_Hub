@@ -32,6 +32,17 @@ export interface Skin {
   description: string
 }
 
+/** Etat de la machine, affiche dans Configuration. */
+export interface Diagnostics {
+  hermes: string | null
+  node: string
+  terminal: boolean
+  profiles: string[]
+  port: number
+  hermesHome: string
+  log: string
+}
+
 /** Element de la corbeille Windows provenant du workspace. */
 export interface TrashItem {
   id: string
