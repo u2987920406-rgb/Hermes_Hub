@@ -64,3 +64,5 @@ Apres redemarrage du terminal:
 - Si ca ne marche toujours pas, redemarre ton PC
 - Si Hermes affiche une erreur "uv trampoline", relance l'installateur
 - Verifie que Python et Node.js sont bien installes: `python --version` et `node --version`
+- Cas particuliers (script PowerShell bloque, Hermes corrompu, Hub qui ne
+  repond pas): voir `NOTES-DEPANNAGE.md`
