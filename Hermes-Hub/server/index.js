@@ -767,6 +767,109 @@ function openFile(target) {
 }
 
 // -----------------------------------------------------------------------------
+// Memoire et personnalite d'Hermes
+// -----------------------------------------------------------------------------
+
+const HERMES_HOME = path.join(process.env.LOCALAPPDATA || os.homedir(), 'hermes')
+
+// Trois fichiers, et trois seulement : ce sont du contenu, pas de la
+// configuration. Le modele, les cles et les providers restent la propriete de
+// `hermes setup` - deux sources pour un meme reglage finissent par diverger.
+const FICHIERS_MEMOIRE = {
+  'MEMORY.md': {
+    chemin: path.join(HERMES_HOME, 'memories', 'MEMORY.md'),
+    titre: 'Regles de travail',
+    aide: "Ce qu'Hermes doit, ne doit jamais, et deteste. Lu a chaque session.",
+  },
+  'USER.md': {
+    chemin: path.join(HERMES_HOME, 'memories', 'USER.md'),
+    titre: 'Ce qu-Hermes sait de toi',
+    aide: 'Ecrit par Hermes quand tu lui dis de memoriser quelque chose.',
+  },
+  'SOUL.md': {
+    chemin: path.join(HERMES_HOME, 'SOUL.md'),
+    titre: 'Personnalite',
+    aide: 'Le ton et la maniere d-etre d-Hermes.',
+  },
+}
+
+function fichierMemoire(nom) {
+  const entree = FICHIERS_MEMOIRE[nom]
+  if (!entree) {
+    const err = new Error('Fichier de memoire inconnu')
+    err.status = 400
+    throw err
+  }
+  return entree
+}
+
+/** Empreinte taille+date : sert a detecter une ecriture concurrente d'Hermes. */
+function empreinte(chemin) {
+  try {
+    const s = fs.statSync(chemin)
+    return `${s.size}-${Math.round(s.mtimeMs)}`
+  } catch {
+    return 'absent'
+  }
+}
+
+function lireMemoire(nom) {
+  const { chemin, titre, aide } = fichierMemoire(nom)
+  const existe = fs.existsSync(chemin)
+  return {
+    file: nom,
+    titre,
+    aide,
+    path: chemin,
+    exists: existe,
+    content: existe ? fs.readFileSync(chemin, 'utf8') : '',
+    stamp: empreinte(chemin),
+    backup: fs.existsSync(chemin + '.bak'),
+  }
+}
+
+/**
+ * Ecrit apres deux precautions :
+ * - refus si le fichier a bouge depuis la lecture. Hermes ecrit lui-meme dans
+ *   ces fichiers quand on lui dit "memorise ca" : sans ce controle, enregistrer
+ *   depuis le Hub effacerait ce qu'il vient d'apprendre.
+ * - copie de l'ancienne version en .bak, pour pouvoir revenir en arriere.
+ */
+function ecrireMemoire(nom, contenu, stamp) {
+  const { chemin } = fichierMemoire(nom)
+  if (typeof contenu !== 'string') {
+    const err = new Error('Contenu invalide')
+    err.status = 400
+    throw err
+  }
+  const actuel = empreinte(chemin)
+  if (stamp && stamp !== actuel) {
+    const err = new Error(
+      "Hermes a modifie ce fichier pendant ton edition. Recharge la page pour repartir de sa version, sinon tu effacerais ce qu'il vient d'apprendre."
+    )
+    err.status = 409
+    throw err
+  }
+
+  fs.mkdirSync(path.dirname(chemin), { recursive: true })
+  if (fs.existsSync(chemin)) fs.copyFileSync(chemin, chemin + '.bak')
+  fs.writeFileSync(chemin, contenu, 'utf8')
+  return lireMemoire(nom)
+}
+
+/** Revient a la version d'avant le dernier enregistrement. */
+function restaurerMemoire(nom) {
+  const { chemin } = fichierMemoire(nom)
+  if (!fs.existsSync(chemin + '.bak')) {
+    const err = new Error('Aucune version precedente a restaurer.')
+    err.status = 404
+    throw err
+  }
+  fs.copyFileSync(chemin + '.bak', chemin)
+  return lireMemoire(nom)
+}
+
+// -----------------------------------------------------------------------------
 // Demarrage avec Windows
 // -----------------------------------------------------------------------------
 
@@ -954,6 +1057,18 @@ async function handleApi(req, res, url) {
     }
     if (rest[1] === 'log') {
       return sendJson(res, 200, openFile(path.join(WORKSPACE, 'Hermes-Hub', 'hub-erreurs.log')))
+    }
+  }
+
+  if (rest[0] === 'memory' && rest[1]) {
+    const nom = decodeURIComponent(rest[1])
+    if (method === 'GET') return sendJson(res, 200, lireMemoire(nom))
+    if (rest[2] === 'restore' && method === 'POST') {
+      return sendJson(res, 200, restaurerMemoire(nom))
+    }
+    if (method === 'PUT') {
+      const body = await readBody(req)
+      return sendJson(res, 200, ecrireMemoire(nom, body.content, body.stamp))
     }
   }
 

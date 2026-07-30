@@ -1,9 +1,11 @@
 import {
   Activity,
   AlertTriangle,
+  BrainCircuit,
   CheckCircle2,
   FileText,
   FolderOpen,
+  RotateCcw,
   Info,
   Palette,
   RefreshCw,
@@ -16,8 +18,8 @@ import { useEffect, useState } from 'react'
 import { PageHeader } from '../components/PageHeader'
 import { api } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
-import type { AppConfig, Diagnostics, Theme } from '../types'
-import { THEMES } from '../types'
+import type { AppConfig, Diagnostics, MemoryFile, Theme } from '../types'
+import { FICHIERS_MEMOIRE, THEMES } from '../types'
 
 interface Props {
   onMenu: () => void
@@ -38,10 +40,18 @@ const READONLY: { key: keyof AppConfig; label: string }[] = [
 
 // Une section = un volet. La liste est plate : avec six entrees sans
 // sous-niveaux, un accordeon ajouterait un clic sans rien apporter.
-type Onglet = 'general' | 'terminal' | 'apparence' | 'diagnostic' | 'emplacements' | 'apropos'
+type Onglet =
+  | 'general'
+  | 'memoire'
+  | 'terminal'
+  | 'apparence'
+  | 'diagnostic'
+  | 'emplacements'
+  | 'apropos'
 
 const SECTIONS: { id: Onglet; label: string; icon: typeof Settings }[] = [
   { id: 'general', label: 'General', icon: SlidersHorizontal },
+  { id: 'memoire', label: 'Memoire et personnalite', icon: BrainCircuit },
   { id: 'terminal', label: 'Terminal Hermes', icon: TerminalIcon },
   { id: 'apparence', label: 'Apparence', icon: Palette },
   { id: 'diagnostic', label: 'Diagnostic', icon: Activity },
@@ -102,6 +112,9 @@ export function ConfigView({ onMenu }: Props) {
   const [diag, setDiag] = useState<Diagnostics | null>(null)
   const [onglet, setOnglet] = useState<Onglet>('general')
   const [autoStart, setAutoStart] = useState(false)
+  const [fichier, setFichier] = useState<string>('MEMORY.md')
+  const [memoire, setMemoire] = useState<MemoryFile | null>(null)
+  const [texteMemoire, setTexteMemoire] = useState('')
 
   useEffect(() => {
     api
@@ -109,6 +122,42 @@ export function ConfigView({ onMenu }: Props) {
       .then((r) => setAutoStart(r.enabled))
       .catch(() => setAutoStart(false))
   }, [])
+
+  // Relu a chaque ouverture de l'onglet : Hermes ecrit dans ces fichiers entre
+  // deux visites, on ne travaille jamais sur une version perimee.
+  useEffect(() => {
+    if (onglet !== 'memoire') return
+    api
+      .readMemory(fichier)
+      .then((m) => {
+        setMemoire(m)
+        setTexteMemoire(m.content)
+      })
+      .catch(() => setMemoire(null))
+  }, [onglet, fichier])
+
+  const enregistrerMemoire = async () => {
+    if (!memoire) return
+    try {
+      const m = await api.writeMemory(fichier, texteMemoire, memoire.stamp)
+      setMemoire(m)
+      setTexteMemoire(m.content)
+      notify('success', `${fichier} enregistre.`)
+    } catch (err) {
+      notify('error', err instanceof Error ? err.message : 'Enregistrement impossible')
+    }
+  }
+
+  const restaurerMemoire = async () => {
+    try {
+      const m = await api.restoreMemory(fichier)
+      setMemoire(m)
+      setTexteMemoire(m.content)
+      notify('success', 'Version precedente restauree.')
+    } catch (err) {
+      notify('error', err instanceof Error ? err.message : 'Restauration impossible')
+    }
+  }
 
   const basculerDemarrage = async (actif: boolean) => {
     try {
@@ -294,6 +343,66 @@ export function ConfigView({ onMenu }: Props) {
               })}
             </div>
 
+          </section>
+          )}
+
+          {onglet === 'memoire' && (
+          <section className="card p-5">
+            <h3 className="mb-1 text-sm font-semibold">Memoire et personnalite</h3>
+            <p className="mb-4 text-[11px] muted">
+              Le contenu qu'Hermes relit a chaque session. Ce sont ses regles, pas ses reglages
+              techniques : le modele et les cles restent du ressort de "hermes setup".
+            </p>
+
+            <div className="mb-4 flex flex-wrap gap-1">
+              {FICHIERS_MEMOIRE.map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFichier(f)}
+                  className={`rounded-lg px-3 py-1.5 font-mono text-[11px] transition-colors ${
+                    fichier === f
+                      ? 'bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'
+                      : 'muted hover:bg-slate-100 dark:hover:bg-navy-800'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+
+            {memoire ? (
+              <>
+                <p className="text-xs font-medium">{memoire.titre}</p>
+                <p className="mt-0.5 text-[11px] muted">{memoire.aide}</p>
+                <textarea
+                  className="input mt-3 h-72 resize-y font-mono text-[11px] leading-relaxed"
+                  value={texteMemoire}
+                  onChange={(e) => setTexteMemoire(e.target.value)}
+                  spellCheck={false}
+                />
+                <p className="mt-1 break-all font-mono text-[10px] muted">{memoire.path}</p>
+                <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                  {memoire.backup && (
+                    <button
+                      onClick={() => void restaurerMemoire()}
+                      className="btn-ghost px-3 py-2 text-xs"
+                      title="Revenir a la version d'avant le dernier enregistrement"
+                    >
+                      <RotateCcw className="h-4 w-4" /> Version precedente
+                    </button>
+                  )}
+                  <button
+                    onClick={() => void enregistrerMemoire()}
+                    className="btn-primary px-3 py-2 text-xs"
+                    disabled={texteMemoire === memoire.content}
+                  >
+                    <Save className="h-4 w-4" /> Enregistrer ce fichier
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="text-[11px] muted">Lecture...</p>
+            )}
           </section>
           )}
 

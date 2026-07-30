@@ -361,6 +361,12 @@ echo - Une architecture evolutive vaut mieux qu'une solution rigide.
 echo - Ne jamais sur-coder. Faire simple, faire juste.
 ) > "!HERMES_HOME!\SOUL.md"
 
+REM -- Skills maison livrees avec l'installeur (audit-livraison, etc.)
+if exist "%INSTALLER_DIR%skills" (
+    xcopy "%INSTALLER_DIR%skills\*" "!HERMES_HOME!\skills\software-development\" /E /I /Y /Q >nul 2>&1
+    echo   OK - Skills maison installees.
+)
+
 REM -- Regles de travail : c'est la reponse a la question posee a l'etape 7.
 REM    Sans cette ecriture, la question ne servait a rien et Hermes demarrait
 REM    sans aucune regle.

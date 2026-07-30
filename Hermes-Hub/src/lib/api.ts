@@ -5,6 +5,7 @@
 import type {
   AppConfig,
   Diagnostics,
+  MemoryFile,
   Project,
   ProjectStatus,
   Skin,
@@ -55,6 +56,12 @@ export const api = {
   skins: () => request<Skin[]>('/skins'),
 
   diagnostics: () => request<Diagnostics>('/diagnostics'),
+
+  readMemory: (file: string) => request<MemoryFile>(`/memory/${enc(file)}`),
+  writeMemory: (file: string, content: string, stamp: string) =>
+    request<MemoryFile>(`/memory/${enc(file)}`, { method: 'PUT', body: body({ content, stamp }) }),
+  restoreMemory: (file: string) =>
+    request<MemoryFile>(`/memory/${enc(file)}/restore`, { method: 'POST', body: body({}) }),
 
   autoStart: () => request<{ enabled: boolean; path: string }>('/autostart'),
   setAutoStart: (enabled: boolean) =>

@@ -56,6 +56,21 @@ export interface Diagnostics {
   log: string
 }
 
+/** Fichier de memoire ou de personnalite d'Hermes, editable depuis le Hub. */
+export interface MemoryFile {
+  file: string
+  titre: string
+  aide: string
+  path: string
+  exists: boolean
+  content: string
+  /** Taille + date : sert a refuser un enregistrement si Hermes a ecrit entre-temps. */
+  stamp: string
+  backup: boolean
+}
+
+export const FICHIERS_MEMOIRE = ['MEMORY.md', 'USER.md', 'SOUL.md'] as const
+
 /** Element de la corbeille Windows provenant du workspace. */
 export interface TrashItem {
   id: string
