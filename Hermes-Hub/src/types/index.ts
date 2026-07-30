@@ -49,6 +49,8 @@ export interface Skin {
 export interface Diagnostics {
   hermes: string | null
   node: string
+  git: string | null
+  bash: string | null
   terminal: boolean
   profiles: string[]
   port: number

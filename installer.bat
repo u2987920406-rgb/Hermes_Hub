@@ -13,7 +13,7 @@ setlocal EnableDelayedExpansion
 
 REM Version unique de la livraison : reprise dans les fichiers generes, pour
 REM savoir de quelle generation vient le profil d'un poste.
-set "HERMES_VERSION=1.0.0"
+set "HERMES_VERSION=1.0.1"
 
 echo.
 echo  ============================================
@@ -47,7 +47,7 @@ echo  Dossier de travail: %WORKSPACE%
 echo.
 
 REM == Etape 1: Installer Windows Terminal ==
-echo [1/12] Installation de Windows Terminal...
+echo [1/13] Installation de Windows Terminal...
 winget install Microsoft.WindowsTerminal --accept-source-agreements --accept-package-agreements
 echo   OK - Windows Terminal installe.
 echo   ^(Aussi disponible sur Microsoft Store: https://apps.microsoft.com/detail/9n0dx20hk701^)
@@ -60,7 +60,7 @@ if not defined WT_SESSION (
 )
 
 REM == Etape 2: Verifier Python ==
-echo [2/12] Verification de Python...
+echo [2/13] Verification de Python...
 call :has_python
 if errorlevel 1 (
     echo   Python non trouve. Installation via winget...
@@ -83,7 +83,7 @@ echo   OK - Python installe.
 
 REM == Etape 3: Verifier Node.js ==
 echo.
-echo [3/12] Verification de Node.js...
+echo [3/13] Verification de Node.js...
 node --version >nul 2>&1
 if errorlevel 1 (
     echo   Node.js non trouve. Installation via winget...
@@ -104,9 +104,35 @@ if errorlevel 1 (
 )
 echo   OK - Node.js installe.
 
+REM == Etape 3b: Git ==
+REM Pose avant Hermes, pour qu'il le trouve. Hermes s'en sert pour executer des
+REM commandes shell (bash.exe) et pour ses fonctions de depot. Son propre
+REM installateur sait sinon telecharger un PortableGit dans son coin, mais un
+REM git systeme evite le cas vecu ou git est present sans etre dans le PATH:
+REM "hermes doctor" le declare alors introuvable et les fonctions concernees
+REM sont hors service en silence.
+echo.
+echo [3b/13] Verification de Git...
+git --version >nul 2>&1
+if errorlevel 1 (
+    echo   Git non trouve. Installation via winget...
+    winget install Git.Git --accept-source-agreements --accept-package-agreements
+    call :refresh_path
+    git --version >nul 2>&1
+    if errorlevel 1 (
+        echo   ATTENTION: Git reste introuvable dans ce terminal.
+        echo   Ce n'est pas bloquant: Hermes telechargera sa propre copie.
+        echo   Rouvre une session Windows pour que git soit dans le PATH.
+    ) else (
+        echo   OK - Git installe.
+    )
+) else (
+    echo   OK - Git deja present.
+)
+
 REM == Etape 4: Installer uv puis Hermes ==
 echo.
-echo [4/12] Installation de Hermes Agent...
+echo [4/13] Installation de Hermes Agent...
 REM On teste que Hermes REPOND, pas seulement qu'il est dans le PATH : une
 REM suppression partielle laisse le shim hermes.exe en place alors que le
 REM paquet a disparu (ModuleNotFoundError). Avec "where hermes", l'installation
@@ -129,7 +155,7 @@ REM partielle, le remede est le meme (effacer hermes-agent et reinstaller).
 REM Avant, seule l'erreur trampoline declenchait la reparation et tout autre
 REM cas se contentait d'un avertissement, laissant l'installation continuer.
 echo.
-echo [4b/12] Verification de Hermes...
+echo [4b/13] Verification de Hermes...
 hermes --version >nul 2>&1
 if errorlevel 1 (
     echo   Hermes ne repond pas. Reinstallation propre...
@@ -159,13 +185,13 @@ if errorlevel 1 (
 )
 
 REM == Etape 5: Installer Obsidian ==
-echo [5/12] Installation de Obsidian...
+echo [5/13] Installation de Obsidian...
 winget install Obsidian.Obsidian --accept-source-agreements --accept-package-agreements
 echo   OK - Obsidian installe.
 
 REM == Etape 6: Setup Hermes ==
 echo.
-echo [6/12] Configuration de Hermes - modele, provider, cles API...
+echo [6/13] Configuration de Hermes - modele, provider, cles API...
 echo   Hermes va te guider. Tu pourras changer plus tard.
 echo.
 hermes setup
@@ -189,7 +215,7 @@ echo   OK - Hermes configure.
 
 REM == Etape 7: Questions personnelles ==
 echo.
-echo [7/12] Questions personnelles - ta memoire globale...
+echo [7/13] Questions personnelles - ta memoire globale...
 echo   Ces infos suivront dans TOUS tes projets.
 echo.
 echo   Ta memoire globale pourra etre modifiee a tout moment.
@@ -224,7 +250,7 @@ REM personne ne lisait : la question ci-dessus restait donc sans effet.
 
 REM == Etape 8: Creer la structure de dossiers ==
 echo.
-echo [8/12] Creation du dossier de travail...
+echo [8/13] Creation du dossier de travail...
 
 mkdir "%WORKSPACE%" 2>nul
 mkdir "%WORKSPACE%\Vault" 2>nul
@@ -245,7 +271,7 @@ echo   OK - %WORKSPACE%
 
 REM == Etape 9: Coffre memoire (templates) ==
 echo.
-echo [9/12] Creation du coffre memoire...
+echo [9/13] Creation du coffre memoire...
 
 call :write_templates "%WORKSPACE%\Vault"
 
@@ -277,7 +303,7 @@ call :declare_obsidian
 
 REM == Etape 9b: Copier Hermes Hub ==
 echo.
-echo [9b/12] Copie de Hermes Hub...
+echo [9b/13] Copie de Hermes Hub...
 
 set "HUB_OK=0"
 if exist "%HERMES_HUB_SRC%\dist\index.html" if exist "%HERMES_HUB_SRC%\server\index.js" if exist "%HERMES_HUB_SRC%\launcher\Hermes-Hub.vbs" set "HUB_OK=1"
@@ -302,7 +328,7 @@ if "%HUB_OK%"=="1" xcopy "%HERMES_HUB_SRC%\launcher\*" "%WORKSPACE%\Hermes-Hub\"
 
 REM == Etape 10: Dossier Hermes Clean Agent + bat ==
 echo.
-echo [10/12] Creation du dossier Hermes Clean Agent...
+echo [10/13] Creation du dossier Hermes Clean Agent...
 
 (
 echo # Hermes Clean Agent - Dossier de test
@@ -337,7 +363,7 @@ echo   OK - Hermes Clean Agent + profil clean crees.
 
 REM == Etape 11: SOUL.md + scripts + memoire ==
 echo.
-echo [11/12] Configuration finale...
+echo [11/13] Configuration finale...
 
 REM -- SOUL.md
 (
@@ -438,7 +464,7 @@ REM == Etape 12: Copier icones + raccourci sur le Bureau ==
 REM    Un seul raccourci: tout part du Hub. Les autres entrees (Hermes,
 REM    Clean Agent, nouveau projet) sont des boutons dans son interface.
 echo.
-echo [12/12] Raccourci Hermes Hub sur le Bureau...
+echo [12/13] Raccourci Hermes Hub sur le Bureau...
 
 set "SRC=%~dp0"
 set "ICONS_SRC=%SRC%icons"

@@ -36,7 +36,7 @@ const CONFIG_FILE = path.join(HUB_DIR, 'config.json')
 // Version livree. Ecrite ici et non lue dans package.json : le client ne
 // recoit que dist/ et server/. A tenir a jour avec version.json a la racine du
 // depot - voir RELEASE.md.
-const VERSION = '1.0.0'
+const VERSION = '1.0.1'
 
 const argv = process.argv.slice(2)
 const PORT = Number(argv[argv.indexOf('--port') + 1]) || Number(process.env.HUB_PORT) || 4317
@@ -668,15 +668,29 @@ function diagnostics() {
     timeout: 8000,
     encoding: 'utf8',
   })
-  // "  ◆default         poolside/..." : le losange marque le profil actif.
+  // Un losange marque le profil actif. On retire tout prefixe non
+  // alphanumerique plutot que ce caractere precis : selon la page de code de
+  // la console il arrive deforme, et le profil disparaissait alors de la liste
+  // - le Diagnostic signalait un profil manquant a tort.
   const noms = String(profils.stdout || '')
     .split(/\r?\n/)
-    .map((l) => l.trim().replace(/^◆/, '').split(/\s{2,}/)[0])
+    .map((l) => l.trim().replace(/^[^A-Za-z0-9]+/, '').split(/\s{2,}/)[0])
     .filter((n) => n && /^[A-Za-z0-9._-]+$/.test(n) && n !== 'Profile')
+
+  // git et bash : Hermes s'en sert pour ses commandes shell et ses fonctions
+  // de depot. Absents, ils ne bloquent rien mais desactivent ces fonctions en
+  // silence - d'ou leur presence ici.
+  const outil = (nom, args) => {
+    const r = spawnSync(nom, args, { windowsHide: true, timeout: 8000, encoding: 'utf8' })
+    if (r.status !== 0) return null
+    return String(r.stdout || '').split(/\r?\n/)[0].trim() || null
+  }
 
   return {
     hermes: hermes.status === 0 && versionHermes ? versionHermes.trim() : null,
     node: process.version,
+    git: outil('git', ['--version']),
+    bash: outil('bash', ['--version']),
     terminal: windowsTerminalPath() !== null,
     profiles: noms,
     port: PORT,

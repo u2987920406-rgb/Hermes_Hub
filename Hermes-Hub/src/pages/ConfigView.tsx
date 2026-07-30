@@ -564,6 +564,22 @@ export function ConfigView({ onMenu }: Props) {
                 />
                 <Ligne label="Node.js" ok valeur={diag.node} />
                 <Ligne
+                  label="Git"
+                  ok={!!diag.git}
+                  valeur={diag.git ?? 'introuvable dans le PATH'}
+                  aide={
+                    diag.git
+                      ? undefined
+                      : "Hermes fonctionne, mais ses commandes shell et ses fonctions de depot sont hors service. Installe Git, ou rouvre ta session s'il vient d'etre installe."
+                  }
+                />
+                <Ligne
+                  label="Bash"
+                  ok={!!diag.bash}
+                  valeur={diag.bash ?? 'introuvable'}
+                  aide={diag.bash ? undefined : "Fourni avec Git : c'est lui qu'Hermes utilise pour executer des commandes."}
+                />
+                <Ligne
                   label="Windows Terminal"
                   ok={diag.terminal}
                   valeur={diag.terminal ? 'present' : 'absent'}

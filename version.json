@@ -1,8 +1,8 @@
 {
-  "version": "1.0.0",
-  "tag": "v1.0.0",
+  "version": "1.0.1",
+  "tag": "v1.0.1",
   "hub_seul": true,
   "min_installer": "1.0.0",
-  "notes": "Premiere version complete : installation en un clic, Hub pilote depuis la zone de notification, coffre memoire declare dans Obsidian, corbeille recuperable, recherche Ctrl+K, epinglage, trois themes, edition de la memoire d'Hermes.",
-  "telechargement": "https://github.com/u2987920406-rgb/Hermes_Hub/archive/refs/tags/v1.0.0.zip"
+  "notes": "Etape Git ajoutee a l'installation : Hermes s'en sert pour ses commandes shell. Git et Bash apparaissent dans le Diagnostic. Correction : une reponse contenant & ou une parenthese cassait l'ecriture du profil.",
+  "telechargement": "https://github.com/u2987920406-rgb/Hermes_Hub/archive/refs/tags/v1.0.1.zip"
 }
