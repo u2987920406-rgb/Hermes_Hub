@@ -22,7 +22,9 @@ L'installateur suit cet ordre precis:
 8. **Questions personnelles** - Pose 9 questions pour construire ta memoire globale
 9. **Profil pre-rempli** - Demande si tu veux utiliser le profil pre-rempli (regles deja configurees)
 10. **Creation du workspace** - Cree le dossier `Documents\Hermes-<TonPrenom>` avec:
-    - Vault/ (coffre memoire, ouvert dans Obsidian, avec templates)
+    - Vault/ (coffre memoire, avec templates). Il est **declare
+      automatiquement dans Obsidian** : au premier lancement il est deja la,
+      il n'y a pas de "Open folder as vault" a faire.
     - Hermes-Clean-Memory/ (dossier de test avec profil vierge)
     - Projets/ (tes projets)
     - Hermes-Hub/ (interface web locale + son serveur)

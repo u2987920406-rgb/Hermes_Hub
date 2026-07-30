@@ -206,7 +206,7 @@ de coffre mémoire.
 - Revue mensuelle pour gérer l'obsolescence
 
 ## Après installation
-1. Ouvrir Obsidian → Open folder as vault → Vault/ (dans Documents/Hermes-{Prenom})
+1. Ouvrir Obsidian : le coffre y est déjà déclaré par l'installateur (voir `:declare_obsidian`)
 2. Double-clic sur "Hermes Hub" sur le Bureau (icône près de l'horloge pour l'arrêter)
 3. Bouton "Discuter avec Hermes" sur l'accueil du Hub
 4. Dire à Hermes de mémoriser tes infos (voir README dans le dossier créé)

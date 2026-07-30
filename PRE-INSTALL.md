@@ -25,7 +25,7 @@ En un seul clic, l'installateur va :
 
 ## Ce qui se passe après l'installation
 
-1. **Ouvre Obsidian** → "Open folder as vault" → sélectionne le dossier `Hermes-Raf/Vault` dans tes Documents
+1. **Ouvre Obsidian** → ton coffre est déjà déclaré par l'installateur, il apparaît directement (rien à sélectionner)
 2. **Double-clique** sur le raccourci "Hermes Hub" sur ton Bureau
 3. Clique sur "Discuter avec Hermes", tu tapes "Bonjour" et il te guide
 

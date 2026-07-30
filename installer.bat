@@ -257,13 +257,17 @@ echo - Changelog/ - journal mensuel des changements IA
 echo - Templates/ - modeles de notes
 echo.
 echo ## Utilisation
-echo 1. Ouvre ce dossier dans Obsidian ^(menu "Open folder as vault"^)
+echo 1. Ouvre Obsidian: ce coffre y est deja declare
 echo 2. Hermes nourrit le coffre automatiquement apres chaque jalon
 echo 3. Revue mensuelle: verifier notes obsoletes
 ) > "%WORKSPACE%\Vault\README.md"
 
 echo {} > "%WORKSPACE%\Vault\.obsidian\app.json"
 echo   OK - Coffre cree.
+
+REM -- Declarer le coffre dans Obsidian: sans ca il faut faire
+REM    "Open folder as vault" a la main, etape que beaucoup ratent.
+call :declare_obsidian
 
 REM == Etape 9b: Copier Hermes Hub ==
 echo.
@@ -385,7 +389,7 @@ echo - clean            - vierge, lance avec: .\Hermes-Clean-Memory\Lancer-Herme
 echo - projet-*         - isole, cree avec: .\Nouveau-Projet.ps1
 echo.
 echo ## Demarrage
-echo 1. Ouvre Obsidian - Open folder as vault - %WORKSPACE%\Vault
+echo 1. Ouvre Obsidian: ton coffre est deja declare, rien a configurer
 echo 2. Double-clic sur "Hermes Hub" sur le Bureau
 echo 3. Bouton "Discuter avec Hermes", puis dis-lui de memoriser tes infos
 echo.
@@ -467,7 +471,7 @@ echo   ouvrir le coffre. Le Hub ouvre http://127.0.0.1:4317 et pose une
 echo   icone pres de l'horloge (clic droit pour l'arreter).
 echo.
 echo  PROCHAINES ETAPES:
-echo   1. Ouvre Obsidian - Open folder as vault - %WORKSPACE%\Vault
+echo   1. Ouvre Obsidian: ton coffre est deja declare, rien a configurer
 echo   2. Double-clic sur "Hermes Hub" sur le Bureau
 echo   3. Bouton "Discuter avec Hermes" et dis-lui de memoriser tes infos
 echo.
@@ -506,6 +510,42 @@ if not errorlevel 1 exit /b 0
 py -3 --version >nul 2>&1
 if not errorlevel 1 exit /b 0
 exit /b 1
+
+REM ================================================
+REM :declare_obsidian - inscrit le coffre dans Obsidian
+REM   Obsidian tient la liste de ses coffres dans
+REM   %APPDATA%\obsidian\obsidian.json. En y ajoutant le notre, il apparait
+REM   directement au lancement: plus de "Open folder as vault" a la main.
+REM   Le fichier est fusionne, jamais ecrase - un utilisateur peut deja avoir
+REM   ses propres coffres. Et on ne s'impose comme coffre d'ouverture que si
+REM   c'est le premier: on ne detourne pas le coffre par defaut de quelqu'un.
+REM ================================================
+:declare_obsidian
+set "PS_OBS=%TEMP%\hermes_obsidian.ps1"
+> "%PS_OBS%" echo $vault = $env:HUB_VAULT
+>> "%PS_OBS%" echo $fichier = Join-Path $env:APPDATA 'obsidian\obsidian.json'
+>> "%PS_OBS%" echo $dossier = Split-Path $fichier
+>> "%PS_OBS%" echo if (-not (Test-Path $dossier)) { [void](New-Item -ItemType Directory -Force -Path $dossier) }
+>> "%PS_OBS%" echo $obj = $null
+>> "%PS_OBS%" echo if (Test-Path $fichier) { try { $obj = ConvertFrom-Json (Get-Content -LiteralPath $fichier -Raw) } catch { $obj = $null } }
+>> "%PS_OBS%" echo if (-not $obj) { $obj = New-Object PSObject }
+>> "%PS_OBS%" echo if (-not $obj.PSObject.Properties['vaults']) { Add-Member -InputObject $obj -MemberType NoteProperty -Name vaults -Value (New-Object PSObject) }
+>> "%PS_OBS%" echo $deja = $false
+>> "%PS_OBS%" echo $nb = 0
+>> "%PS_OBS%" echo foreach ($p in $obj.vaults.PSObject.Properties) { $nb = $nb + 1; if ($p.Value.path -eq $vault) { $deja = $true } }
+>> "%PS_OBS%" echo if ($deja) { Write-Output '  OK - Coffre deja connu d Obsidian.'; exit 0 }
+>> "%PS_OBS%" echo $entree = New-Object PSObject
+>> "%PS_OBS%" echo Add-Member -InputObject $entree -MemberType NoteProperty -Name path -Value $vault
+>> "%PS_OBS%" echo Add-Member -InputObject $entree -MemberType NoteProperty -Name ts -Value ([int64]([datetime]::UtcNow - [datetime]'1970-01-01').TotalMilliseconds)
+>> "%PS_OBS%" echo Add-Member -InputObject $entree -MemberType NoteProperty -Name open -Value ($nb -eq 0)
+>> "%PS_OBS%" echo $id = [guid]::NewGuid().ToString('N').Substring(0,16)
+>> "%PS_OBS%" echo Add-Member -InputObject $obj.vaults -MemberType NoteProperty -Name $id -Value $entree
+>> "%PS_OBS%" echo Set-Content -LiteralPath $fichier -Value (ConvertTo-Json -InputObject $obj -Depth 8) -Encoding UTF8
+>> "%PS_OBS%" echo Write-Output '  OK - Coffre declare dans Obsidian.'
+set "HUB_VAULT=%WORKSPACE%\Vault"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_OBS%"
+del "%PS_OBS%" >nul 2>&1
+exit /b 0
 
 REM ================================================
 REM :write_templates - ecrit les 6 templates
