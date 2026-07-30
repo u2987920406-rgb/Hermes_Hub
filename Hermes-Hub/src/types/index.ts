@@ -8,9 +8,20 @@ export interface Project {
   path: string
   createdAt: string
   lastUsed: string
+  /** Remonte en tete de la liste des projets. */
+  pinned: boolean
   files: string[]
   complete: boolean
 }
+
+/** `antique` : lin et pierre greco-romains, le menu lateral reste bleu nuit. */
+export type Theme = 'light' | 'dark' | 'antique'
+
+export const THEMES: { value: Theme; label: string }[] = [
+  { value: 'light', label: 'Clair' },
+  { value: 'dark', label: 'Sombre' },
+  { value: 'antique', label: 'Antique (greco-romain)' },
+]
 
 export interface AppConfig {
   workspace: string
@@ -19,7 +30,7 @@ export interface AppConfig {
   profile: string
   cleanProfile: string
   defaultModel: string
-  theme: 'light' | 'dark'
+  theme: Theme
   userName: string
   /** Couleur du terminal selon la porte d'entree (presets d'Hermes). */
   skinChat: string
@@ -30,6 +41,8 @@ export interface AppConfig {
 export interface Skin {
   name: string
   description: string
+  /** Bordure, titre, accent. Vide pour un skin perso inconnu du Hub. */
+  colors: string[]
 }
 
 /** Etat de la machine, affiche dans Configuration. */

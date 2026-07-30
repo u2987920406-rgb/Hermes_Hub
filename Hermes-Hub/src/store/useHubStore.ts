@@ -6,9 +6,11 @@ import type {
   ProjectStatus,
   Skin,
   Stats,
+  Theme,
   TrashItem,
   VaultFolder,
 } from '../types'
+import { THEMES } from '../types'
 
 export type ToastKind = 'success' | 'error' | 'info'
 
@@ -43,7 +45,7 @@ interface HubState {
   createProject: (input: { name: string; description?: string }) => Promise<Project | null>
   updateProject: (
     id: string,
-    patch: { name?: string; description?: string; status?: ProjectStatus },
+    patch: { name?: string; description?: string; status?: ProjectStatus; pinned?: boolean },
   ) => Promise<Project | null>
   deleteProject: (id: string) => Promise<boolean>
 
@@ -52,7 +54,7 @@ interface HubState {
   openObsidian: () => Promise<void>
 
   saveConfig: (patch: Partial<AppConfig>) => Promise<void>
-  setTheme: (theme: 'light' | 'dark') => void
+  setTheme: (theme: Theme) => void
 
   refreshVault: () => Promise<void>
   createNote: (input: { folder: string; title: string }) => Promise<boolean>
@@ -65,8 +67,9 @@ interface HubState {
 
 let toastSeq = 0
 
-export function applyTheme(theme: 'light' | 'dark') {
+export function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle('dark', theme === 'dark')
+  document.documentElement.classList.toggle('antique', theme === 'antique')
   try {
     localStorage.setItem('hermes-hub-theme', theme)
   } catch {
@@ -136,7 +139,7 @@ export const useHubStore = create<HubState>((set, get) => {
           skins,
           trash,
         })
-        applyTheme(config.theme === 'dark' ? 'dark' : 'light')
+        applyTheme(THEMES.some((t) => t.value === config.theme) ? config.theme : 'light')
       } catch (err) {
         set({ ready: true, connected: false })
         notify(

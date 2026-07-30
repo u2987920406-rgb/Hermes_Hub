@@ -7,9 +7,11 @@ import { useHubStore } from '../store/useHubStore'
 
 interface Props {
   onMenu: () => void
+  /** Note a ouvrir d'emblee, passee par l'URL (venant de la recherche). */
+  noteAOuvrir?: string | null
 }
 
-export function VaultView({ onMenu }: Props) {
+export function VaultView({ onMenu, noteAOuvrir }: Props) {
   const vault = useHubStore((s) => s.vault)
   const refreshVault = useHubStore((s) => s.refreshVault)
   const createNote = useHubStore((s) => s.createNote)
@@ -32,6 +34,17 @@ export function VaultView({ onMenu }: Props) {
   useEffect(() => {
     void refreshVault()
   }, [refreshVault])
+
+  // Arrivee depuis la recherche : on ouvre la note et on deplie son dossier.
+  useEffect(() => {
+    if (!noteAOuvrir) return
+    const dossier = noteAOuvrir.split('/')[0]
+    if (dossier) setOpenFolders((prev) => ({ ...prev, [dossier]: true }))
+    void open(noteAOuvrir)
+    // Volontairement lie au seul chemin : rouvrir a chaque frappe dans
+    // l'editeur ecraserait ce que l'utilisateur est en train de taper.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noteAOuvrir])
 
   const dirty = content !== original
 

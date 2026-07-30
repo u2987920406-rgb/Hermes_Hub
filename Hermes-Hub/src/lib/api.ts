@@ -56,6 +56,14 @@ export const api = {
 
   diagnostics: () => request<Diagnostics>('/diagnostics'),
 
+  autoStart: () => request<{ enabled: boolean; path: string }>('/autostart'),
+  setAutoStart: (enabled: boolean) =>
+    request<{ enabled: boolean; path: string }>('/autostart', {
+      method: 'POST',
+      body: body({ enabled }),
+    }),
+  openLog: () => request<{ opened: string }>('/open/log', { method: 'POST', body: body({}) }),
+
   trash: () => request<TrashItem[]>('/trash'),
   restoreTrash: (id: string) =>
     request<{ restored: string }>('/trash/restore', { method: 'POST', body: body({ id }) }),
@@ -68,7 +76,13 @@ export const api = {
     request<Project>('/projects', { method: 'POST', body: body(input) }),
   updateProject: (
     id: string,
-    patch: { name?: string; description?: string; status?: ProjectStatus; touch?: boolean },
+    patch: {
+      name?: string
+      description?: string
+      status?: ProjectStatus
+      touch?: boolean
+      pinned?: boolean
+    },
   ) => request<Project>(`/projects/${enc(id)}`, { method: 'PATCH', body: body(patch) }),
   deleteProject: (id: string) =>
     request<{ deleted: string }>(`/projects/${enc(id)}`, { method: 'DELETE' }),

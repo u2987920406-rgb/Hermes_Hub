@@ -1,9 +1,23 @@
-import { AlertTriangle, CheckCircle2, FolderOpen, RefreshCw, Save, Settings } from 'lucide-react'
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle2,
+  FileText,
+  FolderOpen,
+  Info,
+  Palette,
+  RefreshCw,
+  Save,
+  Settings,
+  SlidersHorizontal,
+  Terminal as TerminalIcon,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { PageHeader } from '../components/PageHeader'
 import { api } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
-import type { AppConfig, Diagnostics } from '../types'
+import type { AppConfig, Diagnostics, Theme } from '../types'
+import { THEMES } from '../types'
 
 interface Props {
   onMenu: () => void
@@ -21,6 +35,23 @@ const READONLY: { key: keyof AppConfig; label: string }[] = [
   { key: 'projectsPath', label: 'Dossier des projets' },
   { key: 'vaultPath', label: 'Coffre memoire' },
 ]
+
+// Une section = un volet. La liste est plate : avec six entrees sans
+// sous-niveaux, un accordeon ajouterait un clic sans rien apporter.
+type Onglet = 'general' | 'terminal' | 'apparence' | 'diagnostic' | 'emplacements' | 'apropos'
+
+const SECTIONS: { id: Onglet; label: string; icon: typeof Settings }[] = [
+  { id: 'general', label: 'General', icon: SlidersHorizontal },
+  { id: 'terminal', label: 'Terminal Hermes', icon: TerminalIcon },
+  { id: 'apparence', label: 'Apparence', icon: Palette },
+  { id: 'diagnostic', label: 'Diagnostic', icon: Activity },
+  { id: 'emplacements', label: 'Emplacements', icon: FolderOpen },
+  { id: 'apropos', label: 'A propos', icon: Info },
+]
+
+// Les seules sections dont les valeurs passent par "Enregistrer" : le theme
+// s'applique a la volee, le reste est en lecture seule.
+const SECTIONS_AVEC_CHAMPS: Onglet[] = ['general', 'terminal']
 
 const SKINS: { key: keyof AppConfig; label: string; hint: string }[] = [
   { key: 'skinChat', label: 'Discuter avec Hermes', hint: 'Session libre, avec ta memoire' },
@@ -60,6 +91,7 @@ export function ConfigView({ onMenu }: Props) {
   const config = useHubStore((s) => s.config)
   const skins = useHubStore((s) => s.skins)
   const version = useHubStore((s) => s.version)
+  const notify = useHubStore((s) => s.notify)
   const setTheme = useHubStore((s) => s.setTheme)
   const saveConfig = useHubStore((s) => s.saveConfig)
   const openFolder = useHubStore((s) => s.openFolder)
@@ -68,6 +100,25 @@ export function ConfigView({ onMenu }: Props) {
   const [draft, setDraft] = useState<Partial<AppConfig>>({})
   const [saving, setSaving] = useState(false)
   const [diag, setDiag] = useState<Diagnostics | null>(null)
+  const [onglet, setOnglet] = useState<Onglet>('general')
+  const [autoStart, setAutoStart] = useState(false)
+
+  useEffect(() => {
+    api
+      .autoStart()
+      .then((r) => setAutoStart(r.enabled))
+      .catch(() => setAutoStart(false))
+  }, [])
+
+  const basculerDemarrage = async (actif: boolean) => {
+    try {
+      const r = await api.setAutoStart(actif)
+      setAutoStart(r.enabled)
+      notify('success', r.enabled ? 'Le Hub demarrera avec Windows.' : 'Demarrage automatique retire.')
+    } catch (err) {
+      notify('error', err instanceof Error ? err.message : 'Reglage impossible')
+    }
+  }
 
   useEffect(() => {
     if (config) setDraft({ ...config })
@@ -118,8 +169,34 @@ export function ConfigView({ onMenu }: Props) {
         }
       />
 
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-        <div className="mx-auto w-full max-w-2xl space-y-5">
+      {/* Deux colonnes, comme le coffre et le detail de projet : la page etait
+          la derniere a empiler tous ses reglages dans un seul defilement. */}
+      <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
+        <nav className="flex flex-shrink-0 gap-1 overflow-x-auto border-b border-slate-200 bg-white p-2 dark:border-navy-800 dark:bg-navy-900 lg:w-56 lg:flex-col lg:overflow-y-auto lg:border-b-0 lg:border-r">
+          <div className="hidden px-2 py-2 lg:block">
+            <p className="text-[10px] font-medium uppercase tracking-wide muted">Reglages</p>
+          </div>
+          {SECTIONS.map(({ id, label, icon: Icone }) => (
+            <button
+              key={id}
+              onClick={() => setOnglet(id)}
+              aria-current={onglet === id ? 'page' : undefined}
+              className={`flex flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors lg:w-full ${
+                onglet === id
+                  ? 'bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'
+                  : 'muted hover:bg-slate-100 dark:hover:bg-navy-800'
+              }`}
+            >
+              <Icone className="h-4 w-4 flex-shrink-0" />
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="mx-auto w-full max-w-2xl space-y-5">
+          {onglet === 'general' && (
           <section className="card p-5">
             <h3 className="mb-4 text-sm font-semibold">Parametres</h3>
             <div className="space-y-4">
@@ -139,8 +216,31 @@ export function ConfigView({ onMenu }: Props) {
                 </div>
               ))}
             </div>
-          </section>
 
+            {/* Etat lu sur le disque : la case reflete la presence reelle du
+                raccourci, elle ne peut pas mentir. Action immediate, donc
+                hors du bouton "Enregistrer". */}
+            <div className="mt-6 border-t border-slate-200 pt-4 dark:border-navy-800">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 accent-sky-600"
+                  checked={autoStart}
+                  onChange={(e) => void basculerDemarrage(e.target.checked)}
+                />
+                <span className="min-w-0">
+                  <span className="block text-xs font-medium">Demarrer le Hub avec Windows</span>
+                  <span className="mt-1 block text-[11px] muted">
+                    Le Hub se lance en meme temps que la session, sans fenetre : tu retrouves son
+                    icone pres de l'horloge. S'applique immediatement.
+                  </span>
+                </span>
+              </label>
+            </div>
+          </section>
+          )}
+
+          {onglet === 'terminal' && (
           <section className="card p-5">
             <h3 className="mb-1 text-sm font-semibold">Couleur du terminal Hermes</h3>
             <p className="mb-4 text-[11px] muted">
@@ -151,25 +251,43 @@ export function ConfigView({ onMenu }: Props) {
               {SKINS.map(({ key, label, hint }) => {
                 const valeur = String(draft[key] ?? '')
                 const connu = skins.some((s) => s.name === valeur)
+                const couleurs = skins.find((s) => s.name === valeur)?.colors ?? []
                 return (
                   <div key={key}>
                     <label htmlFor={`cfg-${key}`} className="mb-1.5 block text-xs font-medium">
                       {label}
                     </label>
-                    <select
-                      id={`cfg-${key}`}
-                      className="input"
-                      value={valeur}
-                      onChange={(e) => setDraft((prev) => ({ ...prev, [key]: e.target.value }))}
-                    >
-                      {/* Un skin retire d'Hermes ne doit pas disparaitre du menu en silence */}
-                      {!connu && valeur && <option value={valeur}>{valeur} (introuvable)</option>}
-                      {skins.map((skin) => (
-                        <option key={skin.name} value={skin.name}>
-                          {skin.name} - {skin.description}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex items-center gap-3">
+                      <select
+                        id={`cfg-${key}`}
+                        className="input"
+                        value={valeur}
+                        onChange={(e) => setDraft((prev) => ({ ...prev, [key]: e.target.value }))}
+                      >
+                        {/* Un skin retire d'Hermes ne doit pas disparaitre du menu en silence */}
+                        {!connu && valeur && <option value={valeur}>{valeur} (introuvable)</option>}
+                        {skins.map((skin) => (
+                          <option key={skin.name} value={skin.name}>
+                            {skin.name} - {skin.description}
+                          </option>
+                        ))}
+                      </select>
+                      {/* Une liste deroulante native ne peut pas afficher de
+                          couleur : l'apercu suit la selection, on fait defiler
+                          les skins pour les voir. */}
+                      <div
+                        className="flex flex-shrink-0 gap-1"
+                        title={couleurs.length ? `Couleurs de ${valeur}` : 'Skin perso : apercu inconnu'}
+                      >
+                        {(couleurs.length ? couleurs : ['transparent']).map((c, i) => (
+                          <span
+                            key={i}
+                            className="h-5 w-5 rounded-full border border-slate-200 dark:border-navy-700"
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                      </div>
+                    </div>
                     <p className="mt-1 text-[11px] muted">{hint}</p>
                   </div>
                 )
@@ -177,18 +295,9 @@ export function ConfigView({ onMenu }: Props) {
             </div>
 
           </section>
+          )}
 
-          {/* Un seul bouton pour les deux cartes editables : deux boutons
-              "Enregistrer" sur la meme page laisseraient croire qu'un reglage
-              a ete sauve alors qu'il ne l'a pas ete. */}
-          <div className="flex items-center justify-end gap-3">
-            {dirty && <span className="text-[11px] muted">Modifications non enregistrees</span>}
-            <button onClick={submit} className="btn-primary" disabled={!dirty || saving}>
-              <Save className="h-4 w-4" />
-              {saving ? 'Enregistrement...' : 'Enregistrer'}
-            </button>
-          </div>
-
+          {onglet === 'apparence' && (
           <section className="card p-5">
             <h3 className="mb-1 text-sm font-semibold">Apparence du Hub</h3>
             <p className="mb-4 text-[11px] muted">
@@ -200,17 +309,23 @@ export function ConfigView({ onMenu }: Props) {
             <select
               id="cfg-theme"
               className="input"
-              value={config?.theme === 'dark' ? 'dark' : 'light'}
-              onChange={(e) => setTheme(e.target.value === 'dark' ? 'dark' : 'light')}
+              value={config?.theme ?? 'light'}
+              onChange={(e) => setTheme(e.target.value as Theme)}
             >
-              <option value="light">Clair</option>
-              <option value="dark">Sombre</option>
+              {THEMES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
             </select>
             <p className="mt-1 text-[11px] muted">
-              Aussi accessible par l'icone lune en haut de l'accueil.
+              Le bouton en haut de l'accueil fait defiler les trois. Le menu lateral garde son bleu
+              nuit dans tous les cas : c'est le repere de l'application.
             </p>
           </section>
+          )}
 
+          {onglet === 'diagnostic' && (
           <section className="card p-5">
             <h3 className="mb-1 text-sm font-semibold">Diagnostic</h3>
             <p className="mb-4 text-[11px] muted">
@@ -245,13 +360,25 @@ export function ConfigView({ onMenu }: Props) {
                 <div>
                   <p className="text-xs font-medium">En cas d'echec au demarrage</p>
                   <p className="mt-0.5 break-all font-mono text-[11px] muted">{diag.log}</p>
+                  <button
+                    onClick={() =>
+                      api
+                        .openLog()
+                        .catch(() => notify('info', "Aucun journal pour l'instant : rien n'a echoue."))
+                    }
+                    className="btn-ghost mt-2 px-3 py-2 text-xs"
+                  >
+                    <FileText className="h-4 w-4" /> Ouvrir le journal
+                  </button>
                 </div>
               </div>
             ) : (
               <p className="text-[11px] muted">Lecture de l'etat du systeme...</p>
             )}
           </section>
+          )}
 
+          {onglet === 'emplacements' && (
           <section className="card p-5">
             <h3 className="mb-4 text-sm font-semibold">Emplacements sur le disque</h3>
             <div className="space-y-3">
@@ -283,7 +410,9 @@ export function ConfigView({ onMenu }: Props) {
               </button>
             </div>
           </section>
+          )}
 
+          {onglet === 'apropos' && (
           <section className="card p-5">
             <h3 className="mb-3 text-sm font-semibold">A propos</h3>
             <dl className="space-y-1 text-xs muted">
@@ -307,6 +436,26 @@ export function ConfigView({ onMenu }: Props) {
               </div>
             </dl>
           </section>
+          )}
+            </div>
+          </div>
+
+          {/* Barre collante, toujours visible sur les sections qui contiennent
+              des champs : on doit savoir ou l'on enregistre avant d'avoir
+              modifie quoi que ce soit. Sur les sections en lecture seule elle
+              n'apparait que s'il reste des modifications en attente - sinon,
+              changer de volet les ferait passer a la trappe en silence. */}
+          {(SECTIONS_AVEC_CHAMPS.includes(onglet) || dirty) && (
+            <div className="flex flex-shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-white px-4 py-3 dark:border-navy-800 dark:bg-navy-900 sm:px-6">
+              <span className="text-[11px] muted">
+                {dirty ? 'Modifications non enregistrees' : 'Tout est enregistre'}
+              </span>
+              <button onClick={submit} className="btn-primary" disabled={!dirty || saving}>
+                <Save className="h-4 w-4" />
+                {saving ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

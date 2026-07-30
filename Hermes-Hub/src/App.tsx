@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { CommandPalette } from './components/CommandPalette'
 import { NewProjectModal } from './components/NewProjectModal'
 import { Sidebar } from './components/Sidebar'
 import { Toasts } from './components/Toasts'
@@ -21,10 +22,23 @@ export default function App() {
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [newProject, setNewProject] = useState(false)
+  const [recherche, setRecherche] = useState(false)
 
   useEffect(() => {
     void bootstrap()
   }, [bootstrap])
+
+  // Ctrl+K (Cmd+K sur Mac) ouvre la recherche depuis n'importe quel ecran.
+  useEffect(() => {
+    const auClavier = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setRecherche((ouvert) => !ouvert)
+      }
+    }
+    window.addEventListener('keydown', auClavier)
+    return () => window.removeEventListener('keydown', auClavier)
+  }, [])
 
   // close the mobile drawer on navigation
   useEffect(() => {
@@ -60,7 +74,7 @@ export default function App() {
       case 'clean':
         return <CleanView onMenu={() => setMenuOpen(true)} />
       case 'vault':
-        return <VaultView onMenu={() => setMenuOpen(true)} />
+        return <VaultView onMenu={() => setMenuOpen(true)} noteAOuvrir={route.param} />
       case 'trash':
         return <TrashView onMenu={() => setMenuOpen(true)} />
       case 'config':
@@ -88,6 +102,7 @@ export default function App() {
         onNavigate={(view) => go(view)}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
+        onRechercher={() => setRecherche(true)}
       />
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -98,6 +113,8 @@ export default function App() {
         )}
         {renderView()}
       </main>
+
+      <CommandPalette open={recherche} onClose={() => setRecherche(false)} onNavigate={go} />
 
       {newProject && (
         <NewProjectModal

@@ -6,7 +6,9 @@ import './index.css'
 // over on bootstrap. Without this the app flashes light then switches to dark.
 try {
   const stored = localStorage.getItem('hermes-hub-theme')
-  if (stored === 'dark') document.documentElement.classList.add('dark')
+  if (stored === 'dark' || stored === 'antique') {
+    document.documentElement.classList.add(stored)
+  }
 } catch {
   /* private mode */
 }

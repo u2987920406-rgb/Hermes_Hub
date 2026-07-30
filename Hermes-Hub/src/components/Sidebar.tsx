@@ -4,6 +4,7 @@ import {
   Home,
   PanelLeftClose,
   PanelLeftOpen,
+  Search,
   Settings,
   Trash2,
   X,
@@ -17,21 +18,39 @@ interface SidebarProps {
   onNavigate: (view: View) => void
   open: boolean
   onClose: () => void
+  onRechercher: () => void
 }
 
 interface NavItem {
   id: View
   label: string
   icon: typeof Home
+  /** Couleur propre de l'entree : elle ne change ni au survol ni a la
+      selection, c'est ce qui rend le menu reconnaissable d'un coup d'oeil. */
   accent: string
+  /** Le liseré de selection reprend la couleur de l'icone. Classes ecrites en
+      entier : Tailwind ne garde pas les noms de classe construits a la volee. */
+  bordure: string
 }
 
 // Clean Agent n'est pas ici : on y entre par sa carte sur l'accueil, deux
 // portes d'entree pour le meme ecran alourdissaient le menu pour rien.
 const NAV: NavItem[] = [
-  { id: 'home', label: 'Accueil', icon: Home, accent: 'text-sky-300' },
-  { id: 'projects', label: 'Projets', icon: FolderOpen, accent: 'text-violet-300' },
-  { id: 'vault', label: 'Coffre memoire', icon: BookOpen, accent: 'text-gold-400' },
+  { id: 'home', label: 'Accueil', icon: Home, accent: 'text-sky-300', bordure: 'border-sky-400' },
+  {
+    id: 'projects',
+    label: 'Projets',
+    icon: FolderOpen,
+    accent: 'text-violet-300',
+    bordure: 'border-violet-400',
+  },
+  {
+    id: 'vault',
+    label: 'Coffre memoire',
+    icon: BookOpen,
+    accent: 'text-gold-400',
+    bordure: 'border-gold-400',
+  },
 ]
 
 // Corbeille et reglages : en bas, separes de la navigation courante.
@@ -39,7 +58,8 @@ const CORBEILLE: NavItem = {
   id: 'trash',
   label: 'Corbeille',
   icon: Trash2,
-  accent: 'text-rose-300',
+  accent: 'text-red-400',
+  bordure: 'border-red-500',
 }
 
 const CONFIG: NavItem = {
@@ -47,6 +67,7 @@ const CONFIG: NavItem = {
   label: 'Configuration',
   icon: Settings,
   accent: 'text-slate-300',
+  bordure: 'border-slate-400',
 }
 
 function NavButton({
@@ -62,7 +83,7 @@ function NavButton({
   badge?: number
   collapsed: boolean
 }) {
-  const { id, label, icon: Icon, accent } = item
+  const { id, label, icon: Icon, accent, bordure } = item
   return (
     <button
       onClick={() => onNavigate(id)}
@@ -73,11 +94,13 @@ function NavButton({
         collapsed ? 'px-4 lg:justify-center lg:px-0' : 'px-4'
       } ${
         active
-          ? 'border-sky-400 bg-white/10 text-white'
+          ? `${bordure} bg-white/10 text-white`
           : 'border-transparent text-slate-300 hover:bg-white/5 hover:text-white'
       }`}
     >
-      <Icon className={`h-5 w-5 flex-shrink-0 ${active ? 'text-sky-300' : accent}`} />
+      {/* L'icone garde sa couleur en toutes circonstances : seul le fond et le
+          libelle reagissent au survol et a la selection. */}
+      <Icon className={`h-5 w-5 flex-shrink-0 ${accent}`} />
       <span className={`flex-1 text-left ${collapsed ? 'lg:hidden' : ''}`}>{label}</span>
       {!!badge && (
         <span
@@ -99,7 +122,7 @@ function NavButton({
 // partage avec Hermes.
 const CLE_REPLI = 'hub.sidebar.collapsed'
 
-export function Sidebar({ current, onNavigate, open, onClose }: SidebarProps) {
+export function Sidebar({ current, onNavigate, open, onClose, onRechercher }: SidebarProps) {
   const connected = useHubStore((s) => s.connected)
   const workspace = useHubStore((s) => s.workspace)
   const trash = useHubStore((s) => s.trash)
@@ -168,6 +191,29 @@ export function Sidebar({ current, onNavigate, open, onClose }: SidebarProps) {
             aria-label="Fermer le menu"
           >
             <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Le raccourci clavier ne se devine pas : on l'affiche. Le trait le
+            detache de la navigation : chercher n'est pas aller quelque part.
+            Meme filet que les autres separations du menu. */}
+        <div className="border-b border-white/10 p-2">
+          <button
+            onClick={onRechercher}
+            title="Rechercher (Ctrl+K)"
+            className={`flex w-full items-center gap-3 rounded-lg border border-white/10 bg-white/5 py-2.5 text-sm text-slate-300 transition-colors hover:bg-white/10 hover:text-white ${
+              collapsed ? 'px-4 lg:justify-center lg:px-0' : 'px-4'
+            }`}
+          >
+            <Search className="h-4 w-4 flex-shrink-0" />
+            <span className={`flex-1 text-left ${collapsed ? 'lg:hidden' : ''}`}>Rechercher</span>
+            <kbd
+              className={`rounded border border-white/20 px-1.5 py-0.5 text-[10px] text-slate-400 ${
+                collapsed ? 'lg:hidden' : ''
+              }`}
+            >
+              Ctrl K
+            </kbd>
           </button>
         </div>
 

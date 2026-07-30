@@ -193,6 +193,9 @@ function readProject(name) {
     path: dir,
     createdAt: meta.createdAt || stat.birthtime.toISOString(),
     lastUsed: meta.lastUsed || stat.mtime.toISOString(),
+    // Epingle avec le projet, pas dans le navigateur : le choix suit le
+    // workspace et survit a une reinstallation du Hub.
+    pinned: meta.pinned === true,
     files,
     complete: files.length === STANDARD_FILES.length,
   }
@@ -284,6 +287,7 @@ function updateProject(id, patch) {
   const meta = readJson(projectMetaFile(currentDir), {})
   if (patch.status) meta.status = patch.status === 'done' ? 'done' : 'active'
   if (patch.description !== undefined) meta.description = String(patch.description)
+  if (patch.pinned !== undefined) meta.pinned = patch.pinned === true
   if (patch.touch) meta.lastUsed = new Date().toISOString()
   writeJson(projectMetaFile(currentDir), meta)
 
@@ -333,7 +337,16 @@ function recycle(target, kind) {
   )
 
   if (res.status !== 0) {
-    const err = new Error("Impossible d'envoyer a la corbeille Windows. Rien n'a ete supprime.")
+    // "IOException" vient du FullyQualifiedErrorId de PowerShell, pas du texte
+    // traduit : le test tient sur une machine en anglais comme en francais.
+    // Windows refuse de supprimer un dossier tant qu'un programme l'occupe -
+    // un terminal ouvert dedans, ou une application lancee depuis le projet.
+    const occupe = /IOException/.test(String(res.stderr || ''))
+    const err = new Error(
+      occupe
+        ? "Un programme utilise encore ce dossier : un terminal ouvert dedans, ou une application lancee depuis le projet. Ferme-le puis reessaie. Rien n'a ete supprime."
+        : "Impossible d'envoyer a la corbeille Windows. Rien n'a ete supprime."
+    )
     err.status = 500
     throw err
   }
@@ -615,6 +628,22 @@ const SKINS_CONNUS = [
   { name: 'charizard', description: 'Orange volcanique' },
 ]
 
+// Trois teintes par skin (bordure, titre, accent) relevees dans le moteur
+// d'Hermes, pour montrer la couleur au lieu de la decrire. Un skin absent de
+// cette table - un skin perso depose par l'utilisateur - n'a pas d'apercu:
+// c'est prefere a un apercu invente.
+const COULEURS_SKINS = {
+  default: ['#CD7F32', '#FFD700', '#FFBF00'],
+  ares: ['#A93333', '#C7A96B', '#DD4A3A'],
+  mono: ['#5E5E5E', '#E6EDF3', '#AAAAAA'],
+  slate: ['#4169E1', '#7EB8F6', '#8EA8FF'],
+  daylight: ['#2563EB', '#0F172A', '#2563EB'],
+  'warm-lightmode': ['#8B6914', '#5C3D11', '#8B4513'],
+  poseidon: ['#2A6FB9', '#A9DFFF', '#5DB8F5'],
+  sisyphus: ['#B7B7B7', '#F5F5F5', '#E7E7E7'],
+  charizard: ['#C75B1D', '#FFD39A', '#F29C38'],
+}
+
 /**
  * Etat de la machine, pour repondre a "pourquoi ca ne marche pas ?" sans
  * ouvrir un terminal : c'est toujours l'un de ces quatre points qui manque.
@@ -670,13 +699,15 @@ function listSkins() {
     for (const ligne of lignes) {
       // "  default          builtin  Classic Hermes - gold and kawaii"
       const m = ligne.match(/^\s*\*?\s*(\S+)\s+(builtin|user)\s+(.*)$/)
-      if (m && SKIN_NAME.test(m[1])) skins.push({ name: m[1], description: m[3].trim() })
+      if (m && SKIN_NAME.test(m[1])) {
+        skins.push({ name: m[1], description: m[3].trim(), colors: COULEURS_SKINS[m[1]] || [] })
+      }
     }
     if (skins.length) return skins
   } catch {
     /* on retombe sur la liste figee */
   }
-  return SKINS_CONNUS
+  return SKINS_CONNUS.map((s) => ({ ...s, colors: COULEURS_SKINS[s.name] || [] }))
 }
 
 /**
@@ -722,6 +753,76 @@ function openFolder(target) {
   }
   detach('explorer.exe', [target], path.dirname(target))
   return { opened: target }
+}
+
+/** Ouvre un fichier avec l'application par defaut de Windows. */
+function openFile(target) {
+  if (!fs.existsSync(target)) {
+    const err = new Error("Ce fichier n'existe pas encore.")
+    err.status = 404
+    throw err
+  }
+  detach('cmd.exe', ['/c', 'start', '', target], path.dirname(target))
+  return { opened: target }
+}
+
+// -----------------------------------------------------------------------------
+// Demarrage avec Windows
+// -----------------------------------------------------------------------------
+
+// Un raccourci depose dans le dossier Demarrage : c'est le mecanisme que
+// Windows expose a l'utilisateur (il le voit dans le Gestionnaire des taches
+// et peut le desactiver lui-meme), contrairement a une cle de registre.
+const DOSSIER_DEMARRAGE = path.join(
+  process.env.APPDATA || os.homedir(),
+  'Microsoft',
+  'Windows',
+  'Start Menu',
+  'Programs',
+  'Startup'
+)
+const RACCOURCI_DEMARRAGE = path.join(DOSSIER_DEMARRAGE, 'Hermes Hub.lnk')
+
+/** Etat lu sur le disque plutot que stocke : impossible de desynchroniser. */
+function autoStartStatus() {
+  return { enabled: fs.existsSync(RACCOURCI_DEMARRAGE), path: RACCOURCI_DEMARRAGE }
+}
+
+function setAutoStart(enabled) {
+  if (!enabled) {
+    if (fs.existsSync(RACCOURCI_DEMARRAGE)) fs.unlinkSync(RACCOURCI_DEMARRAGE)
+    return autoStartStatus()
+  }
+
+  const vbs = path.join(WORKSPACE, 'Hermes-Hub', 'Hermes-Hub.vbs')
+  if (!fs.existsSync(vbs)) {
+    const err = new Error("Lanceur introuvable. Relance installer.bat pour le remettre en place.")
+    err.status = 500
+    throw err
+  }
+
+  fs.mkdirSync(DOSSIER_DEMARRAGE, { recursive: true })
+  const res = runPowerShell(
+    `$ws = New-Object -ComObject WScript.Shell
+$sc = $ws.CreateShortcut($env:HUB_LNK)
+$sc.TargetPath = "$env:SystemRoot\\System32\\wscript.exe"
+$sc.Arguments = '"' + $env:HUB_VBS + '"'
+$sc.IconLocation = $env:HUB_ICON + ', 0'
+$sc.WorkingDirectory = Split-Path $env:HUB_VBS
+$sc.Description = 'Demarre Hermes Hub avec Windows'
+$sc.Save()`,
+    {
+      HUB_LNK: RACCOURCI_DEMARRAGE,
+      HUB_VBS: vbs,
+      HUB_ICON: path.join(WORKSPACE, 'icons', 'hermes-hub.ico'),
+    }
+  )
+  if (res.status !== 0) {
+    const err = new Error("Impossible de creer le raccourci de demarrage.")
+    err.status = 500
+    throw err
+  }
+  return autoStartStatus()
 }
 
 function openObsidian() {
@@ -850,6 +951,17 @@ async function handleApi(req, res, url) {
           ? VAULT_DIR
           : WORKSPACE
       return sendJson(res, 200, openFolder(target))
+    }
+    if (rest[1] === 'log') {
+      return sendJson(res, 200, openFile(path.join(WORKSPACE, 'Hermes-Hub', 'hub-erreurs.log')))
+    }
+  }
+
+  if (rest[0] === 'autostart') {
+    if (method === 'GET') return sendJson(res, 200, autoStartStatus())
+    if (method === 'POST') {
+      const body = await readBody(req)
+      return sendJson(res, 200, setAutoStart(body.enabled === true))
     }
   }
 

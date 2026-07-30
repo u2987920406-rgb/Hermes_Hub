@@ -1,4 +1,4 @@
-import { CheckCircle2, FolderOpen, Pencil, Play, RotateCcw, Trash2 } from 'lucide-react'
+import { CheckCircle2, FolderOpen, Pencil, Pin, Play, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { ConfirmDialog } from './Modal'
 import { relativeDate } from '../lib/dates'
@@ -31,7 +31,7 @@ export function ProjectCard({ project, onOpen }: Props) {
 
   return (
     <>
-      <div className="card flex flex-col p-5 transition-shadow hover:shadow-md">
+      <div className="card group flex flex-col p-5 transition-shadow hover:shadow-md">
         <div className="mb-2 flex items-start justify-between gap-3">
           <button
             onClick={() => onOpen(project.id)}
@@ -39,11 +39,30 @@ export function ProjectCard({ project, onOpen }: Props) {
           >
             <span className="line-clamp-2 break-words">{project.name}</span>
           </button>
-          <span
-            className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusClasses[project.status]}`}
-          >
-            {statusLabels[project.status]}
-          </span>
+          <div className="flex flex-shrink-0 items-center gap-1.5">
+            {/* La punaise vit dans l'en-tete, pas dans la rangee de boutons du
+                bas deja bien chargee. Discrete au survol tant que le projet
+                n'est pas epingle. */}
+            <button
+              onClick={() => updateProject(project.id, { pinned: !project.pinned })}
+              title={project.pinned ? 'Detacher du haut de la liste' : 'Epingler en haut de la liste'}
+              aria-pressed={project.pinned}
+              className={`rounded p-1 transition-all ${
+                project.pinned
+                  ? // Rouge dans les trois themes : l'epingle est un repere, pas
+                    // un element de decor qui suivrait l'ambiance.
+                    'text-red-500'
+                  : 'text-slate-300 opacity-0 hover:text-slate-500 focus-visible:opacity-100 group-hover:opacity-100 dark:text-navy-700'
+              }`}
+            >
+              <Pin className={`h-3.5 w-3.5 ${project.pinned ? 'fill-current' : ''}`} />
+            </button>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusClasses[project.status]}`}
+            >
+              {statusLabels[project.status]}
+            </span>
+          </div>
         </div>
 
         <p className="mb-3 line-clamp-2 min-h-[2rem] text-xs muted">

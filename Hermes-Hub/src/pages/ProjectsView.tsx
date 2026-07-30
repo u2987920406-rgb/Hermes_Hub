@@ -1,4 +1,4 @@
-import { FolderOpen, FolderPlus, Search } from 'lucide-react'
+import { FolderOpen, FolderPlus, Pin, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { PageHeader } from '../components/PageHeader'
 import { ProjectCard } from '../components/ProjectCard'
@@ -31,6 +31,9 @@ export function ProjectsView({ onNewProject, onOpenProject, onMenu }: Props) {
       return p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
     })
   }, [projects, query, filter])
+
+  const epingles = visible.filter((p) => p.pinned)
+  const autres = visible.filter((p) => !p.pinned)
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -99,11 +102,37 @@ export function ProjectsView({ onNewProject, onOpenProject, onMenu }: Props) {
             )}
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {visible.map((project) => (
-              <ProjectCard key={project.id} project={project} onOpen={onOpenProject} />
-            ))}
-          </div>
+          <>
+            {/* Les epingles ont leur propre section : les fondre dans la grille
+                rendrait la frontiere illisible des qu'il y a des projets. */}
+            {epingles.length > 0 && (
+              <section className="mb-6">
+                <h2 className="mb-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide muted">
+                  <Pin className="h-3 w-3 fill-current text-red-500" /> Epingles
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                  {epingles.map((project) => (
+                    <ProjectCard key={project.id} project={project} onOpen={onOpenProject} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {autres.length > 0 && (
+              <section>
+                {epingles.length > 0 && (
+                  <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-wide muted">
+                    Tous les projets
+                  </h2>
+                )}
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                  {autres.map((project) => (
+                    <ProjectCard key={project.id} project={project} onOpen={onOpenProject} />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
         )}
       </div>
     </div>

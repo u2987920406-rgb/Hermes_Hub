@@ -1,7 +1,17 @@
-import { BookOpen, CheckCircle2, FolderOpen, Moon, Play, Sparkles, Sun } from 'lucide-react'
+import {
+  BookOpen,
+  CheckCircle2,
+  FolderOpen,
+  Landmark,
+  Moon,
+  Play,
+  Sparkles,
+  Sun,
+} from 'lucide-react'
 import { PageHeader } from '../components/PageHeader'
 import { useHubStore } from '../store/useHubStore'
-import type { View } from '../types'
+import type { Theme, View } from '../types'
+import { THEMES } from '../types'
 
 interface Props {
   onNavigate: (view: View, param?: string) => void
@@ -15,7 +25,14 @@ export function HomeView({ onNavigate, onMenu }: Props) {
   const launchHermes = useHubStore((s) => s.launchHermes)
   const setTheme = useHubStore((s) => s.setTheme)
 
-  const dark = config?.theme === 'dark'
+  // Le bouton fait defiler les themes : clair -> sombre -> antique -> clair.
+  // L'icone montre le theme vers lequel on va, comme l'infobulle : montrer le
+  // theme courant pendant que le clic mene ailleurs induisait en erreur.
+  const theme: Theme = config?.theme ?? 'light'
+  const suivant = THEMES[(THEMES.findIndex((t) => t.value === theme) + 1) % THEMES.length]
+  const ICONES: Record<Theme, typeof Sun> = { light: Sun, dark: Moon, antique: Landmark }
+  const IconeTheme = ICONES[suivant.value]
+
   const recent = projects.slice(0, 4)
 
   const tiles = [
@@ -34,12 +51,14 @@ export function HomeView({ onNavigate, onMenu }: Props) {
         onMenu={onMenu}
         actions={
           <button
-            onClick={() => setTheme(dark ? 'light' : 'dark')}
-            className="btn-ghost px-2.5 py-2"
-            title={dark ? 'Passer en mode clair' : 'Passer en mode sombre'}
-            aria-label="Changer de theme"
+            onClick={() => setTheme(suivant.value)}
+            /* Discret : pas de pastille pleine, l'icone se fond dans le
+               bandeau et ne se revele qu'au survol. */
+            className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:text-navy-600 dark:hover:bg-navy-800 dark:hover:text-slate-300"
+            title={`Passer au theme ${suivant.label}`}
+            aria-label={`Passer au theme ${suivant.label}`}
           >
-            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            <IconeTheme className="h-4 w-4" />
           </button>
         }
       />

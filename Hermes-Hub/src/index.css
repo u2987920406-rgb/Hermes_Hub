@@ -44,12 +44,14 @@
 }
 
 @layer components {
+  /* Contour assume plutot que suggere : sur un fond proche de celui de la
+     carte, une bordure trop pale fait disparaitre la boite. */
   .card {
-    @apply rounded-xl border border-slate-200 bg-white shadow-sm transition-colors;
+    @apply rounded-xl border border-slate-300 bg-white shadow-sm transition-colors;
   }
 
   .dark .card {
-    @apply border-navy-800 bg-navy-900;
+    @apply border-navy-700 bg-navy-900;
   }
 
   .btn {
@@ -96,4 +98,104 @@
   .dark .muted {
     @apply text-slate-300;
   }
+}
+
+/* ==========================================================================
+   Theme antique - lin, pierre et mosaique
+   --------------------------------------------------------------------------
+   Le menu lateral n'est pas repris : il utilise `bg-white/10`, un nom de
+   classe distinct, donc son bleu nuit reste le repere de l'application pendant
+   que la zone de travail change d'ambiance.
+
+   Ces regles redefinissent les classes Tailwind employees comme surfaces
+   plutot que de retoucher chaque composant. Elles sont hors @layer et en fin
+   de fichier : elles passent donc apres les utilitaires, et leurs deux classes
+   l'emportent de toute facon sur une classe seule.
+   ========================================================================== */
+
+/* Teintes tenues a mi-chemin du blanc : la couleur doit se sentir sans
+   s'imposer, on doit pouvoir travailler des heures dessus. Aucun motif de
+   fond : le lin seul suffit a poser l'ambiance. */
+.antique body {
+  background-color: #faf7f1;
+  color: #3a322a;
+}
+
+/* Coque de l'application : la surface visible derriere les cartes. */
+.antique .bg-slate-50 {
+  background-color: #faf7f1;
+}
+
+.antique .bg-white {
+  background-color: #fefdfa;
+}
+
+.antique .bg-slate-100,
+.antique .hover\:bg-slate-100:hover {
+  background-color: #f5f0e6;
+}
+
+/* Les bordures sont de la structure, pas de la teinte : elles restent
+   soutenues, sinon les cartes flottent sans contour lisible sur un fond
+   deja tres clair. */
+.antique .border-slate-200 {
+  border-color: #d9cbb2;
+}
+
+.antique .text-navy-900 {
+  color: #3a322a;
+}
+
+.antique .text-slate-400,
+.antique .text-slate-500 {
+  color: #8a7c67;
+}
+
+.antique .card {
+  background-color: #fefdfa;
+  border-color: #d9cbb2;
+  /* Ombre chaude : une ombre grise sur du lin fait sale. */
+  box-shadow: 0 1px 3px rgba(90, 70, 45, 0.1);
+}
+
+.antique .input {
+  background-color: #fffdfa;
+  border-color: #d9cbb2;
+  color: #3a322a;
+}
+
+.antique .muted {
+  color: #6b5e4c;
+}
+
+/* Bleu egeen : on garde le bleu de la maison, en plus mineral. */
+/* Eclairci d'un cran : un bleu trop sombre fait tache sur un fond presque
+   blanc. */
+.antique .btn-primary {
+  background-color: #3a7fa0;
+}
+
+.antique .btn-primary:hover {
+  background-color: #33718f;
+}
+
+/* Les glyphes des boutons d'icone etaient presque noirs : sur du lin, un brun
+   moyen se lit sans peser. */
+.antique .btn-ghost {
+  background-color: #f5f0e6;
+  color: #6a5c49;
+}
+
+.antique .btn-ghost:hover {
+  background-color: #ebe3d5;
+  color: #55483a;
+}
+
+.antique :focus-visible {
+  --tw-ring-color: #c99c34;
+  --tw-ring-offset-color: #faf7f1;
+}
+
+.antique ::-webkit-scrollbar-thumb {
+  background-color: #e6ddcd;
 }
