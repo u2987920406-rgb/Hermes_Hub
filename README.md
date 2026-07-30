@@ -76,14 +76,20 @@ L'installer installe **Windows Terminal en premier** via winget, avant toute aut
 L'installer cree le dossier de travail dans **Documents**, pas sur le Bureau:
 - Chemin: `Documents/Hermes-{Prenom}/`
 
-### Raccourcis sur le Bureau
-Les 4 raccourcis sont places sur le **Bureau** mais pointent vers le workspace dans Documents.
-- Les raccourcis lancent via **Windows Terminal** (`wt.exe`), pas `cmd.exe` directement
-- Icônes personnalisees pour chaque raccourci (dossier `icons/`)
+### Raccourci sur le Bureau
+Un seul raccourci, **Hermes Hub**, pointant vers le workspace dans Documents.
+- Le flux voulu est: ouvrir le PC → cliquer sur Hermes Hub → tout part de la
+  (lancer Hermes, Clean Agent, creer un projet, ouvrir le coffre)
+- Les anciennes versions posaient 4 raccourcis (Lancer Hermes, Clean Agent,
+  Nouveau Projet, Hermes Hub). L'installer supprime les 3 anciens s'il les
+  trouve, pour ne pas laisser un Bureau encombre apres une mise a jour.
+- Les scripts `Lancer-Hermes.ps1` et `Nouveau-Projet.ps1` restent dans le
+  workspace: ils marchent toujours en double-clic depuis le dossier
+- Icône personnalisee (dossier `icons/`)
 
 ```
 Documents/Hermes-{Prenom}/
-  ├─ Vault/                  → Coffre Obsidian (cerveau long terme)
+  ├─ Vault/                  → Coffre mémoire (cerveau long terme)
   │   ├─ Projets/
   │   ├─ Lessons/
   │   ├─ Skills/
@@ -98,7 +104,8 @@ Documents/Hermes-{Prenom}/
   ├─ Hermes-Hub/             → Interface web locale
   │   ├─ dist/               → interface construite (React)
   │   ├─ server/             → serveur local Node (sans dependances)
-  │   └─ Lancer-Hermes-Hub.ps1    → double-clic = ouvre le Hub
+  │   ├─ Hermes-Hub.vbs      → cible du raccourci : lance sans terminal
+  │   └─ Lancer-Hermes-Hub.ps1    → serveur + icone zone de notification
   ├─ Projets/                → Tes projets (créés via Nouveau-Projet.ps1)
   ├─ icons/                  → Icônes des raccourcis
   ├─ Lancer-Hermes.ps1       → double-clic = Hermes master
@@ -109,9 +116,29 @@ Documents/Hermes-{Prenom}/
 ### Hermes Hub (interface web locale)
 - Le raccourci "Hermes Hub" demarre le serveur local puis ouvre le navigateur
   sur `http://127.0.0.1:4317`
-- La fenetre de terminal qui s'ouvre **est** le Hub : la fermer arrete le serveur
+- **Aucune fenetre de terminal** : le raccourci pointe sur `Hermes-Hub.vbs`
+  (lance par `wscript.exe`, qui n'a pas de console), lequel demarre
+  `Lancer-Hermes-Hub.ps1` en fenetre cachee. Ce script lance `node`, puis pose
+  une icone dans la zone de notification (menu : ouvrir, ouvrir le dossier,
+  arreter). Avant, le serveur vivait dans un terminal visible qu'on fermait par
+  megarde en croyant fermer un autre onglet.
+- Le PowerShell cache surveille `node` toutes les 5 s : si le serveur meurt,
+  l'icone disparait au lieu de rester morte dans la barre
+- Sortie du serveur dans `Hermes-Hub\hub.log` et `hub-erreurs.log`
 - Le Hub lit et ecrit directement dans le workspace (`Projets/`, `Vault/`), il n'a
   pas de base de donnees separee
+- **Corbeille** : le Hub ne supprime jamais directement, il envoie a la corbeille
+  Windows. La vue Corbeille n'affiche que ce qui vient du workspace (filtre sur
+  l'emplacement d'origine) : le reste de la corbeille de la machine n'est ni
+  montre ni touche. Restauration par le verbe canonique `undelete` ; la
+  suppression definitive efface le couple `$R`/`$I`, sans quoi Windows garderait
+  une entree fantome.
+- **Couleur du terminal par porte d'entree** (reglable dans Configuration) :
+  discussion, Clean Agent et projets ont chacun leur skin Hermes. Hermes ne lit
+  `display.skin` qu'au demarrage et n'accepte ni option ni variable
+  d'environnement : le Hub lance donc `hermes skin use <nom>` (~0.4 s) juste
+  avant d'ouvrir le terminal. Le profil `clean` ayant son propre `config.yaml`,
+  sa couleur ne perturbe jamais les autres sessions.
 - Il n'ecoute que sur `127.0.0.1` : rien n'est expose sur le reseau
 
 ## Questions posées (9)
@@ -151,10 +178,10 @@ Les questions 6-10 (OS, éditeur, langages, frameworks, paquets) sont automatiqu
 - done.md → historique terminé
 - ADM.md → décisions + raisons (cumulatif, jamais effacé)
 
-## Coffre Obsidian
+## Coffre mémoire
 Le dossier s'appelle toujours `Vault/` sur le disque : c'est le terme d'Obsidian,
 et le renommer casserait les installations existantes. L'interface, elle, parle
-de coffre.
+de coffre mémoire.
 
 - 7 dossiers: Projets, Lessons, Skills, Decisions, Bugs, Changelog, Templates
 - 6 templates avec champs YAML complets
@@ -163,6 +190,6 @@ de coffre.
 
 ## Après installation
 1. Ouvrir Obsidian → Open folder as vault → Vault/ (dans Documents/Hermes-{Prenom})
-2. Double-clic sur "Lancer Hermes" sur le Bureau (s'ouvre dans Windows Terminal)
-3. Dire à Hermes de mémoriser tes infos (voir README dans le dossier créé)
-4. Double-clic sur "Hermes Hub" pour l'interface web (laisser la fenêtre ouverte)
+2. Double-clic sur "Hermes Hub" sur le Bureau (icône près de l'horloge pour l'arrêter)
+3. Bouton "Discuter avec Hermes" sur l'accueil du Hub
+4. Dire à Hermes de mémoriser tes infos (voir README dans le dossier créé)

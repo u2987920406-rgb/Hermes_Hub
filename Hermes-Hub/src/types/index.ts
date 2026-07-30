@@ -21,6 +21,24 @@ export interface AppConfig {
   defaultModel: string
   theme: 'light' | 'dark'
   userName: string
+  /** Couleur du terminal selon la porte d'entree (presets d'Hermes). */
+  skinChat: string
+  skinClean: string
+  skinProject: string
+}
+
+export interface Skin {
+  name: string
+  description: string
+}
+
+/** Element de la corbeille Windows provenant du workspace. */
+export interface TrashItem {
+  id: string
+  name: string
+  origin: string
+  deletedAt: string
+  isFolder: boolean
 }
 
 export interface VaultNote {
@@ -45,7 +63,7 @@ export interface Stats {
   folders: number
 }
 
-export type View = 'home' | 'projects' | 'project' | 'clean' | 'vault' | 'config'
+export type View = 'home' | 'projects' | 'project' | 'clean' | 'vault' | 'trash' | 'config'
 
 export const STANDARD_FILES = [
   '.hermes.md',
@@ -70,7 +88,8 @@ export const statusLabels: Record<ProjectStatus, string> = {
   done: 'Termine',
 }
 
+// Vert = termine, bleu = en cours : le vert marque ce qui est acheve.
 export const statusClasses: Record<ProjectStatus, string> = {
-  active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
-  done: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
+  active: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
+  done: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
 }

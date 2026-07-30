@@ -214,7 +214,7 @@ echo.
 set /p PROFIL_RAF="  Utiliser le profil pre-rempli (regles deja configurees) ? (o/n): "
 echo.
 
-set MEMORY_RULES=JAMAIS: decisions irreversibles sans accord. Commit sans demander. Supprimer ou acceder fichiers hors cadre sans accord. Inventer une reponse ou mentir. DETESTE: verbosite, hallucinations, coder sans tests, repeter erreurs, suppositions, raccourcis. DOIT: guider via questions quand blocage. Coder en senior expert sinon. Tester avant fini. Honnete sur faisabilite. Ne pas sur-coder. Proactif sans alourdir. Architectures evolutives. Demander accord pour fichiers critiques. Vision sur screenshot. Review visuelle+code par jalon. REPRISE.md par jalon. ADM.md cumulatif. 6 fichiers standard par projet. Vault Obsidian. Revue mensuelle. PROJETS: proactif contextuel - proposer creation projet QUAND conversation devient concrete (jamais systematique). Si accord: creer dossier+6 fichiers, basculer dedans. Notifier changement dossier ENCADRE ROUGE. Au demarrage nouveau projet: demander si utilisateur veut un plan ou en a deja un. Si plan: questions guidees. Si existe: peaufiner ensemble. Valider puis ecrire plan.md.
+set MEMORY_RULES=JAMAIS: decisions irreversibles sans accord. Commit sans demander. Supprimer ou acceder fichiers hors cadre sans accord. Inventer une reponse ou mentir. DETESTE: verbosite, hallucinations, coder sans tests, repeter erreurs, suppositions, raccourcis. DOIT: guider via questions quand blocage. Coder en senior expert sinon. Tester avant fini. Honnete sur faisabilite. Ne pas sur-coder. Proactif sans alourdir. Architectures evolutives. Demander accord pour fichiers critiques. Vision sur screenshot. Review visuelle+code par jalon. REPRISE.md par jalon. ADM.md cumulatif. 6 fichiers standard par projet. Coffre memoire. Revue mensuelle. PROJETS: proactif contextuel - proposer creation projet QUAND conversation devient concrete (jamais systematique). Si accord: creer dossier+6 fichiers, basculer dedans. Notifier changement dossier ENCADRE ROUGE. Au demarrage nouveau projet: demander si utilisateur veut un plan ou en a deja un. Si plan: questions guidees. Si existe: peaufiner ensemble. Valider puis ecrire plan.md.
 
 REM == Etape 8: Creer la structure de dossiers ==
 echo.
@@ -237,15 +237,15 @@ mkdir "%WORKSPACE%\icons" 2>nul
 
 echo   OK - %WORKSPACE%
 
-REM == Etape 9: Coffre Obsidian (templates) ==
+REM == Etape 9: Coffre memoire (templates) ==
 echo.
-echo [9/12] Creation du coffre Obsidian...
+echo [9/12] Creation du coffre memoire...
 
 call :write_templates "%WORKSPACE%\Vault"
 
 REM -- README du coffre
 (
-echo # Coffre Obsidian de %PRENOM% - Cerveau long terme
+echo # Coffre memoire de %PRENOM% - Cerveau long terme
 echo.
 echo ## Structure
 echo - Projets/ - une note par projet
@@ -270,7 +270,7 @@ echo.
 echo [9b/12] Copie de Hermes Hub...
 
 set "HUB_OK=0"
-if exist "%HERMES_HUB_SRC%\dist\index.html" if exist "%HERMES_HUB_SRC%\server\index.js" set "HUB_OK=1"
+if exist "%HERMES_HUB_SRC%\dist\index.html" if exist "%HERMES_HUB_SRC%\server\index.js" if exist "%HERMES_HUB_SRC%\launcher\Hermes-Hub.vbs" set "HUB_OK=1"
 
 if "%HUB_OK%"=="1" (
     mkdir "%WORKSPACE%\Hermes-Hub\dist" 2>nul
@@ -281,12 +281,14 @@ if "%HUB_OK%"=="1" (
 ) else (
     echo   ATTENTION: Hermes Hub introuvable ou pas encore construit.
     echo   Chemin attendu: %HERMES_HUB_SRC%
-    echo   Il faut "dist\index.html" ^(npm run build^) et "server\index.js".
+    echo   Il faut "dist\index.html" ^(npm run build^), "server\index.js"
+    echo   et "launcher\Hermes-Hub.vbs".
     echo   Le raccourci Hermes Hub ne fonctionnera pas.
 )
 
-REM -- Script de lancement du Hub (serveur local Node sur 127.0.0.1:4317)
-if "%HUB_OK%"=="1" call :write_hub_launcher "%WORKSPACE%\Hermes-Hub\Lancer-Hermes-Hub.ps1"
+REM -- Lanceur du Hub: serveur local sans terminal, pilote par une icone
+REM    dans la zone de notification (voir launcher\Lancer-Hermes-Hub.ps1).
+if "%HUB_OK%"=="1" xcopy "%HERMES_HUB_SRC%\launcher\*" "%WORKSPACE%\Hermes-Hub\" /Y /Q >nul 2>&1
 
 REM == Etape 10: Dossier Hermes Clean Agent + bat ==
 echo.
@@ -370,7 +372,7 @@ REM -- README principal
 echo # Hermes-%PRENOM% - Espace de travail
 echo.
 echo ## Structure
-echo - Vault/           - Coffre Obsidian ^(cerveau long terme^)
+echo - Vault/           - Coffre memoire ^(cerveau long terme^)
 echo - Hermes-Clean-Memory/     - Dossier de test ^(profil vierge^)
 echo - Projets/         - Tes projets
 echo - Hermes-Hub/      - Interface web locale ^(serveur Node, http://127.0.0.1:4317^)
@@ -384,8 +386,8 @@ echo - projet-*         - isole, cree avec: .\Nouveau-Projet.ps1
 echo.
 echo ## Demarrage
 echo 1. Ouvre Obsidian - Open folder as vault - %WORKSPACE%\Vault
-echo 2. Double-clic sur "Lancer Hermes" sur le Bureau
-echo 3. Dis a Hermes de memoriser tes infos (voir README)
+echo 2. Double-clic sur "Hermes Hub" sur le Bureau
+echo 3. Bouton "Discuter avec Hermes", puis dis-lui de memoriser tes infos
 echo.
 echo ## Fichiers standard par projet
 echo - .hermes.md  - regles du projet
@@ -398,9 +400,11 @@ echo - ADM.md      - decisions ^(cumulatif, jamais effacer^)
 
 echo   OK - Tout configure.
 
-REM == Etape 12: Copier icones + raccourcis sur le Bureau ==
+REM == Etape 12: Copier icones + raccourci sur le Bureau ==
+REM    Un seul raccourci: tout part du Hub. Les autres entrees (Hermes,
+REM    Clean Agent, nouveau projet) sont des boutons dans son interface.
 echo.
-echo [12/12] Raccourcis sur le Bureau...
+echo [12/12] Raccourci Hermes Hub sur le Bureau...
 
 set "SRC=%~dp0"
 set "ICONS_SRC=%SRC%icons"
@@ -423,39 +427,22 @@ set "PS1=%TEMP%\hermes_shortcuts.ps1"
 >> "%PS1%" echo $desktop = [Environment]::GetFolderPath('Desktop')
 >> "%PS1%" echo $wsx = '%WORKSPACE%'
 >> "%PS1%" echo $icons = "$wsx\icons"
->> "%PS1%" echo $sc1 = $ws.CreateShortcut("$desktop\Lancer Hermes.lnk")
->> "%PS1%" echo $sc1.TargetPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
->> "%PS1%" echo $sc1.Arguments = "powershell -NoExit -ExecutionPolicy Bypass -Command `"Set-Location '$wsx'; . '$wsx\Lancer-Hermes.ps1'`""
->> "%PS1%" echo $sc1.IconLocation = "$icons\hermes-master.ico, 0"
->> "%PS1%" echo $sc1.WorkingDirectory = $wsx
->> "%PS1%" echo $sc1.Description = 'Lance Hermes (master)'
->> "%PS1%" echo $sc1.Save()
->> "%PS1%" echo $sc2 = $ws.CreateShortcut("$desktop\Lancer Hermes Clean Agent.lnk")
->> "%PS1%" echo $sc2.TargetPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
->> "%PS1%" echo $sc2.Arguments = "powershell -NoExit -ExecutionPolicy Bypass -Command `"Set-Location '$wsx\Hermes-Clean-Memory'; . '$wsx\Hermes-Clean-Memory\Lancer-Hermes-Clean.ps1'`""
->> "%PS1%" echo $sc2.IconLocation = "$icons\hermes-clean.ico, 0"
->> "%PS1%" echo $sc2.WorkingDirectory = $wsx
->> "%PS1%" echo $sc2.Description = 'Lance Hermes Clean Agent (profil vierge, tests)'
->> "%PS1%" echo $sc2.Save()
->> "%PS1%" echo $sc3 = $ws.CreateShortcut("$desktop\Nouveau Projet.lnk")
->> "%PS1%" echo $sc3.TargetPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
->> "%PS1%" echo $sc3.Arguments = "powershell -NoExit -ExecutionPolicy Bypass -Command `"Set-Location '$wsx'; . '$wsx\Nouveau-Projet.ps1'`""
->> "%PS1%" echo $sc3.IconLocation = "$icons\nouveau-projet.ico, 0"
->> "%PS1%" echo $sc3.WorkingDirectory = $wsx
->> "%PS1%" echo $sc3.Description = 'Cree un nouveau projet avec 6 fichiers standard'
->> "%PS1%" echo $sc3.Save()
 >> "%PS1%" echo $sc4 = $ws.CreateShortcut("$desktop\Hermes Hub.lnk")
->> "%PS1%" echo $sc4.TargetPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
->> "%PS1%" echo $sc4.Arguments = "powershell -NoExit -ExecutionPolicy Bypass -File `"$wsx\Hermes-Hub\Lancer-Hermes-Hub.ps1`""
+>> "%PS1%" echo $sc4.TargetPath = "$env:SystemRoot\System32\wscript.exe"
+>> "%PS1%" echo $sc4.Arguments = "`"$wsx\Hermes-Hub\Hermes-Hub.vbs`""
 >> "%PS1%" echo $sc4.IconLocation = "$icons\hermes-hub.ico, 0"
 >> "%PS1%" echo $sc4.WorkingDirectory = "$wsx\Hermes-Hub"
->> "%PS1%" echo $sc4.Description = 'Ouvre Hermes Hub (serveur local + navigateur)'
+>> "%PS1%" echo $sc4.Description = 'Ouvre Hermes Hub (icone dans la zone de notification)'
 >> "%PS1%" echo $sc4.Save()
->> "%PS1%" echo Write-Output 'Raccourcis crees sur le Bureau.'
+>> "%PS1%" echo Write-Output 'Raccourci Hermes Hub cree sur le Bureau.'
+REM -- Menage: anciennes installations posaient 3 raccourcis de plus
+>> "%PS1%" echo foreach ($vieux in 'Lancer Hermes','Lancer Hermes Clean Agent','Nouveau Projet') {
+>> "%PS1%" echo     Remove-Item "$desktop\$vieux.lnk" -Force -ErrorAction SilentlyContinue
+>> "%PS1%" echo }
 powershell -NoProfile -ExecutionPolicy Bypass -File "%PS1%"
 del "%PS1%" >nul 2>&1
 
-echo   OK - 4 raccourcis sur le Bureau.
+echo   OK - raccourci Hermes Hub sur le Bureau.
 
 echo.
 echo  ============================================
@@ -465,7 +452,7 @@ echo.
 echo  Ton dossier: %WORKSPACE%
 echo.
 echo  Contenu:
-echo   - Vault/              (coffre Obsidian)
+echo   - Vault/              (coffre memoire)
 echo   - Hermes-Clean-Memory/        (tests)
 echo   - Projets/            (tes projets)
 echo   - Hermes-Hub/         (interface web locale + serveur)
@@ -474,16 +461,15 @@ echo   - Nouveau-Projet.ps1  (double-clic = nouveau projet)
 echo   - icons/              (icones)
 echo   - README.md
 echo.
-echo  Raccourcis sur le Bureau:
-echo   - Lancer Hermes       (eclair bleu = master)
-echo   - Lancer Hermes Clean Agent   (tube vert = test)
-echo   - Nouveau Projet      (dossier violet = creation)
-echo   - Hermes Hub          (ouvre http://127.0.0.1:4317 dans le navigateur)
+echo  Un seul raccourci sur le Bureau: Hermes Hub.
+echo   Tout part de la: lancer Hermes, Clean Agent, creer un projet,
+echo   ouvrir le coffre. Le Hub ouvre http://127.0.0.1:4317 et pose une
+echo   icone pres de l'horloge (clic droit pour l'arreter).
 echo.
 echo  PROCHAINES ETAPES:
 echo   1. Ouvre Obsidian - Open folder as vault - %WORKSPACE%\Vault
-echo   2. Double-clic sur "Lancer Hermes" sur le Bureau
-echo   3. Dis a Hermes de memoriser tes infos (voir README)
+echo   2. Double-clic sur "Hermes Hub" sur le Bureau
+echo   3. Bouton "Discuter avec Hermes" et dis-lui de memoriser tes infos
 echo.
 echo  IMPORTANT: Ferme ce terminal et rouvre-en un nouveau.
 echo  Tu peux lancer Hermes en tapant "hermes" dans n'importe quel terminal.
@@ -520,29 +506,6 @@ if not errorlevel 1 exit /b 0
 py -3 --version >nul 2>&1
 if not errorlevel 1 exit /b 0
 exit /b 1
-
-REM ================================================
-REM :write_hub_launcher - ecrit le lanceur du Hub
-REM   %1 = chemin du .ps1 a creer
-REM   Demarre le serveur local et ouvre le navigateur.
-REM ================================================
-:write_hub_launcher
-set "PS_HUB=%~1"
-> "%PS_HUB%" echo $env:HERMES_WORKSPACE = '%WORKSPACE%'
->> "%PS_HUB%" echo Set-Location $PSScriptRoot
->> "%PS_HUB%" echo Write-Host ""
->> "%PS_HUB%" echo Write-Host " === Hermes Hub ===" -ForegroundColor Yellow
->> "%PS_HUB%" echo Write-Host " Interface: http://127.0.0.1:4317" -ForegroundColor Cyan
->> "%PS_HUB%" echo Write-Host " Ferme cette fenetre pour arreter le Hub." -ForegroundColor DarkGray
->> "%PS_HUB%" echo Write-Host ""
->> "%PS_HUB%" echo if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
->> "%PS_HUB%" echo     Write-Host " Node.js introuvable. Ferme ce terminal, rouvre-en un neuf." -ForegroundColor Red
->> "%PS_HUB%" echo     Write-Host " Si le probleme persiste, relance installer.bat." -ForegroundColor Red
->> "%PS_HUB%" echo     Read-Host " Entree pour fermer"
->> "%PS_HUB%" echo     exit 1
->> "%PS_HUB%" echo }
->> "%PS_HUB%" echo node "$PSScriptRoot\server\index.js" --open
-exit /b 0
 
 REM ================================================
 REM :write_templates - ecrit les 6 templates

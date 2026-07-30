@@ -2,7 +2,16 @@
  * Typed client for the local Hub API. Every button in the UI goes through one
  * of these calls - there is no local-only state pretending to be data.
  */
-import type { AppConfig, Project, ProjectStatus, Stats, VaultFolder, VaultNote } from '../types'
+import type {
+  AppConfig,
+  Project,
+  ProjectStatus,
+  Skin,
+  Stats,
+  TrashItem,
+  VaultFolder,
+  VaultNote,
+} from '../types'
 
 export class ApiError extends Error {
   status: number
@@ -41,6 +50,14 @@ export const api = {
   getConfig: () => request<AppConfig>('/config'),
   saveConfig: (patch: Partial<AppConfig>) =>
     request<AppConfig>('/config', { method: 'PUT', body: body(patch) }),
+
+  skins: () => request<Skin[]>('/skins'),
+
+  trash: () => request<TrashItem[]>('/trash'),
+  restoreTrash: (id: string) =>
+    request<{ restored: string }>('/trash/restore', { method: 'POST', body: body({ id }) }),
+  purgeTrash: (id: string) =>
+    request<{ purged: string }>('/trash/purge', { method: 'POST', body: body({ id }) }),
 
   listProjects: () => request<Project[]>('/projects'),
   getProject: (id: string) => request<Project>(`/projects/${enc(id)}`),

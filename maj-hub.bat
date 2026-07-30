@@ -82,9 +82,11 @@ if not exist "!WS!\Hermes-Hub" (
 echo   OK - !WS!
 
 REM == Etape 3: arreter le Hub s'il tourne (il verrouille ses fichiers) ==
+REM    Deux processus a couper: le serveur node, et le PowerShell cache qui
+REM    tient l'icone de la zone de notification.
 echo.
 echo [3/4] Arret du Hub s'il est lance...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -like '*Hermes-Hub*index.js*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }" >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | Where-Object { ($_.Name -eq 'node.exe' -and $_.CommandLine -like '*Hermes-Hub*index.js*') -or ($_.Name -eq 'powershell.exe' -and $_.CommandLine -like '*Lancer-Hermes-Hub.ps1*') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }" >nul 2>&1
 echo   OK.
 
 REM == Etape 4: copier interface + serveur ==
@@ -97,7 +99,8 @@ mkdir "!WS!\Hermes-Hub\dist" 2>nul
 mkdir "!WS!\Hermes-Hub\server" 2>nul
 xcopy "%SRC%\dist\*" "!WS!\Hermes-Hub\dist\" /E /Y /Q >nul
 xcopy "%SRC%\server\*" "!WS!\Hermes-Hub\server\" /E /Y /Q >nul
-echo   OK - interface et serveur mis a jour.
+if exist "%SRC%\launcher\Hermes-Hub.vbs" xcopy "%SRC%\launcher\*" "!WS!\Hermes-Hub\" /Y /Q >nul
+echo   OK - interface, serveur et lanceur mis a jour.
 
 echo.
 echo  ============================================

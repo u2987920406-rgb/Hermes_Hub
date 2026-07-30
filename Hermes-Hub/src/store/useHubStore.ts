@@ -1,6 +1,14 @@
 import { create } from 'zustand'
 import { api, ApiError } from '../lib/api'
-import type { AppConfig, Project, ProjectStatus, Stats, VaultFolder } from '../types'
+import type {
+  AppConfig,
+  Project,
+  ProjectStatus,
+  Skin,
+  Stats,
+  TrashItem,
+  VaultFolder,
+} from '../types'
 
 export type ToastKind = 'success' | 'error' | 'info'
 
@@ -14,11 +22,14 @@ interface HubState {
   ready: boolean
   connected: boolean
   workspace: string
+  version: string
 
   projects: Project[]
   config: AppConfig | null
   stats: Stats | null
   vault: VaultFolder[]
+  skins: Skin[]
+  trash: TrashItem[]
 
   loading: boolean
   toasts: Toast[]
@@ -46,6 +57,10 @@ interface HubState {
   refreshVault: () => Promise<void>
   createNote: (input: { folder: string; title: string }) => Promise<boolean>
   deleteNote: (path: string) => Promise<boolean>
+
+  refreshTrash: () => Promise<void>
+  restoreTrash: (id: string) => Promise<boolean>
+  purgeTrash: (id: string) => Promise<boolean>
 }
 
 let toastSeq = 0
@@ -81,11 +96,14 @@ export const useHubStore = create<HubState>((set, get) => {
     ready: false,
     connected: true,
     workspace: '',
+    version: '',
 
     projects: [],
     config: null,
     stats: null,
     vault: [],
+    skins: [],
+    trash: [],
 
     loading: false,
     toasts: [],
@@ -97,20 +115,26 @@ export const useHubStore = create<HubState>((set, get) => {
       set({ loading: true })
       try {
         const health = await api.health()
-        const [config, projects, stats, vault] = await Promise.all([
+        const [config, projects, stats, vault, skins, trash] = await Promise.all([
           api.getConfig(),
           api.listProjects(),
           api.stats(),
           api.vaultTree(),
+          // Interroge Hermes: si l'agent manque, le serveur renvoie sa liste de secours.
+          api.skins().catch(() => [] as Skin[]),
+          api.trash().catch(() => [] as TrashItem[]),
         ])
         set({
           ready: true,
           connected: true,
           workspace: health.workspace,
+          version: health.version,
           config,
           projects,
           stats,
           vault,
+          skins,
+          trash,
         })
         applyTheme(config.theme === 'dark' ? 'dark' : 'light')
       } catch (err) {
@@ -157,6 +181,7 @@ export const useHubStore = create<HubState>((set, get) => {
       if (res) {
         notify('success', `Projet "${id}" envoye a la corbeille Windows.`)
         await get().refresh()
+        await get().refreshTrash()
         return true
       }
       return false
@@ -216,9 +241,33 @@ export const useHubStore = create<HubState>((set, get) => {
       if (res) {
         notify('success', 'Note envoyee a la corbeille Windows.')
         await get().refreshVault()
+        await get().refreshTrash()
         return true
       }
       return false
+    },
+
+    refreshTrash: async () => {
+      set({ trash: await withError(() => api.trash(), get().trash) })
+    },
+
+    restoreTrash: async (id) => {
+      const res = await withError(() => api.restoreTrash(id), null)
+      if (!res) return false
+      notify('success', 'Element remis a sa place.')
+      // Un projet restaure doit reapparaitre dans la liste, pas seulement
+      // disparaitre de la corbeille.
+      await get().refresh()
+      await get().refreshTrash()
+      return true
+    },
+
+    purgeTrash: async (id) => {
+      const res = await withError(() => api.purgeTrash(id), null)
+      if (!res) return false
+      notify('success', 'Element supprime definitivement.')
+      await get().refreshTrash()
+      return true
     },
   }
 })

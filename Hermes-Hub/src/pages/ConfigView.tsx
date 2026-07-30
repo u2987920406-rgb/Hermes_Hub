@@ -10,7 +10,7 @@ interface Props {
 
 const EDITABLE: { key: keyof AppConfig; label: string; hint: string; placeholder?: string }[] = [
   { key: 'userName', label: 'Ton prenom', hint: "Affiche sur l'accueil" },
-  { key: 'profile', label: 'Profil Hermes principal', hint: 'Utilise par "Lancer Hermes"', placeholder: 'default' },
+  { key: 'profile', label: 'Profil Hermes principal', hint: 'Utilise par "Discuter avec Hermes" et par les projets', placeholder: 'default' },
   { key: 'cleanProfile', label: 'Profil Clean Agent', hint: 'Utilise par la session vierge', placeholder: 'clean' },
   { key: 'defaultModel', label: 'Modele par defaut', hint: 'Informatif - le vrai reglage se fait avec "hermes setup"', placeholder: 'laisse vide pour celui de Hermes' },
 ]
@@ -18,11 +18,20 @@ const EDITABLE: { key: keyof AppConfig; label: string; hint: string; placeholder
 const READONLY: { key: keyof AppConfig; label: string }[] = [
   { key: 'workspace', label: 'Dossier de travail' },
   { key: 'projectsPath', label: 'Dossier des projets' },
-  { key: 'vaultPath', label: 'Coffre Obsidian' },
+  { key: 'vaultPath', label: 'Coffre memoire' },
+]
+
+const SKINS: { key: keyof AppConfig; label: string; hint: string }[] = [
+  { key: 'skinChat', label: 'Discuter avec Hermes', hint: 'Session libre, avec ta memoire' },
+  { key: 'skinClean', label: 'Clean Agent', hint: 'Session vierge' },
+  { key: 'skinProject', label: 'Projets', hint: 'Hermes lance sur un projet' },
 ]
 
 export function ConfigView({ onMenu }: Props) {
   const config = useHubStore((s) => s.config)
+  const skins = useHubStore((s) => s.skins)
+  const version = useHubStore((s) => s.version)
+  const setTheme = useHubStore((s) => s.setTheme)
   const saveConfig = useHubStore((s) => s.saveConfig)
   const openFolder = useHubStore((s) => s.openFolder)
   const bootstrap = useHubStore((s) => s.bootstrap)
@@ -35,7 +44,7 @@ export function ConfigView({ onMenu }: Props) {
   }, [config])
 
   const dirty = config
-    ? EDITABLE.some(({ key }) => (draft[key] ?? '') !== (config[key] ?? ''))
+    ? [...EDITABLE, ...SKINS].some(({ key }) => (draft[key] ?? '') !== (config[key] ?? ''))
     : false
 
   const submit = async () => {
@@ -45,6 +54,9 @@ export function ConfigView({ onMenu }: Props) {
       profile: draft.profile,
       cleanProfile: draft.cleanProfile,
       defaultModel: draft.defaultModel,
+      skinChat: draft.skinChat,
+      skinClean: draft.skinClean,
+      skinProject: draft.skinProject,
     })
     setSaving(false)
   }
@@ -83,13 +95,76 @@ export function ConfigView({ onMenu }: Props) {
                 </div>
               ))}
             </div>
+          </section>
 
-            <div className="mt-5 flex justify-end">
-              <button onClick={submit} className="btn-primary" disabled={!dirty || saving}>
-                <Save className="h-4 w-4" />
-                {saving ? 'Enregistrement...' : 'Enregistrer'}
-              </button>
+          <section className="card p-5">
+            <h3 className="mb-1 text-sm font-semibold">Couleur du terminal Hermes</h3>
+            <p className="mb-4 text-[11px] muted">
+              Une couleur par porte d'entree, pour reconnaitre la nature d'une session sans lire le
+              chemin. Appliquee au lancement suivant.
+            </p>
+            <div className="space-y-4">
+              {SKINS.map(({ key, label, hint }) => {
+                const valeur = String(draft[key] ?? '')
+                const connu = skins.some((s) => s.name === valeur)
+                return (
+                  <div key={key}>
+                    <label htmlFor={`cfg-${key}`} className="mb-1.5 block text-xs font-medium">
+                      {label}
+                    </label>
+                    <select
+                      id={`cfg-${key}`}
+                      className="input"
+                      value={valeur}
+                      onChange={(e) => setDraft((prev) => ({ ...prev, [key]: e.target.value }))}
+                    >
+                      {/* Un skin retire d'Hermes ne doit pas disparaitre du menu en silence */}
+                      {!connu && valeur && <option value={valeur}>{valeur} (introuvable)</option>}
+                      {skins.map((skin) => (
+                        <option key={skin.name} value={skin.name}>
+                          {skin.name} - {skin.description}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-[11px] muted">{hint}</p>
+                  </div>
+                )
+              })}
             </div>
+
+          </section>
+
+          {/* Un seul bouton pour les deux cartes editables : deux boutons
+              "Enregistrer" sur la meme page laisseraient croire qu'un reglage
+              a ete sauve alors qu'il ne l'a pas ete. */}
+          <div className="flex items-center justify-end gap-3">
+            {dirty && <span className="text-[11px] muted">Modifications non enregistrees</span>}
+            <button onClick={submit} className="btn-primary" disabled={!dirty || saving}>
+              <Save className="h-4 w-4" />
+              {saving ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
+          </div>
+
+          <section className="card p-5">
+            <h3 className="mb-1 text-sm font-semibold">Apparence du Hub</h3>
+            <p className="mb-4 text-[11px] muted">
+              S'applique immediatement, sans passer par "Enregistrer".
+            </p>
+            <label htmlFor="cfg-theme" className="mb-1.5 block text-xs font-medium">
+              Theme de l'interface
+            </label>
+            <select
+              id="cfg-theme"
+              className="input"
+              value={config?.theme === 'dark' ? 'dark' : 'light'}
+              onChange={(e) => setTheme(e.target.value === 'dark' ? 'dark' : 'light')}
+            >
+              <option value="light">Clair</option>
+              <option value="dark">Sombre</option>
+            </select>
+            <p className="mt-1 text-[11px] muted">
+              Aussi accessible par l'icone lune en haut de l'accueil.
+            </p>
           </section>
 
           <section className="card p-5">
@@ -129,7 +204,9 @@ export function ConfigView({ onMenu }: Props) {
             <dl className="space-y-1 text-xs muted">
               <div className="flex gap-2">
                 <dt className="opacity-70">Version :</dt>
-                <dd>1.0.0</dd>
+                {/* Vient du serveur : une version ecrite en dur ici finirait
+                    par mentir des la premiere mise a jour du Hub. */}
+                <dd>{version || '-'}</dd>
               </div>
               <div className="flex gap-2">
                 <dt className="opacity-70">Stack :</dt>

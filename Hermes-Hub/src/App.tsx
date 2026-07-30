@@ -8,6 +8,7 @@ import { ConfigView } from './pages/ConfigView'
 import { HomeView } from './pages/HomeView'
 import { ProjectDetail } from './pages/ProjectDetail'
 import { ProjectsView } from './pages/ProjectsView'
+import { TrashView } from './pages/TrashView'
 import { VaultView } from './pages/VaultView'
 import { useHubStore } from './store/useHubStore'
 import type { View } from './types'
@@ -60,6 +61,8 @@ export default function App() {
         return <CleanView onMenu={() => setMenuOpen(true)} />
       case 'vault':
         return <VaultView onMenu={() => setMenuOpen(true)} />
+      case 'trash':
+        return <TrashView onMenu={() => setMenuOpen(true)} />
       case 'config':
         return <ConfigView onMenu={() => setMenuOpen(true)} />
       default:

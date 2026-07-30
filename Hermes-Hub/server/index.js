@@ -121,6 +121,11 @@ function defaultConfig() {
     defaultModel: '',
     theme: 'light',
     userName: path.basename(WORKSPACE).replace(/^Hermes-/, ''),
+    // Une couleur par porte d'entree: on reconnait la nature de la session
+    // au coup d'oeil, sans lire le chemin en haut du terminal.
+    skinChat: 'poseidon',
+    skinClean: 'mono',
+    skinProject: 'default',
   }
 }
 
@@ -131,7 +136,16 @@ function getConfig() {
 }
 
 function putConfig(patch) {
-  const allowed = ['profile', 'cleanProfile', 'defaultModel', 'theme', 'userName']
+  const allowed = [
+    'profile',
+    'cleanProfile',
+    'defaultModel',
+    'theme',
+    'userName',
+    'skinChat',
+    'skinClean',
+    'skinProject',
+  ]
   const stored = readJson(CONFIG_FILE, {})
   for (const key of allowed) {
     if (patch[key] !== undefined) stored[key] = String(patch[key])
@@ -296,19 +310,26 @@ function updateProject(id, patch) {
  * Si la corbeille est indisponible, on echoue plutot que de supprimer sans
  * retour possible - l'utilisateur garde l'explorateur pour forcer.
  */
-function recycle(target, kind) {
-  const method = kind === 'dir' ? 'DeleteDirectory' : 'DeleteFile'
-  // Le chemin passe par l'environnement: aucun probleme de guillemets ou
-  // d'apostrophe dans un nom de projet.
-  const script =
-    'Add-Type -AssemblyName Microsoft.VisualBasic; ' +
-    `[Microsoft.VisualBasic.FileIO.FileSystem]::${method}(` +
-    "$env:HUB_RECYCLE_TARGET, 'OnlyErrorDialogs', 'SendToRecycleBin')"
-
-  const res = spawnSync(
+/**
+ * Execute un script PowerShell. Les parametres passent par l'environnement,
+ * jamais par la ligne de commande: aucun probleme de guillemets, d'apostrophe
+ * ou d'accent dans un nom de projet, et rien a echapper.
+ */
+function runPowerShell(script, env = {}) {
+  return spawnSync(
     'powershell',
     ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
-    { env: { ...process.env, HUB_RECYCLE_TARGET: target }, windowsHide: true }
+    { env: { ...process.env, ...env }, windowsHide: true, encoding: 'utf8' }
+  )
+}
+
+function recycle(target, kind) {
+  const method = kind === 'dir' ? 'DeleteDirectory' : 'DeleteFile'
+  const res = runPowerShell(
+    'Add-Type -AssemblyName Microsoft.VisualBasic; ' +
+      `[Microsoft.VisualBasic.FileIO.FileSystem]::${method}(` +
+      "$env:HUB_RECYCLE_TARGET, 'OnlyErrorDialogs', 'SendToRecycleBin')",
+    { HUB_RECYCLE_TARGET: target }
   )
 
   if (res.status !== 0) {
@@ -316,6 +337,112 @@ function recycle(target, kind) {
     err.status = 500
     throw err
   }
+}
+
+// -----------------------------------------------------------------------------
+// Corbeille - ce que le Hub a jete, tel que Windows le conserve
+// -----------------------------------------------------------------------------
+
+// La corbeille range chaque element sous deux fichiers: $R<id> (le contenu) et
+// $I<id> (son emplacement d'origine). On ne manipule que des chemins situes
+// la-dedans, d'ou cette verification avant toute operation destructrice.
+const CHEMIN_CORBEILLE = /^[A-Za-z]:\\\$Recycle\.Bin\\/i
+
+function assertTrashId(id) {
+  if (typeof id !== 'string' || !CHEMIN_CORBEILLE.test(id)) {
+    const err = new Error('Element de corbeille invalide')
+    err.status = 400
+    throw err
+  }
+  return id
+}
+
+// Fragment commun: retrouve l'element vise par HUB_TRASH_ID.
+const PS_ELEMENT_VISE = `
+$bin = (New-Object -ComObject Shell.Application).NameSpace(10)
+$cible = @($bin.Items()) | Where-Object { $_.Path -eq $env:HUB_TRASH_ID } | Select-Object -First 1
+if (-not $cible) { Write-Error 'Element introuvable dans la corbeille'; exit 1 }
+`
+
+/**
+ * Liste ce que le Hub a mis a la corbeille, et rien d'autre: on filtre sur
+ * l'emplacement d'origine. La corbeille de Windows contient les suppressions
+ * de toute la machine, que le Hub n'a aucune raison de montrer ni de vider.
+ */
+function trashList() {
+  const res = runPowerShell(
+    `
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$bin = (New-Object -ComObject Shell.Application).NameSpace(10)
+$sortie = foreach ($it in @($bin.Items())) {
+  $origine = $bin.GetDetailsOf($it, 1)
+  if (-not $origine.StartsWith($env:HUB_WORKSPACE, [StringComparison]::OrdinalIgnoreCase)) { continue }
+  [pscustomobject]@{
+    id = $it.Path
+    name = $it.Name
+    origin = $origine
+    deletedAt = $bin.GetDetailsOf($it, 2)
+    isFolder = [bool]$it.IsFolder
+  }
+}
+ConvertTo-Json -InputObject @($sortie) -Depth 3 -Compress
+`,
+    { HUB_WORKSPACE: WORKSPACE }
+  )
+
+  const brut = String(res.stdout || '').trim()
+  if (res.status !== 0 || !brut) return []
+  let data
+  try {
+    data = JSON.parse(brut)
+  } catch {
+    return []
+  }
+  // PowerShell 5.1 deballe un tableau d'un seul element en objet.
+  const items = Array.isArray(data) ? data : [data]
+  return items.map((it) => ({
+    ...it,
+    // Windows entoure ses dates de marques de sens de lecture invisibles.
+    deletedAt: String(it.deletedAt || '').replace(/[‎‏]/g, ''),
+  }))
+}
+
+/** Remet un element a sa place d'origine. */
+function trashRestore(id) {
+  assertTrashId(id)
+  const res = runPowerShell(`${PS_ELEMENT_VISE}$cible.InvokeVerb('undelete'); Start-Sleep -Milliseconds 400`, {
+    HUB_TRASH_ID: id,
+  })
+  if (res.status !== 0) {
+    const err = new Error("Restauration impossible. L'element a peut-etre deja ete restaure.")
+    err.status = 500
+    throw err
+  }
+  return { restored: id }
+}
+
+/**
+ * Supprime definitivement un element. `undelete` ayant un verbe canonique mais
+ * pas la suppression, on efface le couple $R/$I a la main: laisser le $I
+ * derriere laisserait une entree fantome dans la corbeille de Windows.
+ */
+function trashPurge(id) {
+  assertTrashId(id)
+  const res = runPowerShell(
+    `${PS_ELEMENT_VISE}
+$feuille = Split-Path $cible.Path -Leaf
+$meta = Join-Path (Split-Path $cible.Path) ('$I' + $feuille.Substring(2))
+Remove-Item -LiteralPath $cible.Path -Force -Recurse
+if (Test-Path -LiteralPath $meta) { Remove-Item -LiteralPath $meta -Force }
+`,
+    { HUB_TRASH_ID: id }
+  )
+  if (res.status !== 0) {
+    const err = new Error('Suppression definitive impossible.')
+    err.status = 500
+    throw err
+  }
+  return { purged: id }
 }
 
 function deleteProject(id) {
@@ -401,7 +528,7 @@ function createVaultNote(body) {
   ensureLayout()
   const folder = String(body.folder || '')
   if (!VAULT_FOLDERS.includes(folder)) {
-    const err = new Error('Dossier de vault inconnu')
+    const err = new Error('Dossier du coffre inconnu')
     err.status = 400
     throw err
   }
@@ -459,6 +586,74 @@ function terminalPath() {
   return fs.existsSync(wt) ? wt : null
 }
 
+// Un skin est un identifiant de preset Hermes, jamais un chemin ni une commande.
+const SKIN_NAME = /^[a-z0-9][a-z0-9_-]{0,31}$/
+
+// Filet de secours quand `hermes skin list` ne repond pas (Hermes absent du
+// PATH, version plus ancienne): les presets livres avec Hermes 0.19.
+const SKINS_CONNUS = [
+  { name: 'default', description: 'Or et bronze - le classique Hermes' },
+  { name: 'ares', description: 'Cramoisi et bronze' },
+  { name: 'mono', description: 'Nuances de gris' },
+  { name: 'slate', description: 'Bleu froid, oriente dev' },
+  { name: 'daylight', description: 'Pour terminal a fond clair' },
+  { name: 'warm-lightmode', description: 'Fond clair, texte brun/or' },
+  { name: 'poseidon', description: 'Bleu profond et ecume' },
+  { name: 'sisyphus', description: 'Gris austere' },
+  { name: 'charizard', description: 'Orange volcanique' },
+]
+
+/**
+ * Liste les skins d'Hermes, y compris ceux que l'utilisateur a deposes dans
+ * son dossier `skins/`: on interroge Hermes plutot que de figer la liste, pour
+ * que le Hub ne se desynchronise pas d'une version a l'autre.
+ */
+function listSkins() {
+  try {
+    const res = spawnSync('hermes', ['skin', 'list'], {
+      windowsHide: true,
+      timeout: 5000,
+      encoding: 'utf8',
+    })
+    // Decoupage sur \r?\n: en JS `.` ne traverse pas un \r, donc un simple
+    // split('\n') laisse un \r final qui fait echouer le `$` du motif.
+    const lignes = String(res.stdout || '').split(/\r?\n/)
+    const skins = []
+    for (const ligne of lignes) {
+      // "  default          builtin  Classic Hermes - gold and kawaii"
+      const m = ligne.match(/^\s*\*?\s*(\S+)\s+(builtin|user)\s+(.*)$/)
+      if (m && SKIN_NAME.test(m[1])) skins.push({ name: m[1], description: m[3].trim() })
+    }
+    if (skins.length) return skins
+  } catch {
+    /* on retombe sur la liste figee */
+  }
+  return SKINS_CONNUS
+}
+
+/**
+ * Impose la couleur de la session sur le point d'etre ouverte.
+ *
+ * Hermes lit `display.skin` de son config.yaml au demarrage et n'accepte ni
+ * option ni variable d'environnement pour le forcer. On ecrit donc le reglage
+ * juste avant d'ouvrir le terminal, via la commande officielle: c'est ce qui
+ * permet une couleur par porte d'entree alors que le reglage est global.
+ * `hermes skin use` coute ~0.4 s, d'ou l'appel synchrone - la couleur doit
+ * etre en place avant que le terminal ne demarre.
+ *
+ * `-p <profil>` vise le config.yaml de ce profil: Clean Agent garde sa couleur
+ * sans jamais toucher a celle des autres sessions.
+ */
+function applySkin(skin, profile) {
+  if (!skin || !SKIN_NAME.test(skin)) return
+  const args = profile && SKIN_NAME.test(profile) ? ['-p', profile] : []
+  try {
+    spawnSync('hermes', [...args, 'skin', 'use', skin], { windowsHide: true, timeout: 5000 })
+  } catch {
+    /* Hermes absent du PATH: la session s'ouvre, simplement sans couleur imposee */
+  }
+}
+
 /** Open a terminal running `hermes` in `cwd`, with an optional profile. */
 function launchHermes({ cwd, profile }) {
   const cmd = profile ? `hermes -p ${profile}` : 'hermes'
@@ -507,6 +702,20 @@ async function handleApi(req, res, url) {
   if (rest[0] === 'config') {
     if (method === 'GET') return sendJson(res, 200, getConfig())
     if (method === 'PUT') return sendJson(res, 200, putConfig(await readBody(req)))
+  }
+
+  if (rest[0] === 'skins' && method === 'GET') return sendJson(res, 200, listSkins())
+
+  if (rest[0] === 'trash') {
+    if (!rest[1] && method === 'GET') return sendJson(res, 200, trashList())
+    if (rest[1] === 'restore' && method === 'POST') {
+      const body = await readBody(req)
+      return sendJson(res, 200, trashRestore(body.id))
+    }
+    if (rest[1] === 'purge' && method === 'POST') {
+      const body = await readBody(req)
+      return sendJson(res, 200, trashPurge(body.id))
+    }
   }
 
   if (rest[0] === 'stats' && method === 'GET') {
@@ -568,7 +777,16 @@ async function handleApi(req, res, url) {
         cwd = safeJoin(PROJECTS_DIR, body.projectId)
         updateProject(body.projectId, { touch: true })
       }
-      return sendJson(res, 200, launchHermes({ cwd, profile: body.profile || null }))
+      const profile = body.profile || null
+      const config = getConfig()
+      const skin =
+        profile && profile === config.cleanProfile
+          ? config.skinClean
+          : body.projectId
+            ? config.skinProject
+            : config.skinChat
+      applySkin(skin, profile)
+      return sendJson(res, 200, launchHermes({ cwd, profile }))
     }
     if (rest[1] === 'obsidian') return sendJson(res, 200, openObsidian())
   }

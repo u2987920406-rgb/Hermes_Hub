@@ -4,7 +4,7 @@
 - Liste de projets visuelle avec statut (En cours / Terminé / Factory Setup)
 - Lancement d'Hermes par clic sur un projet
 - Mode Hermes Factory Setup (session sans mémoire, vierge)
-- Accès au Coffre Obsidian
+- Accès au Coffre mémoire
 - Gestion de la configuration mémoire/profil
 
 ## Architecture
@@ -42,11 +42,11 @@ Hermes-Hub/
 ├── src/               # Code source React + TypeScript
 │   ├── App.tsx        # Composant principal
 │   ├── components/    # Composants UI
-│   │   ├── Sidebar.tsx        # Navigation latérale
+│   │   ├── Sidebar.tsx        # Navigation latérale (repliable en icônes)
 │   │   ├── ProjectCard.tsx    # Carte projet
 │   │   ├── HomeView.tsx       # Vue d'accueil
 │   │   ├── FactoryView.tsx    # Vue Hermes Factory Setup
-│   │   ├── VaultView.tsx      # Vue Coffre Obsidian
+│   │   ├── VaultView.tsx      # Vue Coffre mémoire
 │   │   └── ConfigView.tsx     # Vue configuration
 │   ├── hooks/         # Hooks personnalisés
 │   ├── store/         # Zustand state management
@@ -76,7 +76,7 @@ Hermes-Hub/
 - Liste des projets récents
 - Bouton "Nouveau Projet"
 - Lien direct vers Hermes Factory Setup
-- Lien direct vers Coffre Obsidian
+- Lien direct vers Coffre mémoire
 
 ### Vue Projets
 - Grille de cartes de projets
@@ -90,12 +90,18 @@ Hermes-Hub/
 - Bouton "Lancer Hermes Factory Setup"
 - Après utilisation, option pour sauvegarder ou supprimer la session
 
-### Vue Coffre Obsidian
+### Vue Coffre mémoire
 - Arbre des dossiers du coffre
 - Lien pour ouvrir Obsidian
 - Dossiers visibles : Scripts, Lessons, Decisions, Bugs, Projects, Changelogs
 
+### Vue Corbeille
+- Ce que le Hub a jeté, tel que Windows le conserve
+- Restaurer à l'emplacement d'origine, ou supprimer définitivement
+- Pastille dans le menu avec le nombre d'éléments
+
 ### Vue Configuration
+- Couleur du terminal par porte d'entrée (skins Hermes)
 - Mémoire globale (visualisation et édition)
 - Profil actif
 - Modèle utilisé

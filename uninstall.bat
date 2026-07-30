@@ -48,7 +48,8 @@ echo.
 echo  [2/4] Suppression du workspace dans Documents...
 
 REM -- Arreter Hermes Hub s'il tourne: son serveur verrouille le dossier workspace
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -like '*Hermes-Hub*index.js*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }" >nul 2>&1
+REM    (le serveur node, et le PowerShell cache qui tient l'icone de notification)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | Where-Object { ($_.Name -eq 'node.exe' -and $_.CommandLine -like '*Hermes-Hub*index.js*') -or ($_.Name -eq 'powershell.exe' -and $_.CommandLine -like '*Lancer-Hermes-Hub.ps1*') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }" >nul 2>&1
 
 set "DOCS=%USERPROFILE%\Documents"
 for /d %%D in ("%DOCS%\Hermes-*") do (

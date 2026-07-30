@@ -22,17 +22,15 @@ L'installateur suit cet ordre precis:
 8. **Questions personnelles** - Pose 9 questions pour construire ta memoire globale
 9. **Profil pre-rempli** - Demande si tu veux utiliser le profil pre-rempli (regles deja configurees)
 10. **Creation du workspace** - Cree le dossier `Documents\Hermes-<TonPrenom>` avec:
-    - Vault/ (coffre Obsidian avec templates)
+    - Vault/ (coffre memoire, ouvert dans Obsidian, avec templates)
     - Hermes-Clean-Memory/ (dossier de test avec profil vierge)
     - Projets/ (tes projets)
     - Hermes-Hub/ (interface web locale + son serveur)
     - icons/ (icones pour les raccourcis)
     - Lancer-Hermes.ps1, Nouveau-Projet.ps1, etc.
-11. **Raccourcis Bureau** - Cree 4 raccourcis sur le Bureau:
-    - Lancer Hermes (profil master)
-    - Lancer Hermes Clean Agent (profil test vierge)
-    - Nouveau Projet (creation de projet + Hermes auto)
-    - Hermes Hub (interface web locale)
+11. **Raccourci Bureau** - Cree un seul raccourci: **Hermes Hub**. Tout part de
+    la (lancer Hermes, Clean Agent, creer un projet, ouvrir le coffre), donc le
+    Bureau reste propre.
 
 ## Apres l'installation
 
@@ -47,14 +45,18 @@ L'installateur suit cet ordre precis:
 Apres redemarrage du terminal:
 
 - Tape `hermes` dans n'importe quel terminal (Windows Terminal, cmd, PowerShell)
-- Ou double-clic sur le raccourci "Lancer Hermes" sur le Bureau
+- Ou passe par le Hub: bouton "Discuter avec Hermes" sur l'accueil
 
 ## Lancer Hermes Hub (interface web)
 
 - Double-clic sur le raccourci "Hermes Hub" sur le Bureau
-- Une fenetre de terminal s'ouvre (c'est le serveur local) et le navigateur
-  affiche l'interface sur http://127.0.0.1:4317
-- **Laisse cette fenetre ouverte** tant que tu utilises le Hub. La fermer arrete le Hub.
+- Aucune fenetre de terminal ne s'ouvre: le navigateur affiche l'interface sur
+  http://127.0.0.1:4317 et le serveur tourne discretement derriere
+- Une icone Hermes apparait pres de l'horloge (souvent rangee sous la fleche
+  "Afficher les icones cachees" - on peut la glisser dehors pour l'epingler)
+- Clic droit sur cette icone: **Ouvrir le Hub**, **Ouvrir le dossier de
+  travail**, ou **Arreter le Hub**. C'est la seule facon de couper le serveur,
+  donc plus de risque de le fermer par erreur
 - Si tu double-cliques une deuxieme fois alors que le Hub tourne deja, il ouvre
   simplement l'onglet du navigateur au lieu de relancer un serveur.
 

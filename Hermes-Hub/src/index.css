@@ -87,11 +87,13 @@
     @apply border-navy-700 bg-navy-950 text-slate-100 placeholder:text-slate-500;
   }
 
+  /* Un cran plus contraste que le gris habituel: ces textes sont petits
+     (11-12 px) et servent surtout d'explication, il faut pouvoir les lire. */
   .muted {
-    @apply text-slate-500;
+    @apply text-slate-600;
   }
 
   .dark .muted {
-    @apply text-slate-400;
+    @apply text-slate-300;
   }
 }

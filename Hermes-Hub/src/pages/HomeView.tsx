@@ -20,8 +20,9 @@ export function HomeView({ onNavigate, onMenu }: Props) {
 
   const tiles = [
     { label: 'Projets', value: stats?.projects ?? 0, icon: FolderOpen, tone: 'text-sky-600 bg-sky-100 dark:bg-sky-500/15 dark:text-sky-300' },
-    { label: 'En cours', value: stats?.active ?? 0, icon: Play, tone: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-300' },
-    { label: 'Termines', value: stats?.done ?? 0, icon: CheckCircle2, tone: 'text-violet-600 bg-violet-100 dark:bg-violet-500/15 dark:text-violet-300' },
+    // Meme code couleur que les pastilles des cartes projet (voir statusClasses).
+    { label: 'En cours', value: stats?.active ?? 0, icon: Play, tone: 'text-sky-600 bg-sky-100 dark:bg-sky-500/15 dark:text-sky-300' },
+    { label: 'Termines', value: stats?.done ?? 0, icon: CheckCircle2, tone: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-300' },
     { label: 'Notes du coffre', value: stats?.notes ?? 0, icon: BookOpen, tone: 'text-gold-600 bg-gold-300/40 dark:bg-gold-500/15 dark:text-gold-300' },
   ]
 
@@ -56,9 +57,13 @@ export function HomeView({ onNavigate, onMenu }: Props) {
                 className="h-16 w-16 flex-shrink-0 object-contain transition-transform group-hover:scale-105 sm:h-20 sm:w-20"
               />
               <div className="min-w-0">
-                <h3 className="text-base font-bold sm:text-lg">Lancer Hermes</h3>
+                <h3 className="text-base font-bold sm:text-lg">Discuter avec Hermes</h3>
                 <p className="mt-1 text-xs muted sm:text-sm">
-                  Ouvre un terminal avec ta memoire et tes projets
+                  Ouvre un terminal pour discuter avec Hermes
+                </p>
+                <p className="mt-2 text-[11px] italic leading-relaxed text-sky-700 dark:text-sky-300">
+                  ex : «&nbsp;revue du coffre memoire, gestion des agents, question hors projet,
+                  simplement discuter d'une idee...&nbsp;»
                 </p>
               </div>
             </button>
@@ -75,7 +80,11 @@ export function HomeView({ onNavigate, onMenu }: Props) {
               <div className="min-w-0">
                 <h3 className="text-base font-bold sm:text-lg">Clean Agent</h3>
                 <p className="mt-1 text-xs muted sm:text-sm">
-                  Session vierge, sans memoire, pour tester
+                  Session vierge, sans memoire ni contexte : Hermes brut, pour tester
+                </p>
+                <p className="mt-2 text-[11px] italic leading-relaxed text-teal-700 dark:text-teal-300">
+                  ex : «&nbsp;verifier le comportement d'Hermes par defaut, essayer une idee sans
+                  laisser de trace, reproduire un bug hors contexte...&nbsp;»
                 </p>
               </div>
             </button>

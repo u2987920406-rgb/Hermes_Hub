@@ -1,7 +1,7 @@
 {
   "name": "hermes-hub",
   "version": "1.0.0",
-  "description": "- Liste de projets visuelle avec statut (En cours / Terminé / Factory Setup) - Lancement d'Hermes par clic sur un projet - Mode Hermes Factory Setup (session sans mémoire, vierge) - Accès au Vault Obsidian - Gestion de la configuration mémoire/profil",
+  "description": "- Liste de projets visuelle avec statut (En cours / Terminé / Factory Setup) - Lancement d'Hermes par clic sur un projet - Mode Hermes Factory Setup (session sans mémoire, vierge) - Accès au Coffre mémoire - Gestion de la configuration mémoire/profil",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
