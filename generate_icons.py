@@ -10,6 +10,9 @@ Only the central glyph changes, so they read as one family in the taskbar:
     hermes-master   play      (gold)
     hermes-clean    sparkle   (silver)
     nouveau-projet  folder +  (gold)
+    installer       arrow     (gold)     -> installer.bat
+    desinstaller    trash     (silver)   -> uninstall.bat
+    reparer         wrench    (gold)     -> fix-hermes.bat
 
 Every size is rendered independently from a 1024px master, and sizes <= 32px
 use a simplified, thicker variant so the glyph survives at 16px. The .ico is
@@ -331,6 +334,134 @@ def glyph_sparkle(tier):
     return fn, (-0.56, 0.66)
 
 
+def glyph_install(tier):
+    """Fleche vers le bas posee sur un socle: installer."""
+    micro = tier == "micro"
+    if micro:
+        shaft = (-0.17, -0.55, 0.17, 0.05)
+        head = [(-0.50, 0.0), (0.50, 0.0), (0.0, 0.62)]
+        base = None
+    else:
+        shaft = (-0.13, -0.62, 0.13, 0.10)
+        head = [(-0.42, 0.06), (0.42, 0.06), (0.0, 0.54)]
+        base = (-0.52, 0.62, 0.52, 0.80)
+
+    def fn(d, grow):
+        d.rounded_rectangle([*U(shaft[0], shaft[1]), *U(shaft[2], shaft[3])],
+                            radius=ulen(0.05), fill=255)
+        stroke(d, upath(head), grow)
+        if base:
+            d.rounded_rectangle([*U(base[0], base[1]), *U(base[2], base[3])],
+                                radius=ulen(0.06), fill=255)
+        if grow > 0:
+            d.line(upath([(shaft[0], shaft[1]), (shaft[2], shaft[1]),
+                          (shaft[2], shaft[3]), (shaft[0], shaft[3])]) +
+                   [U(shaft[0], shaft[1])],
+                   fill=255, width=int(round(grow)), joint="curve")
+
+    return fn, (shaft[1], base[3] if base else head[2][1])
+
+
+def glyph_trash(tier):
+    """Corbeille: desinstaller."""
+    micro = tier == "micro"
+    lid_h = 0.16 if micro else 0.14
+    lid = (-0.50, -0.46, 0.50, -0.46 + lid_h)
+    grip = (-0.17, -0.62, 0.17, -0.46)
+    top, bot = -0.24, 0.62
+    half_top, half_bot = (0.42, 0.32) if micro else (0.40, 0.28)
+
+    def fn(d, grow):
+        d.rounded_rectangle([*U(lid[0], lid[1]), *U(lid[2], lid[3])],
+                            radius=ulen(0.05), fill=255)
+        d.rounded_rectangle([*U(grip[0], grip[1]), *U(grip[2], grip[3])],
+                            radius=ulen(0.05), fill=255)
+        body = [(-half_top, top), (half_top, top), (half_bot, bot), (-half_bot, bot)]
+        stroke(d, upath(body), grow)
+
+    return fn, (grip[1], bot)
+
+
+def trash_slots(tier):
+    """Deux fentes verticales creusees dans la corbeille. Sautees en micro, ou
+    elles se refermeraient au rendu."""
+    if tier == "micro":
+        return None
+    w = 0.045 if tier == "simple" else 0.038
+    y0, y1 = -0.08, 0.44
+
+    def fn(d):
+        for cx in (-0.15, 0.15):
+            d.rounded_rectangle([*U(cx - w, y0), *U(cx + w, y1)],
+                                radius=ulen(w), fill=255)
+
+    return fn
+
+
+def glyph_wrench(tier):
+    """Cle plate en diagonale: reparer."""
+    micro = tier == "micro"
+    hw = 0.15 if micro else 0.125                 # demi-largeur du manche
+    cx, cy = 0.34, -0.34                          # centre de la tete
+    r_out = 0.34 if micro else 0.30
+
+    def fn(d, grow):
+        # manche: bande diagonale de la tete vers le bas-gauche
+        dx, dy = -0.62, 0.62
+        nx, ny = hw, hw                            # normale a 45 degres
+        handle = [(cx - nx, cy - ny), (cx + nx, cy + ny),
+                  (cx + dx + nx, cy + dy + ny), (cx + dx - nx, cy + dy - ny)]
+        stroke(d, upath(handle), grow)
+        g = ulen(0.5) * 0 + grow / 2.0
+        d.ellipse([*U(cx - r_out, cy - r_out), *U(cx + r_out, cy + r_out)], fill=255)
+        if grow > 0:
+            d.ellipse([*U(cx - r_out, cy - r_out), *U(cx + r_out, cy + r_out)],
+                      outline=255, width=int(round(g * 2)))
+
+    return fn, (cy - r_out, cy + 0.62 + hw)
+
+
+def wrench_cutouts(tier):
+    """Trou central + machoire ouverte vers le haut-droit, dans l'axe oppose au
+    manche. L'ouverture doit depasser le bord de la tete pour que la cle soit
+    ouverte, mais elle est ensuite bornee au disque interieur du badge."""
+    cx, cy = 0.34, -0.34
+    hole = 0.17 if tier == "micro" else 0.145
+    half_in = 0.14 if tier == "micro" else 0.12    # demi-largeur au centre
+    half_out = 0.17 if tier == "micro" else 0.15   # demi-largeur au bord
+    reach = 0.40 if tier == "micro" else 0.38      # longueur de l'ouverture
+
+    s = math.sqrt(0.5)
+    dx, dy = s, -s                                 # direction haut-droit
+    px, py = s, s                                  # perpendiculaire
+
+    def fn(d):
+        d.ellipse([*U(cx - hole, cy - hole), *U(cx + hole, cy + hole)], fill=255)
+        d.polygon(upath([
+            (cx - px * half_in, cy - py * half_in),
+            (cx + px * half_in, cy + py * half_in),
+            (cx + dx * reach + px * half_out, cy + dy * reach + py * half_out),
+            (cx + dx * reach - px * half_out, cy + dy * reach - py * half_out),
+        ]), fill=255)
+
+    return fn
+
+
+def punch(base, cut_fn, r_in_n):
+    """Creuse `cut_fn` dans le glyphe, en navy, sans jamais mordre sur le rim :
+    le masque est borne au disque interieur du badge."""
+    cut = Image.new("L", (R, R), 0)
+    cut_fn(ImageDraw.Draw(cut))
+
+    c = (R - 1) / 2.0
+    rr = r_in_n * R / 2.0
+    field = Image.new("L", (R, R), 0)
+    ImageDraw.Draw(field).ellipse([c - rr, c - rr, c + rr, c + rr], fill=255)
+
+    base.paste(Image.new("RGB", (R, R), NAVY_EDGE), (0, 0),
+               ImageChops.multiply(cut, field))
+
+
 def glyph_caduceus(tier):
     """Caduceus: winged staff with an orb. The twin serpents are dropped below
     24px, where they only add noise."""
@@ -398,12 +529,23 @@ def render_master(kind, tier):
     elif kind == "nouveau-projet":
         fn, bbox = glyph_folder(tier)
         compose_glyph(base, fn, GOLD, bbox, tier)
-        cut = Image.new("L", (R, R), 0)
-        plus_cutout(tier)(ImageDraw.Draw(cut))
-        base.paste(Image.new("RGB", (R, R), NAVY_EDGE), (0, 0), cut)
+        punch(base, plus_cutout(tier), r_in)
     elif kind == "hermes-hub":
         fn, bbox = glyph_caduceus(tier)
         compose_glyph(base, fn, GOLD, bbox, tier)
+    elif kind == "installer":
+        fn, bbox = glyph_install(tier)
+        compose_glyph(base, fn, GOLD, bbox, tier)
+    elif kind == "desinstaller":
+        fn, bbox = glyph_trash(tier)
+        compose_glyph(base, fn, SILV, bbox, tier)
+        slots = trash_slots(tier)
+        if slots:
+            punch(base, slots, r_in)
+    elif kind == "reparer":
+        fn, bbox = glyph_wrench(tier)
+        compose_glyph(base, fn, GOLD, bbox, tier)
+        punch(base, wrench_cutouts(tier), r_in)
     else:
         raise ValueError(kind)
 
@@ -470,7 +612,13 @@ def write_ico(path, frames):
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
-KINDS = ["hermes-hub", "hermes-master", "hermes-clean", "nouveau-projet"]
+# Icones des raccourcis du poste client
+KINDS = ["hermes-hub", "hermes-master", "hermes-clean", "nouveau-projet",
+         # icones des scripts .bat du dossier d'installation
+         "installer", "desinstaller", "reparer"]
+
+# Seules les icones de l'application sont copiees dans le Hub
+HUB_KINDS = ["hermes-hub", "hermes-master", "hermes-clean", "nouveau-projet"]
 
 
 def main():
@@ -508,7 +656,7 @@ def main():
 
     # mirror into the Hub's public/ folder
     if os.path.isdir(HUB_PUBLIC):
-        for kind in KINDS:
+        for kind in HUB_KINDS:
             shutil.copy2(os.path.join(ICONS_DIR, kind + ".ico"), os.path.join(HUB_PUBLIC, kind + ".ico"))
             shutil.copy2(os.path.join(ICONS_DIR, kind + "-preview.png"), os.path.join(HUB_PUBLIC, kind + ".png"))
         print("  -> copies vers " + HUB_PUBLIC)

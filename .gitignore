@@ -5,6 +5,11 @@ Hermes-Hub/node_modules/
 # L'installateur copie l'interface deja construite sur le PC du client,
 # qui n'a ni npm ni les sources. Retirer dist/ du depot casse l'installation.
 
+# Raccourcis locaux vers les .bat : ils portent les icones du dossier icons/,
+# mais un .lnk enregistre un chemin absolu et ne survivrait pas a une copie sur
+# un autre poste. On les recree avec make-raccourcis.ps1.
+*.lnk
+
 # Divers Windows
 Thumbs.db
 desktop.ini
