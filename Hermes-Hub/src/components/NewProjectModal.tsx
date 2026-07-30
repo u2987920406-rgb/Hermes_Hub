@@ -11,20 +11,24 @@ interface Props {
 
 export function NewProjectModal({ onClose, onCreated }: Props) {
   const createProject = useHubStore((s) => s.createProject)
+  const launchHermes = useHubStore((s) => s.launchHermes)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [busy, setBusy] = useState(false)
 
+  // Creer un projet sert a y travailler tout de suite : on ouvre Hermes dans la
+  // foulee, sans repasser par le bouton "Lancer Hermes" de la carte.
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || busy) return
     setBusy(true)
     const project = await createProject({ name: name.trim(), description: description.trim() })
-    setBusy(false)
     if (project) {
+      await launchHermes({ projectId: project.id })
       onCreated?.(project.id)
       onClose()
     }
+    setBusy(false)
   }
 
   return (
@@ -67,6 +71,9 @@ export function NewProjectModal({ onClose, onCreated }: Props) {
         </div>
 
         <div className="rounded-lg bg-slate-50 p-3 dark:bg-navy-950">
+          <p className="mb-2 text-[11px] font-medium">
+            Hermes s'ouvrira dans un terminal, place dans le dossier du projet.
+          </p>
           <p className="mb-2 text-[11px] font-medium">Fichiers crees automatiquement :</p>
           <div className="flex flex-wrap gap-1.5">
             {STANDARD_FILES.map((file) => (
@@ -85,7 +92,7 @@ export function NewProjectModal({ onClose, onCreated }: Props) {
             Annuler
           </button>
           <button type="submit" className="btn-primary sm:flex-1" disabled={busy || !name.trim()}>
-            {busy ? 'Creation...' : 'Creer le projet'}
+            {busy ? 'Creation et lancement...' : 'Creer et lancer Hermes'}
           </button>
         </div>
       </form>
