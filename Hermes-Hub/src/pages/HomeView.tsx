@@ -80,7 +80,7 @@ export function HomeView({ onNavigate, onMenu }: Props) {
                 <p className="mt-1 text-xs muted sm:text-sm">
                   Ouvre un terminal pour discuter avec Hermes
                 </p>
-                <p className="mt-2 text-[11px] italic leading-relaxed text-sky-700 dark:text-sky-300">
+                <p className="exemple mt-2 text-[11px] italic leading-relaxed">
                   ex : «&nbsp;revue du coffre memoire, gestion des agents, question hors projet,
                   simplement discuter d'une idee...&nbsp;»
                 </p>
@@ -101,7 +101,7 @@ export function HomeView({ onNavigate, onMenu }: Props) {
                 <p className="mt-1 text-xs muted sm:text-sm">
                   Session vierge, sans memoire ni contexte : Hermes brut, pour tester
                 </p>
-                <p className="mt-2 text-[11px] italic leading-relaxed text-teal-700 dark:text-teal-300">
+                <p className="exemple mt-2 text-[11px] italic leading-relaxed">
                   ex : «&nbsp;verifier le comportement d'Hermes par defaut, essayer une idee sans
                   laisser de trace, reproduire un bug hors contexte...&nbsp;»
                 </p>

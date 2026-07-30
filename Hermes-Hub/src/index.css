@@ -98,6 +98,17 @@
   .dark .muted {
     @apply text-slate-300;
   }
+
+  /* Les lignes d'exemples sous les boutons de l'accueil : une seule couleur
+     pour les deux cartes, definie ici et pas dans chaque composant, sinon les
+     deux finissent par diverger - c'est exactement ce qui etait arrive. */
+  .exemple {
+    @apply text-sky-800;
+  }
+
+  .dark .exemple {
+    @apply text-emerald-300;
+  }
 }
 
 /* ==========================================================================
@@ -189,6 +200,11 @@
 .antique .btn-ghost:hover {
   background-color: #ebe3d5;
   color: #55483a;
+}
+
+/* Bleu egeen soutenu : assez present pour se detacher du lin sans crier. */
+.antique .exemple {
+  color: #27607b;
 }
 
 .antique :focus-visible {
