@@ -380,6 +380,10 @@ if exist "%ICONS_SRC%\hermes-hub.ico" copy "%ICONS_SRC%\hermes-hub.ico" "%WORKSP
 REM -- Creer les raccourcis sur le Bureau via PowerShell
 REM On utilise >> pour eviter les problemes de parentheses dans un block ()
 REM Les raccourcis utilisent PowerShell au lieu de cmd.exe
+REM Chaque raccourci passe -ExecutionPolicy Bypass: la politique par defaut de
+REM Windows (Restricted) refuse d'executer un .ps1, et sans ca l'utilisateur
+REM devait lancer "Set-ExecutionPolicy -Scope CurrentUser RemoteSigned" a la main.
+REM Bypass ne vaut que pour le processus lance, la machine n'est pas modifiee.
 set "PS1=%TEMP%\hermes_shortcuts.ps1"
 > "%PS1%" echo $ws = New-Object -ComObject WScript.Shell
 >> "%PS1%" echo $desktop = [Environment]::GetFolderPath('Desktop')
@@ -387,21 +391,21 @@ set "PS1=%TEMP%\hermes_shortcuts.ps1"
 >> "%PS1%" echo $icons = "$wsx\icons"
 >> "%PS1%" echo $sc1 = $ws.CreateShortcut("$desktop\Lancer Hermes.lnk")
 >> "%PS1%" echo $sc1.TargetPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
->> "%PS1%" echo $sc1.Arguments = "powershell -NoExit -Command `"Set-Location '$wsx'; . '$wsx\Lancer-Hermes.ps1'`""
+>> "%PS1%" echo $sc1.Arguments = "powershell -NoExit -ExecutionPolicy Bypass -Command `"Set-Location '$wsx'; . '$wsx\Lancer-Hermes.ps1'`""
 >> "%PS1%" echo $sc1.IconLocation = "$icons\hermes-master.ico, 0"
 >> "%PS1%" echo $sc1.WorkingDirectory = $wsx
 >> "%PS1%" echo $sc1.Description = 'Lance Hermes (master)'
 >> "%PS1%" echo $sc1.Save()
 >> "%PS1%" echo $sc2 = $ws.CreateShortcut("$desktop\Lancer Hermes Clean Agent.lnk")
 >> "%PS1%" echo $sc2.TargetPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
->> "%PS1%" echo $sc2.Arguments = "powershell -NoExit -Command `"Set-Location '$wsx\Hermes-Clean-Memory'; . '$wsx\Hermes-Clean-Memory\Lancer-Hermes-Clean.ps1'`""
+>> "%PS1%" echo $sc2.Arguments = "powershell -NoExit -ExecutionPolicy Bypass -Command `"Set-Location '$wsx\Hermes-Clean-Memory'; . '$wsx\Hermes-Clean-Memory\Lancer-Hermes-Clean.ps1'`""
 >> "%PS1%" echo $sc2.IconLocation = "$icons\hermes-clean.ico, 0"
 >> "%PS1%" echo $sc2.WorkingDirectory = $wsx
 >> "%PS1%" echo $sc2.Description = 'Lance Hermes Clean Agent (profil vierge, tests)'
 >> "%PS1%" echo $sc2.Save()
 >> "%PS1%" echo $sc3 = $ws.CreateShortcut("$desktop\Nouveau Projet.lnk")
 >> "%PS1%" echo $sc3.TargetPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
->> "%PS1%" echo $sc3.Arguments = "powershell -NoExit -Command `"Set-Location '$wsx'; . '$wsx\Nouveau-Projet.ps1'`""
+>> "%PS1%" echo $sc3.Arguments = "powershell -NoExit -ExecutionPolicy Bypass -Command `"Set-Location '$wsx'; . '$wsx\Nouveau-Projet.ps1'`""
 >> "%PS1%" echo $sc3.IconLocation = "$icons\nouveau-projet.ico, 0"
 >> "%PS1%" echo $sc3.WorkingDirectory = $wsx
 >> "%PS1%" echo $sc3.Description = 'Cree un nouveau projet avec 6 fichiers standard'
