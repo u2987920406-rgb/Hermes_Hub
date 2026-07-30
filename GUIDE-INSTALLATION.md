@@ -8,6 +8,27 @@ Ce guide explique ce que l'installateur va faire, etape par etape.
 - Les **droits administrateur** (l'installateur se lance en mode admin automatiquement)
 - Un PC sous **Windows 10 ou 11**
 
+## Ou poser ce dossier avant de commencer
+
+Le dossier `Hermes-Installer` est une trousse de livraison, pas un logiciel :
+une fois l'installation faite, plus rien de ce qui tourne sur le PC n'en
+depend. Tu peux donc le lancer d'ou tu veux - Bureau, Telechargements, cle USB,
+l'installation sera exactement la meme.
+
+Deux precautions quand meme :
+
+- **Double-clique `installer.bat`**, pas le raccourci "Installer Hermes".
+  Les trois raccourcis `.lnk` du dossier enregistrent un chemin absolu : sur un
+  autre PC que celui qui les a crees, ils ne pointent plus sur rien. Pour leur
+  rendre leurs icones, lancer une fois :
+  `powershell -ExecutionPolicy Bypass -File make-raccourcis.ps1`
+- **Ne jette pas le dossier tout de suite.** L'installateur en depose l'essentiel
+  dans `Documents\Hermes-<TonPrenom>\Depannage\` (reparation et
+  desinstallation), mais `maj-hub.bat` et les guides ne vivent qu'ici.
+
+Le plus simple : le ranger dans `Documents\Hermes-<TonPrenom>\` une fois
+l'installation terminee. Il y est a sa place, et il suit le dossier de travail.
+
 ## Ce que l'installateur va faire
 
 L'installateur suit cet ordre precis:
@@ -28,6 +49,7 @@ L'installateur suit cet ordre precis:
     - Hermes-Clean-Memory/ (dossier de test avec profil vierge)
     - Projets/ (tes projets)
     - Hermes-Hub/ (interface web locale + son serveur)
+    - Depannage/ (de quoi reparer ou desinstaller sans le dossier d'origine)
     - icons/ (icones pour les raccourcis)
     - Lancer-Hermes.ps1, Nouveau-Projet.ps1, etc.
 11. **Raccourci Bureau** - Cree un seul raccourci: **Hermes Hub**. Tout part de
@@ -66,7 +88,8 @@ Apres redemarrage du terminal:
 
 - Ferme le terminal et relance-le
 - Si ca ne marche toujours pas, redemarre ton PC
-- Si Hermes affiche une erreur "uv trampoline", relance l'installateur
+- Si Hermes affiche une erreur "uv trampoline", lance
+  `Documents\Hermes-<TonPrenom>\Depannage\fix-hermes.bat`
 - Verifie que Python et Node.js sont bien installes: `python --version` et `node --version`
 - Cas particuliers (script PowerShell bloque, Hermes corrompu, Hub qui ne
   repond pas): voir `NOTES-DEPANNAGE.md`

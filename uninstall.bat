@@ -11,9 +11,25 @@ if errorlevel 1 (
 
 setlocal EnableDelayedExpansion
 
+REM -- Se mettre a l'abri avant de supprimer le sol sous ses pieds
+REM L'installeur depose une copie de ce script dans Depannage\, donc a
+REM l'interieur de l'espace de travail que "tout supprimer" envoie a la
+REM corbeille. Or cmd lit un .bat ligne a ligne, en gardant le fichier ouvert :
+REM un script qui se deplace lui-meme s'interrompt en plein milieu. On repart
+REM donc depuis %TEMP%, et on rend la main tout de suite.
+if exist "%~dp0..\Vault" (
+    set "COPIE=%TEMP%\hermes-desinstallation"
+    mkdir "!COPIE!" 2>nul
+    copy /y "%~f0" "!COPIE!\uninstall.bat" >nul 2>&1
+    if exist "!COPIE!\uninstall.bat" (
+        start "" cmd /c ""!COPIE!\uninstall.bat""
+        exit /b
+    )
+)
+
 REM Ces trois chemins sont regroupes ici pour pouvoir rejouer le script sur un
 REM faux profil pendant les tests, sans toucher a la vraie machine.
-if not defined DOCS set "DOCS=%USERPROFILE%\Documents"
+if not defined DOCS call :resoudre_documents
 if not defined DESKTOP set "DESKTOP=%USERPROFILE%\Desktop"
 if not defined HERMES_HOME set "HERMES_HOME=%LOCALAPPDATA%\hermes"
 
@@ -147,6 +163,22 @@ pause
 exit /b
 
 REM ================================================
+REM :resoudre_documents - trouve le vrai dossier Documents
+REM   Meme ordre que installer.bat et que Hermes-Hub\server\workspace.js : si les
+REM   trois ne s'accordent pas, la desinstallation ne trouve pas l'espace de
+REM   travail que l'installation a cree.
+REM ================================================
+:resoudre_documents
+set "DOCS=%USERPROFILE%\Documents"
+if exist "%DOCS%" exit /b 0
+set "DOCS=%USERPROFILE%\OneDrive\Documents"
+if exist "%DOCS%" exit /b 0
+set "DOCS=%USERPROFILE%\OneDrive - Personnel\Documents"
+if exist "%DOCS%" exit /b 0
+set "DOCS=%USERPROFILE%\Documents"
+exit /b 0
+
+REM ================================================
 REM :citer_si_workspace - affiche le dossier s'il reste un espace Hermes
 REM ================================================
 :citer_si_workspace
@@ -176,7 +208,7 @@ if "%MODE_WS%"=="tout" (
 )
 
 REM Mode "garder": on retire l'outillage, on laisse Projets\ et Vault\.
-for %%X in (Hermes-Hub Hermes-Clean-Memory icons .hub) do (
+for %%X in (Hermes-Hub Hermes-Clean-Memory icons .hub Depannage) do (
     if exist "%WS%\%%X" call :corbeille "%WS%\%%X" dir
 )
 for %%X in (Lancer-Hermes.ps1 Nouveau-Projet.ps1 README.md) do (

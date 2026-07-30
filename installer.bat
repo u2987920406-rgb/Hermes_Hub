@@ -30,7 +30,7 @@ set "HERMES_HUB_SRC=%INSTALLER_DIR%Hermes-Hub"
 if not exist "%HERMES_HUB_SRC%\server\index.js" set "HERMES_HUB_SRC=%INSTALLER_DIR%..\Hermes-Hub"
 
 set "HERMES_HOME=%LOCALAPPDATA%\hermes"
-set "DOCS=%USERPROFILE%\Documents"
+call :resoudre_documents
 
 :DemandePrenom
 set "PRENOM="
@@ -326,6 +326,44 @@ REM -- Lanceur du Hub: serveur local sans terminal, pilote par une icone
 REM    dans la zone de notification (voir launcher\Lancer-Hermes-Hub.ps1).
 if "%HUB_OK%"=="1" xcopy "%HERMES_HUB_SRC%\launcher\*" "%WORKSPACE%\Hermes-Hub\" /Y /Q >nul 2>&1
 
+REM == Etape 9c: Depannage - laisser au client ses deux issues de secours ==
+REM    Le dossier d'installation n'est qu'une trousse de livraison : il finit
+REM    souvent a la corbeille une fois l'installation faite. Sans ces deux
+REM    copies, plus rien sur le poste ne permet de reparer ni de desinstaller.
+REM    maj-hub.bat n'est pas copie : il attend un Hermes-Hub source a cote de
+REM    lui, ici il se copierait sur lui-meme.
+echo.
+echo [9c/13] Outils de depannage...
+mkdir "%WORKSPACE%\Depannage" 2>nul
+set "DEP_OK=0"
+if exist "%INSTALLER_DIR%uninstall.bat" (
+    copy /y "%INSTALLER_DIR%uninstall.bat" "%WORKSPACE%\Depannage\" >nul 2>&1
+    set "DEP_OK=1"
+)
+if exist "%INSTALLER_DIR%fix-hermes.bat" (
+    copy /y "%INSTALLER_DIR%fix-hermes.bat" "%WORKSPACE%\Depannage\" >nul 2>&1
+    set "DEP_OK=1"
+)
+(
+echo Deux scripts a garder sous la main.
+echo.
+echo   fix-hermes.bat   Hermes ne demarre plus ou repond une erreur de chemin :
+echo                    reinstalle proprement le moteur. Ne touche ni aux
+echo                    projets, ni au coffre.
+echo.
+echo   uninstall.bat    Retire Hermes de ce PC. Il demande d'abord quoi garder,
+echo                    et tout part a la corbeille Windows.
+echo.
+echo Clic droit ^> Executer en tant qu'administrateur.
+echo Installe avec Hermes Hub v%HERMES_VERSION%.
+) > "%WORKSPACE%\Depannage\LISEZ-MOI.txt"
+if "!DEP_OK!"=="1" (
+    echo   OK - reparation et desinstallation dans Depannage\.
+) else (
+    echo   ATTENTION: uninstall.bat et fix-hermes.bat introuvables a cote de
+    echo   l'installeur. Le poste n'aura pas d'outil de depannage local.
+)
+
 REM == Etape 10: Dossier Hermes Clean Agent + bat ==
 echo.
 echo [10/13] Creation du dossier Hermes Clean Agent...
@@ -436,6 +474,7 @@ echo - Vault/           - Coffre memoire ^(cerveau long terme^)
 echo - Hermes-Clean-Memory/     - Dossier de test ^(profil vierge^)
 echo - Projets/         - Tes projets
 echo - Hermes-Hub/      - Interface web locale ^(serveur Node, http://127.0.0.1:4317^)
+echo - Depannage/       - Reparer ou desinstaller Hermes ^(voir LISEZ-MOI.txt^)
 echo - Lancer-Hermes.ps1        - Lance Hermes ^(master^)
 echo - Nouveau-Projet.ps1       - Cree un nouveau projet
 echo.
@@ -516,6 +555,7 @@ echo   - Vault/              (coffre memoire)
 echo   - Hermes-Clean-Memory/        (tests)
 echo   - Projets/            (tes projets)
 echo   - Hermes-Hub/         (interface web locale + serveur)
+echo   - Depannage/          (reparer / desinstaller, voir LISEZ-MOI.txt)
 echo   - Lancer-Hermes.ps1   (double-clic = master)
 echo   - Nouveau-Projet.ps1  (double-clic = nouveau projet)
 echo   - icons/              (icones)
@@ -535,6 +575,27 @@ echo  IMPORTANT: Ferme ce terminal et rouvre-en un nouveau.
 echo  Tu peux lancer Hermes en tapant "hermes" dans n'importe quel terminal.
 echo.
 pause
+exit /b 0
+
+REM ================================================
+REM :resoudre_documents - trouve le vrai dossier Documents
+REM   Quand OneDrive reprend les dossiers personnels, "%USERPROFILE%\Documents"
+REM   n'est plus celui que l'utilisateur voit dans l'Explorateur. Ecrire l'espace
+REM   de travail au mauvais endroit le rendrait invisible pour lui, et surtout
+REM   introuvable pour le Hub.
+REM   L'ordre d'essai est celui de Hermes-Hub\server\workspace.js (documentsDir):
+REM   les deux doivent retenir le meme dossier, sinon le Hub cherche ou
+REM   l'installeur n'a pas ecrit. A modifier des deux cotes a la fois.
+REM ================================================
+:resoudre_documents
+set "DOCS=%USERPROFILE%\Documents"
+if exist "%DOCS%" exit /b 0
+set "DOCS=%USERPROFILE%\OneDrive\Documents"
+if exist "%DOCS%" exit /b 0
+set "DOCS=%USERPROFILE%\OneDrive - Personnel\Documents"
+if exist "%DOCS%" exit /b 0
+REM Aucun n'existe : on retient le chemin classique, mkdir le creera.
+set "DOCS=%USERPROFILE%\Documents"
 exit /b 0
 
 REM ================================================

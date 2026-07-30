@@ -51,7 +51,12 @@ if not exist "%SRC%\dist\index.html" (
 REM == Etape 2: trouver l'installation a mettre a jour ==
 echo.
 echo [2/4] Recherche de ton espace de travail...
+REM Meme ordre que installer.bat et Hermes-Hub\server\workspace.js : OneDrive
+REM deplace parfois les dossiers personnels, et l'espace de travail suit.
 set "DOCS=%USERPROFILE%\Documents"
+if not exist "%DOCS%" set "DOCS=%USERPROFILE%\OneDrive\Documents"
+if not exist "%DOCS%" set "DOCS=%USERPROFILE%\OneDrive - Personnel\Documents"
+if not exist "%DOCS%" set "DOCS=%USERPROFILE%\Documents"
 set "WS="
 set /a NB=0
 for /d %%D in ("%DOCS%\Hermes-*") do (
