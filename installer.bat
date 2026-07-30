@@ -82,7 +82,11 @@ if errorlevel 1 (
 REM == Etape 4: Installer uv puis Hermes ==
 echo.
 echo [4/12] Installation de Hermes Agent...
-where hermes >nul 2>&1
+REM On teste que Hermes REPOND, pas seulement qu'il est dans le PATH : une
+REM suppression partielle laisse le shim hermes.exe en place alors que le
+REM paquet a disparu (ModuleNotFoundError). Avec "where hermes", l'installation
+REM etait alors sautee et l'installateur continuait sur une base cassee.
+hermes --version >nul 2>&1
 if errorlevel 1 (
     echo   Installation de uv...
     powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
@@ -93,48 +97,41 @@ if errorlevel 1 (
     set "PATH=%USERPROFILE%\.local\bin;%LOCALAPPDATA%\uv;%PATH%"
 )
 
-REM == Etape 4b: Verification Hermes - reparation si uv trampoline ==
+REM == Etape 4b: Verification Hermes - reparation si necessaire ==
+REM La reparation ne depend pas du message d'erreur: qu'il s'agisse de
+REM "uv trampoline", d'un module hermes_cli manquant ou d'une suppression
+REM partielle, le remede est le meme (effacer hermes-agent et reinstaller).
+REM Avant, seule l'erreur trampoline declenchait la reparation et tout autre
+REM cas se contentait d'un avertissement, laissant l'installation continuer.
 echo.
 echo [4b/12] Verification de Hermes...
 hermes --version >nul 2>&1
 if errorlevel 1 (
-    echo   Hermes ne repond pas. Verification de l'erreur uv trampoline...
-    powershell -NoProfile -Command "hermes --version 2>&1 | Select-String -Pattern 'trampoline'" > "%TEMP%\hermes_check.txt" 2>&1
-    findstr /i "trampoline" "%TEMP%\hermes_check.txt" >nul 2>&1
-    if not errorlevel 1 (
-        echo   Erreur uv trampoline detectee. Reinstallation de Hermes...
-        powershell -NoProfile -ExecutionPolicy Bypass -Command "Remove-Item -Recurse -Force $env:LOCALAPPDATA\hermes\hermes-agent" 2>nul
-        echo   Redemarrage de l'installation...
-        powershell -NoProfile -ExecutionPolicy Bypass -Command "iex (irm https://hermes-agent.nousresearch.com/install.ps1)"
-        set "PATH=%USERPROFILE%\.local\bin;%LOCALAPPDATA%\uv;%PATH%"
-        echo   Deuxieme verification...
-        hermes --version >nul 2>&1
-        if errorlevel 1 (
-            echo.
-            echo  ============================================
-            echo   ERREUR: Hermes ne fonctionne toujours pas
-            echo  ============================================
-            echo   Ferme ce terminal, redemarre ton PC,
-            echo   puis relance cet installateur.
-            echo.
-            pause
-            exit /b 1
-        )
-        echo   OK - Hermes repare avec succes.
-    ) else (
-        echo   Erreur non trampoline. Hermes peut avoir besoin d'un redemarrage du terminal.
-        echo   Si Hermes ne marche pas, ferme ce terminal et relance-le.
-        echo   Si ca ne marche toujours pas, redemarre ton PC.
+    echo   Hermes ne repond pas. Reinstallation propre...
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "Remove-Item -Recurse -Force $env:LOCALAPPDATA\hermes\hermes-agent" 2>nul
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "iex (irm https://hermes-agent.nousresearch.com/install.ps1)"
+    set "PATH=%USERPROFILE%\.local\bin;%LOCALAPPDATA%\uv;%PATH%"
+    echo   Deuxieme verification...
+    hermes --version >nul 2>&1
+    if errorlevel 1 (
+        echo.
+        echo  ============================================
+        echo   ERREUR: Hermes ne fonctionne toujours pas
+        echo  ============================================
+        echo   L'installation s'arrete ici: continuer ecrirait ta memoire
+        echo   et tes profils dans une installation cassee.
+        echo.
+        echo   1. Ferme ce terminal et rouvre-en un neuf
+        echo   2. Redemarre ton PC si besoin
+        echo   3. Relance cet installateur
+        echo.
+        pause
+        exit /b 1
     )
+    echo   OK - Hermes repare avec succes.
 ) else (
     echo   OK - Hermes repond correctement.
 )
-del "%TEMP%\hermes_check.txt" >nul 2>&1
-
-echo.
-echo   Si Hermes ne marche pas, ferme ce terminal et relance-le.
-echo   Si ca ne marche toujours pas, redemarre ton PC.
-echo.
 
 REM == Etape 5: Installer Obsidian ==
 echo [5/12] Installation de Obsidian...
@@ -147,7 +144,23 @@ echo [6/12] Configuration de Hermes - modele, provider, cles API...
 echo   Hermes va te guider. Tu pourras changer plus tard.
 echo.
 hermes setup
-echo   OK.
+if errorlevel 1 (
+    echo.
+    echo  ============================================
+    echo   ERREUR: la configuration de Hermes a echoue
+    echo  ============================================
+    echo   "hermes setup" s'est termine en erreur. L'installation s'arrete:
+    echo   repondre aux questions maintenant ecrirait ta memoire dans une
+    echo   installation qui ne fonctionne pas.
+    echo.
+    echo   1. Ferme ce terminal et rouvre-en un neuf
+    echo   2. Lance fix-hermes.bat ^(reinstallation propre^)
+    echo   3. Relance cet installateur
+    echo.
+    pause
+    exit /b 1
+)
+echo   OK - Hermes configure.
 
 REM == Etape 7: Questions personnelles ==
 echo.
