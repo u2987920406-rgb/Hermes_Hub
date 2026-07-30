@@ -32,6 +32,39 @@ python generate_guide_pdf.py
 
 La sortie est deterministe : un guide inchange ne produit aucun diff.
 
+## Mettre a jour apres une modification du Hub
+
+Le chemin d'une modification est toujours le meme :
+
+```
+Hermes-Hub/src/     ->  npm run build  ->  Hermes-Hub/dist/  ->  installer.bat le copie
+```
+
+`dist/` etant versionne, **une nouvelle installation embarque toujours la
+derniere interface construite** : il n'y a rien a "injecter" dans l'installeur.
+La seule regle a retenir est de reconstruire apres avoir touche a `src/`, sinon
+`dist/` reste en arriere et l'installeur distribue l'ancienne version.
+
+Pour une installation **deja en place** (un poste ou installer.bat a deja
+tourne), `maj-hub.bat` fait la mise a jour sans refaire l'installation :
+
+```
+maj-hub.bat
+```
+
+Il reconstruit l'interface si les sources sont presentes, trouve
+`Documents\Hermes-*`, arrete le Hub s'il tourne, puis remplace `dist/` et
+`server/`. Les projets, le vault, la memoire et les profils ne sont pas
+touches. Relancer le Hub et faire Ctrl+F5 suffit ensuite.
+
+Pour verifier avant de distribuer que le build correspond bien aux sources :
+
+```
+cd Hermes-Hub
+npm run build
+git status --short        # aucun changement dans dist/ = tout est a jour
+```
+
 ## Ce que l'installer fait
 
 ### Etape 1: Windows Terminal
