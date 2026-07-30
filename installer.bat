@@ -57,13 +57,23 @@ if not defined WT_SESSION (
 
 REM == Etape 2: Verifier Python ==
 echo [2/12] Verification de Python...
-python --version >nul 2>&1
+call :has_python
 if errorlevel 1 (
     echo   Python non trouve. Installation via winget...
     winget install Python.Python.3.11 --accept-source-agreements --accept-package-agreements
-    echo   Redemarre ce script apres installation de Python.
-    pause
-    exit /b 1
+    call :refresh_path
+    call :has_python
+    if errorlevel 1 (
+        echo.
+        echo  ============================================
+        echo   ERREUR: Python reste introuvable
+        echo  ============================================
+        echo   Ferme ce terminal, rouvre-en un neuf,
+        echo   puis relance cet installateur.
+        echo.
+        pause
+        exit /b 1
+    )
 )
 echo   OK - Python installe.
 
@@ -74,10 +84,21 @@ node --version >nul 2>&1
 if errorlevel 1 (
     echo   Node.js non trouve. Installation via winget...
     winget install OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements
-    echo   Node.js installe. Redemarre ce script si necessaire.
-) else (
-    echo   OK - Node.js installe.
+    call :refresh_path
+    node --version >nul 2>&1
+    if errorlevel 1 (
+        echo.
+        echo  ============================================
+        echo   ERREUR: Node.js reste introuvable
+        echo  ============================================
+        echo   Ferme ce terminal, rouvre-en un neuf,
+        echo   puis relance cet installateur.
+        echo.
+        pause
+        exit /b 1
+    )
 )
+echo   OK - Node.js installe.
 
 REM == Etape 4: Installer uv puis Hermes ==
 echo.
@@ -469,6 +490,36 @@ echo  Tu peux lancer Hermes en tapant "hermes" dans n'importe quel terminal.
 echo.
 pause
 exit /b 0
+
+REM ================================================
+REM :refresh_path - recharge le PATH depuis le registre
+REM   winget met a jour le PATH persistant, pas celui du processus en cours.
+REM   Sans ce rechargement, l'installateur devait etre relance a la main apres
+REM   chaque installation ("Redemarre ce script apres installation de Python").
+REM ================================================
+:refresh_path
+set "REG_SYS="
+set "REG_USR="
+for /f "tokens=2,*" %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v Path 2^>nul ^| find "REG_"') do set "REG_SYS=%%B"
+for /f "tokens=2,*" %%A in ('reg query "HKCU\Environment" /v Path 2^>nul ^| find "REG_"') do set "REG_USR=%%B"
+if defined REG_SYS set "PATH=%PATH%;%REG_SYS%"
+if defined REG_USR set "PATH=%PATH%;%REG_USR%"
+REM deuxieme passe: le registre peut contenir des %SystemRoot% non resolus
+call set "PATH=%PATH%"
+exit /b 0
+
+REM ================================================
+REM :has_python - Python utilisable ? (0 = oui)
+REM   WindowsApps\python.exe est un raccourci vers le Microsoft Store qui
+REM   repond a la place d'un vrai Python et sort en erreur. On teste donc une
+REM   execution reelle, puis le lanceur "py" qui n'est jamais masque.
+REM ================================================
+:has_python
+python -c "pass" >nul 2>&1
+if not errorlevel 1 exit /b 0
+py -3 --version >nul 2>&1
+if not errorlevel 1 exit /b 0
+exit /b 1
 
 REM ================================================
 REM :write_hub_launcher - ecrit le lanceur du Hub
