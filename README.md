@@ -1,7 +1,8 @@
 # Hermes Agent + Obsidian — Installer
 
 ## Comment utiliser
-1. Copie les dossiers `Hermes-Installer` **et** `Hermes-Hub` cote a cote sur le PC de la personne
+1. Copie le dossier `Hermes-Installer` en entier sur le PC de la personne
+   (il contient `Hermes-Hub/`, ne pas separer les deux)
 2. Double-clique sur `installer.bat` (il s'auto-elevate en administrateur)
 3. Suis les instructions
 
@@ -15,9 +16,13 @@ npm run build      # produit Hermes-Hub/dist/
 ```
 
 L'installer cherche `Hermes-Hub/dist/index.html` et `Hermes-Hub/server/index.js`
-a cote du dossier `Hermes-Installer`. S'ils manquent, il le dit et le raccourci
-"Hermes Hub" ne fonctionnera pas. Le serveur n'utilise que des modules Node
-natifs : aucun `npm install` n'est necessaire sur le PC du client.
+**dans le dossier `Hermes-Installer`** (l'ancienne disposition en dossier frere
+reste acceptee). S'ils manquent, il le dit et le raccourci "Hermes Hub" ne
+fonctionnera pas. Le serveur n'utilise que des modules Node natifs : aucun
+`npm install` n'est necessaire sur le PC du client.
+
+`Hermes-Hub/dist/` est volontairement versionne pour cette raison ;
+`Hermes-Hub/node_modules/` est ignore.
 
 ## Ce que l'installer fait
 

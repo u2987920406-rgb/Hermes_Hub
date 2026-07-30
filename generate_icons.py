@@ -32,7 +32,12 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter
 # -----------------------------------------------------------------------------
 HERE        = os.path.dirname(os.path.abspath(__file__))
 ICONS_DIR   = os.path.join(HERE, "icons")
-HUB_PUBLIC  = os.path.abspath(os.path.join(HERE, "..", "Hermes-Hub", "public"))
+
+# Le Hub vit dans le depot (Hermes-Installer/Hermes-Hub). On accepte aussi
+# l'ancienne disposition en dossier frere.
+HUB_PUBLIC  = os.path.join(HERE, "Hermes-Hub", "public")
+if not os.path.isdir(HUB_PUBLIC):
+    HUB_PUBLIC = os.path.abspath(os.path.join(HERE, "..", "Hermes-Hub", "public"))
 
 R           = 1024                                  # master render resolution
 ICO_SIZES   = [16, 20, 24, 32, 48, 64, 128, 256]

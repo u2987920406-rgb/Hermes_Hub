@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hermes Hub — Wireframe</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f5f5f5; display: flex; height: 100vh; }
+
+  /* Sidebar */
+  .sidebar { width: 240px; background: #1a1a2e; color: white; display: flex; flex-direction: column; flex-shrink: 0; }
+  .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .sidebar-header h1 { font-size: 18px; color: #60a5fa; }
+  .sidebar-header p { font-size: 11px; color: #aaa; margin-top: 4px; }
+  .sidebar-nav { flex: 1; padding: 10px 0; }
+  .nav-item { padding: 12px 20px; display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; color: #ccc; transition: all 0.2s; border-left: 3px solid transparent; }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+  .nav-item.active { background: rgba(96,165,250,0.15); color: #60a5fa; border-left-color: #60a5fa; }
+  .nav-icon { width: 20px; text-align: center; font-size: 14px; }
+  .sidebar-footer { padding: 15px 20px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 11px; color: #888; }
+
+  /* Main */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { height: 50px; background: white; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; padding: 0 20px; justify-content: space-between; }
+  .topbar h2 { font-size: 15px; color: #333; }
+  .topbar-actions { display: flex; gap: 10px; align-items: center; }
+  .badge { background: #60a5fa; color: white; font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+  .btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; border: none; }
+  .btn-primary { background: #60a5fa; color: white; }
+  .btn-primary:hover { background: #3b82f6; }
+  .btn-outline { background: white; color: #333; border: 1px solid #ddd; }
+  .btn-outline:hover { background: #f9fafb; }
+  .content { flex: 1; padding: 20px; overflow-y: auto; }
+
+  /* Project Cards */
+  .projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .project-card { background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #e5e7eb; cursor: pointer; transition: all 0.2s; }
+  .project-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateY(-2px); }
+  .project-card h3 { font-size: 14px; color: #1a1a2e; margin-bottom: 6px; }
+  .project-card p { font-size: 11px; color: #888; margin-bottom: 10px; }
+  .status { font-size: 10px; padding: 2px 8px; border-radius: 10px; display: inline-block; }
+  .status-active { background: #dcfce7; color: #16a34a; }
+  .status-done { background: #dbeafe; color: #2563eb; }
+  .status-factory { background: #fef3c7; color: #d97706; }
+  .card-actions { margin-top: 10px; display: flex; gap: 8px; }
+  .card-actions .btn { font-size: 11px; padding: 4px 10px; }
+
+  /* Factory Setup */
+  .factory-box { background: white; border-radius: 8px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 2px dashed #d1d5db; text-align: center; max-width: 500px; margin: 0 auto; }
+  .factory-box h3 { color: #1a1a2e; margin-bottom: 8px; }
+  .factory-box p { color: #888; font-size: 12px; margin-bottom: 16px; }
+  .factory-icon { font-size: 40px; margin-bottom: 12px; }
+
+  /* Vault */
+  .vault-tree { background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .vault-tree h3 { font-size: 14px; color: #1a1a2e; margin-bottom: 12px; }
+  .vault-folder { padding: 8px; font-size: 12px; color: #555; border-left: 3px solid #60a5fa; margin-bottom: 4px; }
+  .vault-folder::before { content: "📁 "; }
+
+  /* Config */
+  .config-section { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 16px; }
+  .config-section h3 { font-size: 14px; color: #1a1a2e; margin-bottom: 12px; }
+  .config-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 12px; }
+  .config-row label { color: #555; }
+  .config-row span { font-weight: 600; color: #1a1a2e; }
+
+  /* Yellow sticky note */
+  .sticky { background: #fef08a; padding: 2px 8px; border-radius: 4px; font-size: 10px; display: inline-block; margin: 2px; }
+
+  @media (max-width: 768px) {
+    .sidebar { width: 60px; }
+    .sidebar-header h1, .sidebar-header p, .nav-item span, .sidebar-footer { display: none; }
+    .nav-item { justify-content: center; padding: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-header">
+    <h1>⚡ Hermes Hub</h1>
+    <p>Raf · Mode master</p>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-item active"><span class="nav-icon">🏠</span><span>Accueil</span></div>
+    <div class="nav-item"><span class="nav-icon">📦</span><span>Projets</span></div>
+    <div class="nav-item"><span class="nav-icon">🔧</span><span>Hermes Factory Setup</span></div>
+    <div class="nav-item"><span class="nav-icon">📝</span><span>Vault Obsidian</span></div>
+    <div class="nav-item"><span class="nav-icon">⚙️</span><span>Configuration</span></div>
+  </div>
+  <div class="sidebar-footer">Hermes Hub v0.1 · Hermes Agent + Obsidian</div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div class="topbar">
+    <h2>📦 Mes Projets</h2>
+    <div class="topbar-actions">
+      <span class="badge">3 projets</span>
+      <button class="btn btn-primary">+ Nouveau Projet</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="projects-grid">
+      <!-- Project Card 1 -->
+      <div class="project-card">
+        <h3>Devis Express</h3>
+        <p>Projet de devis artisan — en cours</p>
+        <span class="status status-active">En cours</span>
+        <div class="card-actions">
+          <button class="btn btn-primary">⚡ Lancer Hermes</button>
+          <button class="btn btn-outline">📁 Ouvrir</button>
+        </div>
+      </div>
+      <!-- Project Card 2 -->
+      <div class="project-card">
+        <h3>Mon App</h3>
+        <p>Application web perso — phase 2</p>
+        <span class="status status-active">En cours</span>
+        <div class="card-actions">
+          <button class="btn btn-primary">⚡ Lancer Hermes</button>
+          <button class="btn btn-outline">📁 Ouvrir</button>
+        </div>
+      </div>
+      <!-- Project Card 3 -->
+      <div class="project-card">
+        <h3>Site Web</h3>
+        <p>Site vitrine PME — terminé</p>
+        <span class="status status-done">Terminé</span>
+        <div class="card-actions">
+          <button class="btn btn-primary">⚡ Lancer Hermes</button>
+          <button class="btn btn-outline">📁 Ouvrir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

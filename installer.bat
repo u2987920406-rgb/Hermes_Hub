@@ -18,9 +18,12 @@ echo   Installation complete - 1 dossier organise
 echo  ============================================
 echo.
 REM -- Determiner le chemin de l'installateur pour copier Hermes-Hub
-REM Le Hub = interface buildee (dist) + serveur local Node (server), les deux sont necessaires
+REM Le Hub = interface buildee (dist) + serveur local Node (server), les deux sont necessaires.
+REM Il vit dans le depot, sous Hermes-Installer\Hermes-Hub. On accepte aussi
+REM l'ancienne disposition (dossier frere) pour les copies deja distribuees.
 set "INSTALLER_DIR=%~dp0"
-set "HERMES_HUB_SRC=%INSTALLER_DIR%..\Hermes-Hub"
+set "HERMES_HUB_SRC=%INSTALLER_DIR%Hermes-Hub"
+if not exist "%HERMES_HUB_SRC%\server\index.js" set "HERMES_HUB_SRC=%INSTALLER_DIR%..\Hermes-Hub"
 
 set "HERMES_HOME=%LOCALAPPDATA%\hermes"
 set "DOCS=%USERPROFILE%\Documents"

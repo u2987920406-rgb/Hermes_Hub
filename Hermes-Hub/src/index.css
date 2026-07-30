@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-slate-50 text-navy-900 antialiased;
+    overscroll-behavior: none;
+  }
+
+  .dark body {
+    @apply bg-navy-950 text-slate-100;
+  }
+
+  /* Keyboard focus stays visible everywhere; mouse clicks stay clean. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-sky-500 ring-offset-2 ring-offset-white;
+  }
+
+  .dark :focus-visible {
+    @apply ring-offset-navy-950;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-slate-300;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    @apply bg-navy-700;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm transition-colors;
+  }
+
+  .dark .card {
+    @apply border-navy-800 bg-navy-900;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium
+           transition-all disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-sky-600 text-white hover:bg-sky-700 active:scale-[0.98];
+  }
+
+  .btn-gold {
+    @apply btn bg-gold-500 text-navy-950 hover:bg-gold-400 active:scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-[0.98];
+  }
+
+  .dark .btn-ghost {
+    @apply bg-navy-800 text-slate-200 hover:bg-navy-700;
+  }
+
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700 active:scale-[0.98];
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-navy-900
+           placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-1
+           focus:ring-sky-500;
+  }
+
+  .dark .input {
+    @apply border-navy-700 bg-navy-950 text-slate-100 placeholder:text-slate-500;
+  }
+
+  .muted {
+    @apply text-slate-500;
+  }
+
+  .dark .muted {
+    @apply text-slate-400;
+  }
+}

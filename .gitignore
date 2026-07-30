@@ -1,0 +1,10 @@
+# Dependances du Hub : reinstallables avec "npm install"
+Hermes-Hub/node_modules/
+
+# ATTENTION : Hermes-Hub/dist/ est volontairement versionne.
+# L'installateur copie l'interface deja construite sur le PC du client,
+# qui n'a ni npm ni les sources. Retirer dist/ du depot casse l'installation.
+
+# Divers Windows
+Thumbs.db
+desktop.ini
