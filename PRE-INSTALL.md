@@ -48,7 +48,7 @@ l'horloge, clic droit dessus pour l'arrêter.
 
 - Si Hermes ne démarre pas → **redémarre ton PC** puis réessaie
 - Si l'installateur plante → relance-le en tant qu'administrateur
-- Si tu veux tout supprimer → supprime le dossier `Hermes-Raf` dans tes Documents et le raccourci sur ton Bureau
+- Si tu veux désinstaller → lance `uninstall.bat`. Il te demande d'abord quoi retirer : **tout**, ou **seulement le moteur en gardant tes projets et ton coffre**. Ce qui part va à la corbeille Windows, donc c'est récupérable.
 
 ## Après l'installation
 

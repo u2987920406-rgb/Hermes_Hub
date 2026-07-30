@@ -6,6 +6,23 @@
 2. Double-clique sur `installer.bat` (il s'auto-elevate en administrateur)
 3. Suis les instructions
 
+## Desinstallation
+`uninstall.bat` demande d'abord **ce qu'on veut retirer**, parce que le moteur
+et les donnees sont deux choses distinctes :
+
+1. **Tout** — moteur, projets et coffre
+2. **Garder mes donnees** — le moteur part, `Projets/` et `Vault/` restent
+3. **Seulement Hermes Agent** — l'espace de travail n'est pas touche
+
+Ce qui est retire du workspace part **a la corbeille Windows**, comme dans le
+Hub : une desinstallation lancee par erreur reste rattrapable. Seul
+`%LOCALAPPDATA%\hermes` est efface directement — plusieurs centaines de Mo
+d'environnement Python, qui se reinstallent avec `installer.bat`.
+
+Un dossier `Documents\Hermes-*` n'est traite que s'il porte les marqueurs d'un
+espace de travail (`Vault/` et `Lancer-Hermes.ps1` ou `.hub/`) : un dossier
+personnel nomme `Hermes-notes` n'est jamais touche.
+
 ## Avant de distribuer l'installer
 L'installer copie l'interface **deja construite**. Il faut donc, une fois par livraison:
 

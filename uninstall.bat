@@ -11,80 +11,189 @@ if errorlevel 1 (
 
 setlocal EnableDelayedExpansion
 
+REM Ces trois chemins sont regroupes ici pour pouvoir rejouer le script sur un
+REM faux profil pendant les tests, sans toucher a la vraie machine.
+if not defined DOCS set "DOCS=%USERPROFILE%\Documents"
+if not defined DESKTOP set "DESKTOP=%USERPROFILE%\Desktop"
+if not defined HERMES_HOME set "HERMES_HOME=%LOCALAPPDATA%\hermes"
+
 echo.
 echo  ============================================
-echo   HERMES HUB - DESINSTALLATION
+echo   HERMES - DESINSTALLATION
 echo  ============================================
 echo.
-echo  Ce script va supprimer:
-echo   - Hermes Hub s'il tourne (le serveur local sera arrete)
-echo   - Hermes Agent (%LOCALAPPDATA%\hermes)
-echo   - Le dossier workspace (Documents\Hermes-*)
-echo   - Les raccourcis sur le Bureau (Lancer Hermes, Lancer Hermes Clean Agent, Nouveau Projet, Hermes Hub)
-echo   - Le profil "clean" (Hermes Clean Agent)
+echo  Deux choses distinctes peuvent partir:
 echo.
-echo  OBSIDIAN NE SERA PAS SUPPRIME.
-echo  (tu peux le desinstaller manuellement via Parametres > Applications)
+echo   1. Hermes Agent      le moteur IA et ta memoire globale
+echo                        ^(%HERMES_HOME%^)
+echo   2. Espace de travail tes projets et ton coffre memoire
+echo                        ^(%DOCS%\Hermes-*^)
 echo.
-echo  -- ATTENTION: cette action est irreversible --
+echo  Que veux-tu faire ?
 echo.
-set /p CONFIRM="  Veux-tu vraiment tout supprimer ? (o/n): "
-if /i not "%CONFIRM%"=="o" (
+echo   [1] Tout supprimer            moteur + projets + coffre
+echo   [2] Garder mes donnees        moteur supprime, projets et coffre conserves
+echo   [3] Seulement Hermes Agent    l'espace de travail n'est pas touche
+echo   [4] Annuler
+echo.
+echo  Rien n'est efface definitivement: tout part a la corbeille Windows,
+echo  sauf le moteur lui-meme qui se reinstalle avec installer.bat.
+echo.
+set "CHOIX="
+set /p CHOIX="  Ton choix (1-4): "
+
+if "%CHOIX%"=="1" (
+    set "MODE_WS=tout"
+    set "SUPPR_AGENT=1"
+) else if "%CHOIX%"=="2" (
+    set "MODE_WS=garder"
+    set "SUPPR_AGENT=1"
+) else if "%CHOIX%"=="3" (
+    set "MODE_WS=aucun"
+    set "SUPPR_AGENT=1"
+) else (
+    echo.
     echo  Annulation. Rien n'a ete supprime.
     pause
     exit /b
 )
 
 echo.
-echo  [1/4] Suppression de Hermes Agent...
-if exist "%LOCALAPPDATA%\hermes" (
-    rmdir /s /q "%LOCALAPPDATA%\hermes" 2>nul
-    echo    OK - Hermes Agent supprime.
-) else (
-    echo    Hermes Agent non trouve, skip.
+if "%MODE_WS%"=="tout" set "RESUME=moteur, projets et coffre"
+if "%MODE_WS%"=="garder" set "RESUME=moteur seulement, tes projets et ton coffre restent"
+if "%MODE_WS%"=="aucun" set "RESUME=moteur seulement, l'espace de travail n'est pas touche"
+echo  Choix retenu: !RESUME!
+echo.
+set "CONFIRM="
+set /p CONFIRM="  Confirmer ? (o/n): "
+if /i not "%CONFIRM%"=="o" (
+    echo  Annulation. Rien n'a ete supprime.
+    pause
+    exit /b
 )
 
+REM == Etape 1: arreter le Hub, qui verrouille le dossier ==
 echo.
-echo  [2/4] Suppression du workspace dans Documents...
-
-REM -- Arreter Hermes Hub s'il tourne: son serveur verrouille le dossier workspace
-REM    (le serveur node, et le PowerShell cache qui tient l'icone de notification)
+echo  [1/4] Arret de Hermes Hub s'il tourne...
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | Where-Object { ($_.Name -eq 'node.exe' -and $_.CommandLine -like '*Hermes-Hub*index.js*') -or ($_.Name -eq 'powershell.exe' -and $_.CommandLine -like '*Lancer-Hermes-Hub.ps1*') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }" >nul 2>&1
-
-set "DOCS=%USERPROFILE%\Documents"
-for /d %%D in ("%DOCS%\Hermes-*") do (
-    echo    Suppression: %%D
-    rmdir /s /q "%%D" 2>nul
-)
-echo    OK - Workspace supprime.
-
-echo.
-echo  [3/4] Suppression des raccourcis Bureau...
-set "DESKTOP=%USERPROFILE%\Desktop"
-if exist "%DESKTOP%\Lancer Hermes.lnk" del /q "%DESKTOP%\Lancer Hermes.lnk" 2>nul
-if exist "%DESKTOP%\Lancer Hermes Clean Agent.lnk" del /q "%DESKTOP%\Lancer Hermes Clean Agent.lnk" 2>nul
-if exist "%DESKTOP%\Nouveau Projet.lnk" del /q "%DESKTOP%\Nouveau Projet.lnk" 2>nul
-if exist "%DESKTOP%\Hermes Hub.lnk" del /q "%DESKTOP%\Hermes Hub.lnk" 2>nul
-echo    OK - Raccourcis supprimes.
-
-echo.
-echo  [4/4] Suppression du profil "clean" (Clean Agent)...
-if exist "%LOCALAPPDATA%\hermes\profiles.clean..env" del /q "%LOCALAPPDATA%\hermes\profiles.clean..env" 2>nul
-if exist "%LOCALAPPDATA%\hermes\profiles.clean" rmdir /s /q "%LOCALAPPDATA%\hermes\profiles.clean" 2>nul
 echo    OK.
+
+REM == Etape 2: le moteur ==
+echo.
+echo  [2/4] Hermes Agent...
+if "%SUPPR_AGENT%"=="1" (
+    if exist "%HERMES_HOME%" (
+        REM Plusieurs centaines de Mo d'environnement Python: le mettre a la
+        REM corbeille la remplirait pour rien, et tout se reinstalle.
+        rmdir /s /q "%HERMES_HOME%" 2>nul
+        echo    OK - moteur et memoire globale supprimes.
+    ) else (
+        echo    Deja absent.
+    )
+) else (
+    echo    Conserve.
+)
+
+REM == Etape 3: l'espace de travail ==
+echo.
+echo  [3/4] Espace de travail...
+if "%MODE_WS%"=="aucun" (
+    echo    Conserve, rien n'a ete touche.
+) else (
+    set "TROUVE="
+    for /d %%D in ("%DOCS%\Hermes-*") do (
+        set "TROUVE=1"
+        call :traiter_workspace "%%D"
+    )
+    if not defined TROUVE echo    Aucun espace de travail trouve dans %DOCS%.
+)
+
+REM == Etape 4: les raccourcis ==
+echo.
+echo  [4/4] Raccourcis du Bureau...
+if "%MODE_WS%"=="aucun" (
+    echo    Conserves ^(le Hub fonctionne encore sans le moteur^).
+) else (
+    for %%L in ("Hermes Hub" "Lancer Hermes" "Lancer Hermes Clean Agent" "Nouveau Projet") do (
+        if exist "%DESKTOP%\%%~L.lnk" del /q "%DESKTOP%\%%~L.lnk" 2>nul
+    )
+    echo    OK.
+)
 
 echo.
 echo  ============================================
 echo   DESINSTALLATION TERMINEE
 echo  ============================================
 echo.
-echo  Hermes Hub a ete completement supprime.
-echo.
+if "%MODE_WS%"=="garder" (
+    echo  Tes projets et ton coffre memoire sont restes en place:
+    REM Meme filtre qu'a la suppression : ne pas citer un dossier personnel
+    REM qui porterait le prefixe Hermes- sans etre un espace de travail.
+    for /d %%D in ("%DOCS%\Hermes-*") do call :citer_si_workspace "%%D"
+    echo.
+)
+if not "%MODE_WS%"=="aucun" (
+    echo  Ce qui a ete jete est dans la corbeille Windows: tant qu'elle n'est
+    echo  pas videe, un clic droit "Restaurer" ramene tout.
+    echo.
+)
 echo  Ce qui reste sur ton PC:
-echo   - Obsidian (a desinstaller via Parametres si besoin)
-echo   - Windows Terminal (a desinstaller via Parametres si besoin)
-echo   - Python, Node.js, uv (a desinstaller via winget si besoin)
+echo   - Obsidian, Windows Terminal, Python, Node.js, uv
+echo     ^(a desinstaller via Parametres ou winget si besoin^)
 echo.
 echo  Pour tout reinstaller: relance installer.bat
 echo.
 pause
+exit /b
+
+REM ================================================
+REM :citer_si_workspace - affiche le dossier s'il reste un espace Hermes
+REM ================================================
+:citer_si_workspace
+if exist "%~1\Vault" if exist "%~1\Projets" echo    %~1
+exit /b 0
+
+REM ================================================
+REM :traiter_workspace - traite un dossier Documents\Hermes-*
+REM   %1 = chemin du dossier
+REM Un dossier personnel nomme "Hermes-quelque-chose" ne doit pas etre
+REM confondu avec un espace de travail: on exige ses marqueurs.
+REM ================================================
+:traiter_workspace
+set "WS=%~1"
+set "EST_HERMES="
+if exist "%WS%\Vault" if exist "%WS%\Lancer-Hermes.ps1" set "EST_HERMES=1"
+if exist "%WS%\Vault" if exist "%WS%\.hub" set "EST_HERMES=1"
+if not defined EST_HERMES (
+    echo    Ignore, ne ressemble pas a un espace Hermes: %~nx1
+    exit /b 0
+)
+
+if "%MODE_WS%"=="tout" (
+    echo    Corbeille: %WS%
+    call :corbeille "%WS%" dir
+    exit /b 0
+)
+
+REM Mode "garder": on retire l'outillage, on laisse Projets\ et Vault\.
+for %%X in (Hermes-Hub Hermes-Clean-Memory icons .hub) do (
+    if exist "%WS%\%%X" call :corbeille "%WS%\%%X" dir
+)
+for %%X in (Lancer-Hermes.ps1 Nouveau-Projet.ps1 README.md) do (
+    if exist "%WS%\%%X" call :corbeille "%WS%\%%X" file
+)
+echo    Nettoye, donnees conservees: %WS%
+exit /b 0
+
+REM ================================================
+REM :corbeille - envoie un chemin a la corbeille Windows
+REM   %1 = chemin, %2 = "dir" ou "file"
+REM Le chemin passe par l'environnement: pas de souci de guillemets ni
+REM d'apostrophe dans un nom de dossier.
+REM ================================================
+:corbeille
+if not exist "%~1" exit /b 0
+set "HUB_RECYCLE_TARGET=%~1"
+if "%~2"=="dir" (set "METHODE=DeleteDirectory") else (set "METHODE=DeleteFile")
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName Microsoft.VisualBasic; [Microsoft.VisualBasic.FileIO.FileSystem]::%METHODE%($env:HUB_RECYCLE_TARGET, 'OnlyErrorDialogs', 'SendToRecycleBin')" >nul 2>&1
+exit /b 0
