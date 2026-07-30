@@ -1,22 +1,13 @@
 import { CheckCircle2, FolderOpen, Pencil, Play, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { ConfirmDialog } from './Modal'
+import { relativeDate } from '../lib/dates'
 import { useHubStore } from '../store/useHubStore'
 import { statusClasses, statusLabels, type Project } from '../types'
 
 interface Props {
   project: Project
   onOpen: (id: string) => void
-}
-
-function relativeDate(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const days = Math.floor(diff / 86_400_000)
-  if (days <= 0) return "aujourd'hui"
-  if (days === 1) return 'hier'
-  if (days < 30) return `il y a ${days} jours`
-  const months = Math.floor(days / 30)
-  return months === 1 ? 'il y a 1 mois' : `il y a ${months} mois`
 }
 
 export function ProjectCard({ project, onOpen }: Props) {
@@ -78,8 +69,8 @@ export function ProjectCard({ project, onOpen }: Props) {
           <button
             onClick={() => onOpen(project.id)}
             className="btn-ghost px-2.5 py-1.5 text-xs"
-            title="Editer les 6 fichiers"
-            aria-label="Editer les fichiers"
+            title="Ouvrir la fiche du projet"
+            aria-label="Ouvrir la fiche du projet"
           >
             <Pencil className="h-3.5 w-3.5" />
           </button>
