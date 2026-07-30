@@ -774,15 +774,24 @@ function openFolder(target) {
   return { opened: target }
 }
 
-/** Ouvre un fichier avec l'application par defaut de Windows. */
-function openFile(target) {
+/**
+ * Ouvre le journal d'erreurs.
+ *
+ * Par le Bloc-notes et non par l'association Windows : `.log` n'a par defaut
+ * aucune application associee, et `start` echouait alors sans un mot. Un
+ * journal vide n'est pas ouvert non plus - une fenetre blanche ne dit rien,
+ * le message le dit.
+ */
+function openLog() {
+  const target = path.join(WORKSPACE, 'Hermes-Hub', 'hub-erreurs.log')
   if (!fs.existsSync(target)) {
-    const err = new Error("Ce fichier n'existe pas encore.")
+    const err = new Error("Aucun journal : le Hub n'a jamais rien eu a signaler.")
     err.status = 404
     throw err
   }
-  detach('cmd.exe', ['/c', 'start', '', target], path.dirname(target))
-  return { opened: target }
+  const vide = fs.statSync(target).size === 0
+  if (!vide) detach('notepad.exe', [target], path.dirname(target))
+  return { opened: target, vide }
 }
 
 // -----------------------------------------------------------------------------
@@ -1282,9 +1291,7 @@ async function handleApi(req, res, url) {
           : WORKSPACE
       return sendJson(res, 200, openFolder(target))
     }
-    if (rest[1] === 'log') {
-      return sendJson(res, 200, openFile(path.join(WORKSPACE, 'Hermes-Hub', 'hub-erreurs.log')))
-    }
+    if (rest[1] === 'log') return sendJson(res, 200, openLog())
   }
 
   if (rest[0] === 'memory' && rest[1]) {

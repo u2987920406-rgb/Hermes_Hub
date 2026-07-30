@@ -603,7 +603,15 @@ export function ConfigView({ onMenu }: Props) {
                     onClick={() =>
                       api
                         .openLog()
-                        .catch(() => notify('info', "Aucun journal pour l'instant : rien n'a echoue."))
+                        .then((r) => {
+                          // Une fenetre vide ne repond pas a la question posee.
+                          if (r.vide) {
+                            notify('info', "Le journal est vide : rien n'a echoue.")
+                          }
+                        })
+                        .catch((err) =>
+                          notify('info', err instanceof Error ? err.message : 'Journal introuvable')
+                        )
                     }
                     className="btn-ghost mt-2 px-3 py-2 text-xs"
                   >

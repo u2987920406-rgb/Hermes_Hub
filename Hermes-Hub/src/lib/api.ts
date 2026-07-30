@@ -92,7 +92,8 @@ export const api = {
       method: 'POST',
       body: body({ enabled }),
     }),
-  openLog: () => request<{ opened: string }>('/open/log', { method: 'POST', body: body({}) }),
+  openLog: () =>
+    request<{ opened: string; vide: boolean }>('/open/log', { method: 'POST', body: body({}) }),
 
   trash: () => request<TrashItem[]>('/trash'),
   restoreTrash: (id: string) =>
