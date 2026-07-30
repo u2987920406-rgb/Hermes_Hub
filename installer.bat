@@ -13,7 +13,7 @@ setlocal EnableDelayedExpansion
 
 REM Version unique de la livraison : reprise dans les fichiers generes, pour
 REM savoir de quelle generation vient le profil d'un poste.
-set "HERMES_VERSION=1.0.1"
+set "HERMES_VERSION=1.0.2"
 
 echo.
 echo  ============================================

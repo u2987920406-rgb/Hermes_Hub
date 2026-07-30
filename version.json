@@ -1,8 +1,8 @@
 {
-  "version": "1.0.1",
-  "tag": "v1.0.1",
+  "version": "1.0.2",
+  "tag": "v1.0.2",
   "hub_seul": true,
   "min_installer": "1.0.0",
-  "notes": "Etape Git ajoutee a l'installation : Hermes s'en sert pour ses commandes shell. Git et Bash apparaissent dans le Diagnostic. Correction : une reponse contenant & ou une parenthese cassait l'ecriture du profil.",
-  "telechargement": "https://github.com/u2987920406-rgb/Hermes_Hub/archive/refs/tags/v1.0.1.zip"
+  "notes": "Le journal d'erreurs s'ouvre de nouveau : un fichier .log n'a aucune application associee sous Windows, le Hub passe maintenant par le Bloc-notes. Un journal vide n'ouvre plus une fenetre blanche, il le dit.",
+  "telechargement": "https://github.com/u2987920406-rgb/Hermes_Hub/archive/refs/tags/v1.0.2.zip"
 }
