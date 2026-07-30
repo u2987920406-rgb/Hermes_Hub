@@ -33,6 +33,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DIST_DIR = path.join(__dirname, '..', 'dist')
 const CONFIG_FILE = path.join(HUB_DIR, 'config.json')
 
+// Version livree. Ecrite ici et non lue dans package.json : le client ne
+// recoit que dist/ et server/. A tenir a jour avec version.json a la racine du
+// depot - voir RELEASE.md.
+const VERSION = '1.0.0'
+
 const argv = process.argv.slice(2)
 const PORT = Number(argv[argv.indexOf('--port') + 1]) || Number(process.env.HUB_PORT) || 4317
 const OPEN_BROWSER = argv.includes('--open')
@@ -960,6 +965,124 @@ function restaurerMemoire(nom) {
 }
 
 // -----------------------------------------------------------------------------
+// Mise a jour depuis GitHub
+// -----------------------------------------------------------------------------
+
+// Depot fige dans le code : le Hub ne telecharge jamais depuis une adresse
+// saisie ailleurs. C'est la seule origine de code autorisee.
+const DEPOT = 'u2987920406-rgb/Hermes_Hub'
+const URL_VERSION = `https://raw.githubusercontent.com/${DEPOT}/main/version.json`
+
+/** Compare deux numeros x.y.z. Renvoie 1 si a est plus recent que b. */
+function comparerVersions(a, b) {
+  const pa = String(a).split('.').map(Number)
+  const pb = String(b).split('.').map(Number)
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) > (pb[i] || 0)) return 1
+    if ((pa[i] || 0) < (pb[i] || 0)) return -1
+  }
+  return 0
+}
+
+function verifierMiseAJour() {
+  const locale = VERSION
+  const res = runPowerShell(
+    `[Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+$r = Invoke-WebRequest -Uri $env:HUB_URL -UseBasicParsing -TimeoutSec 25
+Write-Output $r.Content`,
+    { HUB_URL: URL_VERSION }
+  )
+  if (res.status !== 0) {
+    const err = new Error("Impossible de joindre GitHub. Verifie ta connexion Internet.")
+    err.status = 502
+    throw err
+  }
+  let distante
+  try {
+    distante = JSON.parse(String(res.stdout || '').trim())
+  } catch {
+    const err = new Error('Reponse illisible depuis GitHub.')
+    err.status = 502
+    throw err
+  }
+
+  const plusRecente = comparerVersions(distante.version, locale) === 1
+  // Une version qui exige un installateur plus recent que celui d'origine ne
+  // peut pas s'appliquer depuis le Hub : elle ajoute des fichiers hors de son
+  // perimetre. On l'annonce, on ne la bricole pas.
+  const applicable =
+    plusRecente &&
+    distante.hub_seul === true &&
+    comparerVersions(distante.min_installer || '0.0.0', locale) <= 0
+
+  return {
+    locale,
+    distante: distante.version,
+    tag: distante.tag,
+    notes: distante.notes || '',
+    telechargement: distante.telechargement || '',
+    aJour: !plusRecente,
+    applicable,
+  }
+}
+
+/**
+ * Remplace dist/, server/ et le lanceur par ceux du tag demande. Les projets,
+ * le coffre, la memoire et la configuration ne sont jamais touches : c'est la
+ * meme frontiere que maj-hub.bat.
+ */
+function appliquerMiseAJour(tag) {
+  if (!/^v?\d+\.\d+\.\d+$/.test(String(tag || ''))) {
+    const err = new Error('Version demandee invalide')
+    err.status = 400
+    throw err
+  }
+
+  const hub = path.join(WORKSPACE, 'Hermes-Hub')
+  const res = runPowerShell(
+    `$ErrorActionPreference = 'Stop'
+[Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+$tmp = Join-Path $env:TEMP ('hermes-maj-' + [guid]::NewGuid().ToString('N').Substring(0,8))
+New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+$zip = Join-Path $tmp 'source.zip'
+Invoke-WebRequest -Uri $env:HUB_ZIP -OutFile $zip -UseBasicParsing -TimeoutSec 180
+Expand-Archive -LiteralPath $zip -DestinationPath $tmp -Force
+$racine = Get-ChildItem -Path $tmp -Directory | Select-Object -First 1
+$src = Join-Path $racine.FullName 'Hermes-Hub'
+# Refus net si l'archive est incomplete : mieux vaut ne rien faire que
+# remplacer une installation qui marche par une moitie d'archive.
+if (-not (Test-Path (Join-Path $src 'dist\\index.html'))) { throw 'archive incomplete: dist' }
+if (-not (Test-Path (Join-Path $src 'server\\index.js'))) { throw 'archive incomplete: server' }
+$cible = $env:HUB_CIBLE
+$sauvegarde = Join-Path $cible '.maj-precedente'
+if (Test-Path $sauvegarde) { Remove-Item -LiteralPath $sauvegarde -Recurse -Force }
+New-Item -ItemType Directory -Force -Path $sauvegarde | Out-Null
+Copy-Item (Join-Path $cible 'dist') $sauvegarde -Recurse -Force
+Copy-Item (Join-Path $cible 'server') $sauvegarde -Recurse -Force
+Remove-Item -LiteralPath (Join-Path $cible 'dist\\assets') -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item (Join-Path $src 'dist\\*') (Join-Path $cible 'dist') -Recurse -Force
+Copy-Item (Join-Path $src 'server\\*') (Join-Path $cible 'server') -Recurse -Force
+if (Test-Path (Join-Path $src 'launcher')) { Copy-Item (Join-Path $src 'launcher\\*') $cible -Force }
+Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+Write-Output 'ok'`,
+    {
+      HUB_ZIP: `https://codeload.github.com/${DEPOT}/zip/refs/tags/${tag}`,
+      HUB_CIBLE: hub,
+    }
+  )
+
+  if (res.status !== 0 || !/ok/.test(String(res.stdout || ''))) {
+    const err = new Error(
+      'Mise a jour interrompue. Rien n-a ete remplace, ou la version precedente est dans Hermes-Hub\\.maj-precedente. Detail : ' +
+        String(res.stderr || '').split('\n')[0]
+    )
+    err.status = 500
+    throw err
+  }
+  return { applique: tag, redemarrage: true }
+}
+
+// -----------------------------------------------------------------------------
 // Demarrage avec Windows
 // -----------------------------------------------------------------------------
 
@@ -1037,7 +1160,7 @@ async function handleApi(req, res, url) {
       ok: true,
       workspace: WORKSPACE,
       workspaceExists: fs.existsSync(WORKSPACE),
-      version: '1.0.0',
+      version: VERSION,
     })
   }
 
@@ -1166,6 +1289,14 @@ async function handleApi(req, res, url) {
     if (method === 'PUT') {
       const body = await readBody(req)
       return sendJson(res, 200, ecrireMemoire(nom, body.content, body.stamp))
+    }
+  }
+
+  if (rest[0] === 'update') {
+    if (!rest[1] && method === 'GET') return sendJson(res, 200, verifierMiseAJour())
+    if (rest[1] === 'apply' && method === 'POST') {
+      const body = await readBody(req)
+      return sendJson(res, 200, appliquerMiseAJour(body.tag))
     }
   }
 

@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   BrainCircuit,
   CheckCircle2,
+  Download,
   FileText,
   FolderOpen,
   History,
@@ -121,6 +122,8 @@ export function ConfigView({ onMenu }: Props) {
   const [proposition, setProposition] = useState<string | null>(null)
   const [reformulation, setReformulation] = useState(false)
   const [reinit, setReinit] = useState(false)
+  const [maj, setMaj] = useState<Awaited<ReturnType<typeof api.checkUpdate>> | null>(null)
+  const [majEnCours, setMajEnCours] = useState(false)
 
   useEffect(() => {
     api
@@ -190,6 +193,34 @@ export function ConfigView({ onMenu }: Props) {
       notify('success', 'Version precedente restauree.')
     } catch (err) {
       notify('error', err instanceof Error ? err.message : 'Restauration impossible')
+    }
+  }
+
+  const verifierMaj = async () => {
+    setMajEnCours(true)
+    try {
+      setMaj(await api.checkUpdate())
+    } catch (err) {
+      notify('error', err instanceof Error ? err.message : 'Verification impossible')
+    } finally {
+      setMajEnCours(false)
+    }
+  }
+
+  const appliquerMaj = async () => {
+    if (!maj) return
+    setMajEnCours(true)
+    try {
+      await api.applyUpdate(maj.tag)
+      notify(
+        'success',
+        'Mise a jour installee. Ferme le Hub par son icone pres de l-horloge, puis relance-le.'
+      )
+      setMaj(null)
+    } catch (err) {
+      notify('error', err instanceof Error ? err.message : 'Mise a jour impossible')
+    } finally {
+      setMajEnCours(false)
     }
   }
 
@@ -627,6 +658,58 @@ export function ConfigView({ onMenu }: Props) {
                 <dd>Node local, 127.0.0.1 uniquement</dd>
               </div>
             </dl>
+
+            <div className="mt-4 border-t border-slate-200 pt-4 dark:border-navy-800">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => void verifierMaj()}
+                  className="btn-ghost px-3 py-2 text-xs"
+                  disabled={majEnCours}
+                >
+                  <RefreshCw className={`h-4 w-4 ${majEnCours ? 'animate-spin' : ''}`} />
+                  {majEnCours ? 'Verification...' : 'Verifier les mises a jour'}
+                </button>
+                {maj?.aJour && <span className="text-[11px] muted">Tu es a jour.</span>}
+              </div>
+
+              {maj && !maj.aJour && (
+                <div className="mt-3 rounded-lg border border-sky-300 bg-sky-50/60 p-3 dark:border-sky-500/30 dark:bg-sky-500/10">
+                  <p className="text-xs font-medium">
+                    Version {maj.distante} disponible (tu as la {maj.locale})
+                  </p>
+                  {maj.notes && <p className="mt-1 text-[11px] muted">{maj.notes}</p>}
+                  {maj.applicable ? (
+                    <button
+                      onClick={() => void appliquerMaj()}
+                      className="btn-primary mt-3 px-3 py-2 text-xs"
+                      disabled={majEnCours}
+                    >
+                      <Download className="h-4 w-4" /> Mettre a jour le Hub
+                    </button>
+                  ) : (
+                    <>
+                      {/* Une version qui depasse le perimetre du Hub ne peut pas
+                          s'appliquer d'ici : elle toucherait des fichiers que le
+                          bouton ne gere pas. On le dit au lieu de bricoler. */}
+                      <p className="mt-2 text-[11px] text-amber-700 dark:text-amber-400">
+                        Cette version demande de relancer l'installateur : elle ne se limite pas au
+                        Hub.
+                      </p>
+                      {maj.telechargement && (
+                        <a
+                          href={maj.telechargement}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn-ghost mt-3 inline-flex px-3 py-2 text-xs"
+                        >
+                          <Download className="h-4 w-4" /> Telecharger l'installateur
+                        </a>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </section>
           )}
             </div>

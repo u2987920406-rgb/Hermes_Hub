@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0",
+  "tag": "v1.0.0",
+  "hub_seul": true,
+  "min_installer": "1.0.0",
+  "notes": "Premiere version complete : installation en un clic, Hub pilote depuis la zone de notification, coffre memoire declare dans Obsidian, corbeille recuperable, recherche Ctrl+K, epinglage, trois themes, edition de la memoire d'Hermes.",
+  "telechargement": "https://github.com/u2987920406-rgb/Hermes_Hub/archive/refs/tags/v1.0.0.zip"
+}

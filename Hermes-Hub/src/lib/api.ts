@@ -70,6 +70,22 @@ export const api = {
       body: body({ content }),
     }),
 
+  checkUpdate: () =>
+    request<{
+      locale: string
+      distante: string
+      tag: string
+      notes: string
+      telechargement: string
+      aJour: boolean
+      applicable: boolean
+    }>('/update'),
+  applyUpdate: (tag: string) =>
+    request<{ applique: string; redemarrage: boolean }>('/update/apply', {
+      method: 'POST',
+      body: body({ tag }),
+    }),
+
   autoStart: () => request<{ enabled: boolean; path: string }>('/autostart'),
   setAutoStart: (enabled: boolean) =>
     request<{ enabled: boolean; path: string }>('/autostart', {
