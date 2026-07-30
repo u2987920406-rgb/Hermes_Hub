@@ -367,6 +367,10 @@ if exist "%INSTALLER_DIR%skills" (
     echo   OK - Skills maison installees.
 )
 
+REM -- Profil : les 9 reponses de l'etape 7. Elles etaient saisies puis jetees,
+REM    Hermes ne savait donc rien de l'utilisateur.
+call :write_user_memory
+
 REM -- Regles de travail : c'est la reponse a la question posee a l'etape 7.
 REM    Sans cette ecriture, la question ne servait a rien et Hermes demarrait
 REM    sans aucune regle.
@@ -527,6 +531,37 @@ if not errorlevel 1 exit /b 0
 py -3 --version >nul 2>&1
 if not errorlevel 1 exit /b 0
 exit /b 1
+
+REM ================================================
+REM :write_user_memory - ecrit les reponses aux 9 questions
+REM   Hermes lit HERMES_HOME\memories\USER.md a chaque session : c'est la que
+REM   vit ce qu'il sait de l'utilisateur. Les 9 reponses de l'etape 7 y sont
+REM   ecrites; sans ca elles etaient saisies puis jetees.
+REM ================================================
+:write_user_memory
+mkdir "!HERMES_HOME!\memories" 2>nul
+(
+echo # Qui je suis
+echo.
+echo - Prenom : %PRENOM%
+echo - Metier ou role : %METIER%
+echo - Langue de travail : %LANGUE%
+echo - Style de reponse attendu : %STYLE%
+echo - Niveau en tech : %NIVEAU%
+echo.
+echo ## Ce sur quoi je travaille
+echo - En ce moment : %PROJET_ACTUEL%
+echo - Type de projets : %TYPE_PROJET%
+echo.
+echo ## Mes objectifs
+echo - Dans 1 mois : %OBJECTIF_1M%
+echo - Dans 6 a 12 mois : %OBJECTIF_6M%
+echo.
+echo ## Pourquoi j'utilise Hermes
+echo - %RAISON%
+) > "!HERMES_HOME!\memories\USER.md"
+echo   OK - Profil ecrit dans la memoire d'Hermes.
+exit /b 0
 
 REM ================================================
 REM :write_memory_rules - ecrit les regles dans la memoire d'Hermes
