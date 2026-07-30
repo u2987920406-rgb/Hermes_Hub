@@ -24,6 +24,14 @@ fonctionnera pas. Le serveur n'utilise que des modules Node natifs : aucun
 `Hermes-Hub/dist/` est volontairement versionne pour cette raison ;
 `Hermes-Hub/node_modules/` est ignore.
 
+Si `GUIDE-INSTALLATION.md` a change, regenerer le PDF distribue :
+
+```
+python generate_guide_pdf.py
+```
+
+La sortie est deterministe : un guide inchange ne produit aucun diff.
+
 ## Ce que l'installer fait
 
 ### Etape 1: Windows Terminal
