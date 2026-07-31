@@ -1,0 +1,55 @@
+# Controle automatique du Hub.
+#
+# Le depot versionne `Hermes-Hub/dist/` volontairement : le poste client n'a ni
+# npm ni les sources, l'installateur y copie une interface deja construite. La
+# consequence, c'est qu'une modification de `src/` commitee sans `npm run build`
+# livre l'ANCIENNE interface, sans que rien ne le signale. C'est l'erreur la
+# plus facile a commettre sur ce depot, et la derniere etape ci-dessous est la
+# pour la rendre impossible.
+
+name: Controle du Hub
+
+on:
+  push:
+    branches: [main, v2]
+  pull_request:
+    branches: [main, v2]
+
+jobs:
+  hub:
+    name: Types, construction, dist a jour
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22 : le Hub lit le board kanban avec `node:sqlite`, qui n'existe
+      # qu'a partir de la 22.5.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Hermes-Hub/package-lock.json
+
+      - name: Installer les dependances
+        working-directory: Hermes-Hub
+        run: npm ci
+
+      - name: Verifier les types
+        working-directory: Hermes-Hub
+        run: npx tsc --noEmit
+
+      - name: Construire l'interface
+        working-directory: Hermes-Hub
+        run: npm run build
+
+      # Si la construction change quoi que ce soit, c'est que le dist commite
+      # ne correspondait pas aux sources.
+      - name: Le dist commite correspond-il aux sources ?
+        run: |
+          if ! git diff --exit-code -- Hermes-Hub/dist; then
+            echo ""
+            echo "Le contenu de Hermes-Hub/dist/ ne correspond pas aux sources."
+            echo "Lance 'npm run build' dans Hermes-Hub, puis commite le dist obtenu."
+            exit 1
+          fi

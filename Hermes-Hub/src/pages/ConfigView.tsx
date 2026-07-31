@@ -684,6 +684,45 @@ export function ConfigView({ onMenu }: Props) {
             </dl>
 
             <div className="mt-4 border-t border-slate-200 pt-4 dark:border-navy-800">
+              {/* Le canal decide d'ou vient le prochain code installe. Il est
+                  place au-dessus du bouton, pas dans un ecran de reglages :
+                  c'est au moment de chercher une mise a jour qu'on veut savoir
+                  laquelle on va recevoir. */}
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-medium">Canal</span>
+                {(
+                  [
+                    ['stable', 'Stable'],
+                    ['beta', 'Test'],
+                  ] as const
+                ).map(([id, libelle]) => (
+                  <button
+                    key={id}
+                    onClick={() => {
+                      // Le resultat affiche vient de l'ancien canal : le garder
+                      // ferait lire une version qui n'est plus celle qu'on
+                      // recevrait.
+                      setMaj(null)
+                      void saveConfig({ canal: id })
+                    }}
+                    className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                      (config?.canal || 'stable') === id
+                        ? 'bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-300'
+                        : 'muted hover:bg-slate-100 dark:hover:bg-navy-800'
+                    }`}
+                  >
+                    {libelle}
+                  </button>
+                ))}
+              </div>
+
+              {config?.canal === 'beta' && (
+                <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+                  Canal de test : tu recevras des versions en construction, avant les autres postes.
+                  Reviens sur Stable pour n'avoir que les versions livrees.
+                </p>
+              )}
+
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => void verifierMaj()}

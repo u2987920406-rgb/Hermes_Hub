@@ -82,6 +82,7 @@ export const api = {
       telechargement: string
       aJour: boolean
       applicable: boolean
+      canal: string
     }>('/update'),
   applyUpdate: (tag: string) =>
     request<{ applique: string; redemarrage: boolean }>('/update/apply', {

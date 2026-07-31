@@ -36,6 +36,9 @@ export interface AppConfig {
   skinChat: string
   skinClean: string
   skinProject: string
+  /** Canal de mise a jour : `stable` suit la ligne livree, `beta` la V2 en
+      construction. Le Hub n'y touche jamais tout seul. */
+  canal: string
 }
 
 export interface Skin {

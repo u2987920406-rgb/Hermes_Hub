@@ -12,6 +12,41 @@ Une version marquee `hub_seul: false`, ou qui exige un `min_installer` plus
 recent, n'est jamais appliquee depuis le Hub : elle toucherait des fichiers
 hors de son perimetre. Le Hub affiche alors le lien de telechargement.
 
+## Les deux lignes
+
+```
+main    ●──────●─────────────────●────────────▶  la ligne LIVREE (v1.x)
+         \      \  hotfix        ▲          ▲
+          \      ●──● tag v1.0.3 │          │ merge + tag v2.0.0
+           \          \          │          │
+            \          ╰─ reflux ┤          │
+             ▼                   ▼          │
+v2          ●───●───●───●────────●──────────●    la ligne EN CONSTRUCTION
+```
+
+- `main` ne recoit que du livrable, et chaque livraison porte un tag.
+- La V2 s'integre sur `v2`.
+- **Tout correctif fait sur `main` doit refluer dans `v2`.** C'est l'etape
+  qu'on oublie, et la V2 sort alors en regressant sur un bug deja corrige.
+
+## Les canaux
+
+Un canal, c'est la branche ou le Hub installe va lire son manifeste :
+
+| Canal | Manifeste lu | Pour qui |
+|---|---|---|
+| `stable` (defaut) | `main/version.json` | tout le monde |
+| `beta` | `v2/version.json` | les postes qui ont choisi le canal de test |
+
+Meme nom de fichier, branche differente : **publier une beta ne demande jamais
+de toucher a `main`**, donc ne met jamais la ligne stable en danger. Le canal
+se change dans Configuration > A propos, et vaut `stable` tant que personne
+ne l'a bouge.
+
+Un poste ne peut recevoir une beta que s'il fait deja tourner un Hub qui
+connait les canaux : le v1.0.2 livre lit `main` et rien d'autre. Le premier
+testeur doit donc etre bascule a la main une fois.
+
 ## Procedure
 
 1. **Construire** l'interface, sinon le depot livre l'ancienne :
@@ -53,6 +88,34 @@ hors de son perimetre. Le Hub affiche alors le lien de telechargement.
 
 6. **Verifier depuis un poste client** : Configuration > A propos > Verifier
    les mises a jour.
+
+## Publier une beta
+
+Meme geste, sur `v2` au lieu de `main`, avec un numero de pre-version :
+
+```
+npm run build          # dans Hermes-Hub
+# version.json, la constante VERSION et package.json -> 2.0.0-beta.1
+git commit -am "2.0.0-beta.1 : ..."
+git tag -a v2.0.0-beta.1 -m "..."
+git push && git push origin v2.0.0-beta.1
+```
+
+`2.0.0-beta.1` est plus ancienne que `2.0.0` pour le Hub : un testeur passe
+donc de la derniere beta a la version finale sans geste manuel.
+
+**Le tag doit etre pousse avant le manifeste**, ou au meme moment. Un
+`version.json` qui annonce une version sans tag correspondant fait voir une
+mise a jour au testeur, puis echoue au telechargement.
+
+## Le controle automatique
+
+`.github/workflows/ci.yml` tourne sur chaque `push` vers `main` et `v2` :
+types, construction, et surtout **verification que `dist/` commite correspond
+aux sources**. Le depot versionne l'interface construite, si bien qu'une
+modification de `src/` commitee sans `npm run build` livre l'ancienne
+interface sans que rien ne le signale. C'est l'erreur la plus facile a
+commettre ici, et elle est desormais bloquee avant la livraison.
 
 ## Ce que la mise a jour ne touche jamais
 

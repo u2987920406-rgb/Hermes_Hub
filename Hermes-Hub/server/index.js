@@ -134,6 +134,9 @@ function defaultConfig() {
     skinChat: 'poseidon',
     skinClean: 'mono',
     skinProject: 'default',
+    // Canal de mise a jour. `stable` par defaut : personne ne recoit une
+    // version de test sans l'avoir demande.
+    canal: 'stable',
   }
 }
 
@@ -153,11 +156,15 @@ function putConfig(patch) {
     'skinChat',
     'skinClean',
     'skinProject',
+    'canal',
   ]
   const stored = readJson(CONFIG_FILE, {})
   for (const key of allowed) {
     if (patch[key] !== undefined) stored[key] = String(patch[key])
   }
+  // Le canal decide d'ou vient le prochain code installe : une valeur inconnue
+  // est refusee ici plutot que rattrapee plus tard.
+  if (stored.canal && !CANAUX[stored.canal]) stored.canal = 'stable'
   writeJson(CONFIG_FILE, stored)
   return getConfig()
 }
@@ -997,26 +1004,60 @@ function restaurerMemoire(nom) {
 // Depot fige dans le code : le Hub ne telecharge jamais depuis une adresse
 // saisie ailleurs. C'est la seule origine de code autorisee.
 const DEPOT = 'u2987920406-rgb/Hermes_Hub'
-const URL_VERSION = `https://raw.githubusercontent.com/${DEPOT}/main/version.json`
+/**
+ * Un canal, c'est la branche ou le Hub va lire son manifeste.
+ *
+ * Un produit qui se met a jour tout seul ne passe pas d'une version a la
+ * suivante chez tout le monde le meme jour : quelques volontaires essuient les
+ * platres pendant que les autres restent sur la ligne livree. D'ou deux
+ * canaux, un seul nom de fichier, et la branche pour les distinguer - publier
+ * une beta ne demande alors jamais de toucher a `main`, donc jamais de risquer
+ * la ligne stable.
+ *
+ * Un canal inconnu retombe sur `stable` : une configuration abimee ne doit pas
+ * envoyer un poste client chercher du code en construction.
+ */
+const CANAUX = { stable: 'main', beta: 'v2' }
 
-/** Compare deux numeros x.y.z. Renvoie 1 si a est plus recent que b. */
+function urlVersion(canal) {
+  return `https://raw.githubusercontent.com/${DEPOT}/${CANAUX[canal] || CANAUX.stable}/version.json`
+}
+
+/**
+ * Compare deux numeros semver, pre-versions comprises.
+ *
+ * `2.0.0-beta.1` est plus ancienne que `2.0.0` : sans cette regle, un testeur
+ * reste bloque sur la derniere beta et ne verrait jamais arriver la version
+ * finale, qui porte pourtant le meme numero.
+ */
 function comparerVersions(a, b) {
-  const pa = String(a).split('.').map(Number)
-  const pb = String(b).split('.').map(Number)
-  for (let i = 0; i < 3; i++) {
-    if ((pa[i] || 0) > (pb[i] || 0)) return 1
-    if ((pa[i] || 0) < (pb[i] || 0)) return -1
+  const decouper = (v) => {
+    const [noyau, pre = ''] = String(v).split('-')
+    return { chiffres: noyau.split('.').map(Number), pre }
   }
-  return 0
+  const x = decouper(a)
+  const y = decouper(b)
+
+  for (let i = 0; i < 3; i++) {
+    if ((x.chiffres[i] || 0) > (y.chiffres[i] || 0)) return 1
+    if ((x.chiffres[i] || 0) < (y.chiffres[i] || 0)) return -1
+  }
+
+  if (x.pre === y.pre) return 0
+  // Pas de suffixe = version finale : elle l'emporte sur toutes ses beta.
+  if (!x.pre) return 1
+  if (!y.pre) return -1
+  return x.pre > y.pre ? 1 : -1
 }
 
 function verifierMiseAJour() {
   const locale = VERSION
+  const canal = CANAUX[getConfig().canal] ? getConfig().canal : 'stable'
   const res = runPowerShell(
     `[Net.ServicePointManager]::SecurityProtocol = 'Tls12'
 $r = Invoke-WebRequest -Uri $env:HUB_URL -UseBasicParsing -TimeoutSec 25
 Write-Output $r.Content`,
-    { HUB_URL: URL_VERSION }
+    { HUB_URL: urlVersion(canal) }
   )
   if (res.status !== 0) {
     const err = new Error("Impossible de joindre GitHub. Verifie ta connexion Internet.")
@@ -1049,6 +1090,7 @@ Write-Output $r.Content`,
     telechargement: distante.telechargement || '',
     aJour: !plusRecente,
     applicable,
+    canal,
   }
 }
 
@@ -1058,7 +1100,10 @@ Write-Output $r.Content`,
  * meme frontiere que maj-hub.bat.
  */
 function appliquerMiseAJour(tag) {
-  if (!/^v?\d+\.\d+\.\d+$/.test(String(tag || ''))) {
+  // Le suffixe de pre-version est accepte (`v2.0.0-beta.1`), sans quoi le canal
+  // beta ne pourrait rien installer. Le jeu de caracteres reste etroit : ce tag
+  // part tel quel dans l'URL de telechargement.
+  if (!/^v?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(String(tag || ''))) {
     const err = new Error('Version demandee invalide')
     err.status = 400
     throw err
