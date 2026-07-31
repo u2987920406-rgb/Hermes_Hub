@@ -18,7 +18,17 @@ import path from 'node:path'
 
 const HERMES_HOME = path.join(process.env.LOCALAPPDATA || os.homedir(), 'hermes')
 const PROFILES_DIR = path.join(HERMES_HOME, 'profiles')
-const KANBAN_DB = path.join(HERMES_HOME, 'kanban.db')
+
+/**
+ * `HERMES_KANBAN_DB` epingle le board, cote Hermes comme ici : c'est ce qui
+ * permet de developper sans ecrire dans le vrai tableau de bord. Sans la
+ * variable, on lit le board normal - le poste client ne la connait pas.
+ *
+ * Les profils, eux, ne suivent pas : Hermes les ancre au dossier de
+ * l'utilisateur et non au home actif, pour qu'un profil reste visible depuis
+ * n'importe quel autre. Le bac a sable garde donc la vraie equipe.
+ */
+const KANBAN_DB = process.env.HERMES_KANBAN_DB || path.join(HERMES_HOME, 'kanban.db')
 
 // -----------------------------------------------------------------------------
 // Presentation des agents
