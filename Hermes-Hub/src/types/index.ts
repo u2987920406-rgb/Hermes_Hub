@@ -112,12 +112,98 @@ export interface Stats {
 
 export type View =
   | 'home'
+  | 'orchestration'
   | 'projects'
   | 'project'
   | 'clean'
   | 'vault'
   | 'trash'
   | 'config'
+
+// -----------------------------------------------------------------------------
+// Orchestration : l'equipe et ses poles
+// -----------------------------------------------------------------------------
+
+export type RoleAgent = 'orchestrateur' | 'manager' | 'worker' | 'bac-a-sable'
+
+export interface Agent {
+  id: string
+  nom: string
+  /** null pour Hermes : le profil par defaut n'a pas de nom en ligne de commande. */
+  profil: string | null
+  role: RoleAgent
+  /** Jeton de couleur, traduit en `var(--jeton-X)` par l'interface. */
+  couleur: string
+  icone: string
+  /** Ce que le decomposeur de kanban lit pour router une tache. */
+  description: string
+  modele: string | null
+  /** Faux quand le profil n'a aucune credential : il ne repondra jamais. */
+  pretAServir: boolean
+  taches: number
+  enCours: number
+  finies: number
+  /** Un agent n'est eveille que le temps d'une tache. */
+  eveille: boolean
+}
+
+export type EtatTache =
+  | 'triage'
+  | 'todo'
+  | 'ready'
+  | 'running'
+  | 'review'
+  | 'blocked'
+  | 'scheduled'
+  | 'done'
+
+export interface Tache {
+  id: string
+  titre: string
+  corps: string
+  agent: string | null
+  etat: EtatTache
+  modele: string | null
+  creeLe: number
+  demarreLe: number | null
+  finiLe: number | null
+}
+
+/** Une composante connexe du graphe de taches : la demande d'origine et tout
+    ce dont elle depend. Son titre est celui de la tache finale. */
+export interface Pole {
+  id: string
+  titre: string
+  corps: string
+  taches: Tache[]
+  liens: { de: string; vers: string }[]
+  enCours: boolean
+  finies: number
+  creeLe: number
+}
+
+export interface Orchestration {
+  agents: Agent[]
+  poles: Pole[]
+  isolees: Tache[]
+  tableau: {
+    disponible: boolean
+    /** `init` : kanban jamais initialise. `node` : Node trop ancien. */
+    raison?: 'init' | 'node' | 'lecture'
+    message?: string
+  }
+}
+
+export const ETATS_TACHE: Record<EtatTache, string> = {
+  triage: 'A cadrer',
+  todo: 'En attente',
+  ready: 'Prete',
+  running: 'En cours',
+  review: 'A relire',
+  blocked: 'Bloquee',
+  scheduled: 'Programmee',
+  done: 'Terminee',
+}
 
 // -----------------------------------------------------------------------------
 // Pont vers Hermes (ACP)

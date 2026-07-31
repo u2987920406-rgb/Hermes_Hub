@@ -7,6 +7,7 @@ import { useRoute } from './hooks/useRoute'
 import { CleanView } from './pages/CleanView'
 import { ConfigView } from './pages/ConfigView'
 import { HomeView } from './pages/HomeView'
+import { OrchestrationView } from './pages/OrchestrationView'
 import { ProjectDetail } from './pages/ProjectDetail'
 import { ProjectsView } from './pages/ProjectsView'
 import { TrashView } from './pages/TrashView'
@@ -71,6 +72,8 @@ export default function App() {
             onMenu={() => setMenuOpen(true)}
           />
         )
+      case 'orchestration':
+        return <OrchestrationView onMenu={() => setMenuOpen(true)} />
       case 'clean':
         return <CleanView onMenu={() => setMenuOpen(true)} />
       case 'vault':

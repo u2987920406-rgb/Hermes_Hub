@@ -6,7 +6,16 @@ export interface Route {
   param: string | null
 }
 
-const VIEWS: View[] = ['home', 'projects', 'project', 'clean', 'vault', 'trash', 'config']
+const VIEWS: View[] = [
+  'home',
+  'orchestration',
+  'projects',
+  'project',
+  'clean',
+  'vault',
+  'trash',
+  'config',
+]
 
 function parse(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean)

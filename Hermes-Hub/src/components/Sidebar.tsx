@@ -2,6 +2,7 @@ import {
   BookOpen,
   FolderOpen,
   Home,
+  Network,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
@@ -43,6 +44,13 @@ const NAV: NavItem[] = [
     icon: FolderOpen,
     accent: 'text-violet-300',
     bordure: 'border-violet-400',
+  },
+  {
+    id: 'orchestration',
+    label: 'Orchestration',
+    icon: Network,
+    accent: 'text-indigo-300',
+    bordure: 'border-indigo-400',
   },
   {
     id: 'vault',

@@ -3,6 +3,7 @@ import {
   CornerDownLeft,
   FolderOpen,
   Home,
+  Network,
   Search,
   Settings,
   Trash2,
@@ -57,6 +58,7 @@ export function CommandPalette({ open, onClose, onNavigate }: Props) {
 
     const aller: Resultat[] = [
       { id: 'go-home', groupe: 'Aller a', label: 'Accueil', icon: Home, action: () => onNavigate('home') },
+      { id: 'go-orch', groupe: 'Aller a', label: 'Orchestration', icon: Network, action: () => onNavigate('orchestration') },
       { id: 'go-projects', groupe: 'Aller a', label: 'Projets', icon: FolderOpen, action: () => onNavigate('projects') },
       { id: 'go-vault', groupe: 'Aller a', label: 'Coffre memoire', icon: BookOpen, action: () => onNavigate('vault') },
       { id: 'go-trash', groupe: 'Aller a', label: 'Corbeille', icon: Trash2, action: () => onNavigate('trash') },

@@ -4,6 +4,7 @@
  */
 import type {
   AppConfig,
+  Orchestration,
   Diagnostics,
   EvenementChat,
   MemoryFile,
@@ -157,6 +158,9 @@ export const api = {
     request<{ opened: string }>('/launch/obsidian', { method: 'POST', body: body({}) }),
   openFolder: (input: { projectId?: string; target?: 'workspace' | 'vault' } = {}) =>
     request<{ opened: string }>('/open/folder', { method: 'POST', body: body(input) }),
+
+  // --- Orchestration : l'equipe et ses poles -----------------------------------
+  orchestration: () => request<Orchestration>('/orchestration'),
 
   // --- Pont vers Hermes (ACP) -------------------------------------------------
   // Conserve pour Orchestration : c'est la plomberie du protocole, pas un ecran.

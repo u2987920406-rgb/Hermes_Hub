@@ -109,6 +109,131 @@
   .dark .exemple {
     @apply text-emerald-300;
   }
+
+  /* --- Le vocabulaire des etats -------------------------------------------
+     Une puce porte un sens, jamais une couleur : `puce sens-succes` et non
+     `bg-emerald-100 text-emerald-700`. La couleur vient de `--sens`, que la
+     classe `sens-*` pose, et qui suit les trois themes toute seule.
+
+     `.puce-pleine` est declaree apres `.puce` : a specificite egale, c'est
+     l'ordre du fichier qui tranche, et l'aplat l'emporte comme voulu. */
+  .puce {
+    --sens: var(--neutre);
+    @apply inline-flex flex-none items-center gap-1 rounded-full px-2 py-0.5
+           text-[9.5px] font-semibold uppercase tracking-wide;
+    background: color-mix(in srgb, var(--sens) 16%, transparent);
+    color: var(--sens);
+  }
+
+  .puce-pleine {
+    background: var(--sens);
+    color: var(--sur-jeton);
+  }
+
+  /* Un bandeau : meme vocabulaire, format message. */
+  .bandeau {
+    --sens: var(--neutre);
+    @apply flex items-start gap-2 rounded-xl border p-3 text-xs;
+    border-color: color-mix(in srgb, var(--sens) 45%, transparent);
+    background: color-mix(in srgb, var(--sens) 7%, transparent);
+  }
+
+  .sens-succes {
+    --sens: var(--succes);
+  }
+  .sens-alerte {
+    --sens: var(--alerte);
+  }
+  .sens-danger {
+    --sens: var(--danger);
+  }
+  .sens-info {
+    --sens: var(--info);
+  }
+  .sens-neutre {
+    --sens: var(--neutre);
+  }
+
+  /* Se colore selon le sens ambiant : utile pour l'icone d'un bandeau. */
+  .teinte-sens {
+    color: var(--sens);
+  }
+}
+
+/* ==========================================================================
+   Jetons de couleur des agents
+   --------------------------------------------------------------------------
+   La couleur d'un agent est une variable, pas une classe : posee a la racine
+   de son noeud, elle irrigue la bordure, le halo, les prises, l'ombre et le
+   degrade des liaisons. Un seul endroit a changer pour recolorer un agent.
+
+   Trois declinaisons, parce qu'un reglage calibre pour le sombre devient
+   invisible sur le lin. Le critere de choix n'est pas l'esthetique mais le
+   contraste sur les trois fonds - d'ou l'ambre nettement plus profond en
+   antique, ou un ton clair se dissoudrait.
+   ========================================================================== */
+:root {
+  /* Ce qui se pose SUR un aplat de jeton ou de sens : en clair les couleurs
+     sont profondes, donc un texte blanc. En sombre elles sont eclaircies pour
+     tenir sur le navy, et il faut alors un texte sombre. */
+  --sur-jeton: #ffffff;
+
+  /* Les couleurs de SENS. Elles disent pourquoi, pas quoi : `--succes` se lit
+     dans le code la ou `emerald-500` ne se lisait pas. Elles coincident
+     aujourd'hui avec certains jetons, et c'est un hasard qu'on garde separe -
+     le jour ou « termine » ne sera plus vert, une ligne suffira. */
+  --succes: #059669;
+  --alerte: #d97706;
+  --danger: #dc2626;
+  --info: #0284c7;
+  --neutre: #64748b;
+
+  --jeton-ardoise: #475569;
+  --jeton-ciel: #0284c7;
+  --jeton-violet: #7c3aed;
+  --jeton-cyan: #0891b2;
+  --jeton-ambre: #d97706;
+  --jeton-emeraude: #059669;
+  --jeton-rose: #db2777;
+  --jeton-orange: #ea580c;
+}
+
+.dark {
+  --sur-jeton: #0c1524;
+
+  --succes: #34d399;
+  --alerte: #fbbf24;
+  --danger: #f87171;
+  --info: #38bdf8;
+  --neutre: #94a3b8;
+
+  --jeton-ardoise: #94a3b8;
+  --jeton-ciel: #38bdf8;
+  --jeton-violet: #a78bfa;
+  --jeton-cyan: #22d3ee;
+  --jeton-ambre: #fbbf24;
+  --jeton-emeraude: #34d399;
+  --jeton-rose: #f472b6;
+  --jeton-orange: #fb923c;
+}
+
+.antique {
+  --sur-jeton: #faf7f1;
+
+  --succes: #2f7d55;
+  --alerte: #a9631a;
+  --danger: #a32e28;
+  --info: #1d6fa5;
+  --neutre: #6e6a59;
+
+  --jeton-ardoise: #3f4a5a;
+  --jeton-ciel: #1d6fa5;
+  --jeton-violet: #6b4aa6;
+  --jeton-cyan: #10707f;
+  --jeton-ambre: #a9631a;
+  --jeton-emeraude: #2f7d55;
+  --jeton-rose: #a8386a;
+  --jeton-orange: #b4531f;
 }
 
 /* ==========================================================================

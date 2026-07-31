@@ -15,6 +15,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { PontAcp } from './acp.js'
+import { lireOrchestration } from './equipe.js'
 import { ecrireBascule, lireBascule } from './modeles.js'
 import { projectFiles, vaultNote } from './templates.js'
 import {
@@ -1430,6 +1431,11 @@ async function handleApi(req, res, url) {
       const body = await readBody(req)
       return sendJson(res, 200, appliquerMiseAJour(body.tag))
     }
+  }
+
+  // L'equipe et ses poles : le seul lieu de l'orchestration.
+  if (rest[0] === 'orchestration' && method === 'GET') {
+    return sendJson(res, 200, await lireOrchestration())
   }
 
   if (rest[0] === 'chat') {
