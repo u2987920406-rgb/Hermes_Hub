@@ -112,7 +112,6 @@ export interface Stats {
 
 export type View =
   | 'home'
-  | 'agora'
   | 'projects'
   | 'project'
   | 'clean'
@@ -121,81 +120,11 @@ export type View =
   | 'config'
 
 // -----------------------------------------------------------------------------
-// Agora : l'equipe et le plan
-// -----------------------------------------------------------------------------
-
-export type RoleAgent = 'orchestrateur' | 'manager' | 'worker' | 'bac-a-sable'
-
-export interface Agent {
-  id: string
-  nom: string
-  /** null pour Hermes : le profil par defaut n'a pas de nom en ligne de commande. */
-  profil: string | null
-  role: RoleAgent
-  /** Jeton de couleur, traduit en classes Tailwind par l'interface. */
-  couleur: string
-  icone: string
-  description: string
-  /** Faux quand le profil n'a aucune credential : il ne repondra jamais. */
-  pretAServir: boolean
-  taches: number
-  enCours: number
-  finies: number
-  /** Un agent n'est eveille que le temps d'une tache. */
-  eveille: boolean
-}
-
-export type EtatTache =
-  | 'triage'
-  | 'todo'
-  | 'ready'
-  | 'running'
-  | 'review'
-  | 'blocked'
-  | 'scheduled'
-  | 'done'
-
-export interface Tache {
-  id: string
-  titre: string
-  corps: string
-  agent: string | null
-  etat: EtatTache
-  modele: string | null
-  creeLe: number
-  demarreLe: number | null
-  finiLe: number | null
-  resultat: string | null
-  erreur: string | null
-}
-
-export interface Plan {
-  disponible: boolean
-  /** `init` : kanban jamais initialise. `node` : Node trop ancien. */
-  raison?: 'init' | 'node' | 'lecture'
-  message?: string
-  taches: Tache[]
-  liens: { de: string; vers: string }[]
-}
-
-export interface AgoraData {
-  agents: Agent[]
-  plan: Plan
-}
-
-export const ETATS_TACHE: Record<EtatTache, string> = {
-  triage: 'A cadrer',
-  todo: 'En attente',
-  ready: 'Prete',
-  running: 'En cours',
-  review: 'A relire',
-  blocked: 'Bloquee',
-  scheduled: 'Programmee',
-  done: 'Terminee',
-}
-
-// -----------------------------------------------------------------------------
-// Discussion avec Hermes
+// Pont vers Hermes (ACP)
+//
+// Le contrat du protocole, sans interface au-dessus : c'est Orchestration qui
+// posera ses propres ecrans dessus. Le modele des poles, des agents et de leurs
+// competences n'est pas ici - il sera defini avec eux.
 // -----------------------------------------------------------------------------
 
 /** Session ACP ouverte : ce qu'Hermes annonce de lui-meme au demarrage. */
@@ -235,14 +164,7 @@ export interface TourMoi {
   texte: string
 }
 
-/** Une equipe proposee : les taches qu'Hermes vient de creer, montrees dans le
-    fil au moment ou il les cree, pas dans un ecran qu'il faut aller chercher. */
-export interface TourProposition {
-  role: 'proposition'
-  taches: Tache[]
-}
-
-export type Tour = TourMoi | TourHermes | TourProposition
+export type Tour = TourMoi | TourHermes
 
 export interface EtapePlan {
   libelle: string

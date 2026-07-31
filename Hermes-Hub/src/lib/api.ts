@@ -3,7 +3,6 @@
  * of these calls - there is no local-only state pretending to be data.
  */
 import type {
-  AgoraData,
   AppConfig,
   Diagnostics,
   EvenementChat,
@@ -159,10 +158,8 @@ export const api = {
   openFolder: (input: { projectId?: string; target?: 'workspace' | 'vault' } = {}) =>
     request<{ opened: string }>('/open/folder', { method: 'POST', body: body(input) }),
 
-  // --- Agora : l'equipe et le plan en cours -----------------------------------
-  agora: () => request<AgoraData>('/agora'),
-
-  // --- Discussion avec Hermes -------------------------------------------------
+  // --- Pont vers Hermes (ACP) -------------------------------------------------
+  // Conserve pour Orchestration : c'est la plomberie du protocole, pas un ecran.
   // `chatSession` ouvre reellement la session ACP : le premier appel demarre
   // Hermes et peut prendre une dizaine de secondes.
   chatSession: () => request<SessionChat>('/chat/session'),

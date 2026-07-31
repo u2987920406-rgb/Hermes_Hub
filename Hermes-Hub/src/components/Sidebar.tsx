@@ -7,7 +7,6 @@ import {
   Search,
   Settings,
   Trash2,
-  Users,
   X,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -38,13 +37,6 @@ interface NavItem {
 // portes d'entree pour le meme ecran alourdissaient le menu pour rien.
 const NAV: NavItem[] = [
   { id: 'home', label: 'Accueil', icon: Home, accent: 'text-sky-300', bordure: 'border-sky-400' },
-  {
-    id: 'agora',
-    label: 'Agora',
-    icon: Users,
-    accent: 'text-indigo-300',
-    bordure: 'border-indigo-400',
-  },
   {
     id: 'projects',
     label: 'Projets',

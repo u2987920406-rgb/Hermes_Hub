@@ -4,7 +4,6 @@ import { NewProjectModal } from './components/NewProjectModal'
 import { Sidebar } from './components/Sidebar'
 import { Toasts } from './components/Toasts'
 import { useRoute } from './hooks/useRoute'
-import { AgoraView } from './pages/AgoraView'
 import { CleanView } from './pages/CleanView'
 import { ConfigView } from './pages/ConfigView'
 import { HomeView } from './pages/HomeView'
@@ -72,8 +71,6 @@ export default function App() {
             onMenu={() => setMenuOpen(true)}
           />
         )
-      case 'agora':
-        return <AgoraView onMenu={() => setMenuOpen(true)} />
       case 'clean':
         return <CleanView onMenu={() => setMenuOpen(true)} />
       case 'vault':

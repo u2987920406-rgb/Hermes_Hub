@@ -31,7 +31,7 @@ Write-Host ""
 Write-Host "  Hub V2 - bac a sable" -ForegroundColor Cyan
 Write-Host "  workspace : $env:HERMES_WORKSPACE"
 Write-Host "  kanban    : $env:HERMES_KANBAN_DB"
-Write-Host "  interface : http://127.0.0.1:$Port/#/agora"
+Write-Host "  interface : http://127.0.0.1:$Port/"
 Write-Host ""
 Write-Host "  Le workspace reel et le vrai board ne sont pas touches." -ForegroundColor DarkGray
 Write-Host ""
