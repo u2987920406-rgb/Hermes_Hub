@@ -6,11 +6,16 @@ export interface Route {
   param: string | null
 }
 
-const VIEWS: View[] = ['home', 'projects', 'project', 'clean', 'vault', 'trash', 'config']
+const VIEWS: View[] = ['home', 'agora', 'projects', 'project', 'clean', 'vault', 'trash', 'config']
+
+/** La Discussion a fusionne avec l'Agora : `#/chat` reste valide pour les
+    onglets ouverts et les favoris poses avant la fusion. */
+const ALIAS: Record<string, View> = { chat: 'agora' }
 
 function parse(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean)
-  const view = (VIEWS.includes(parts[0] as View) ? parts[0] : 'home') as View
+  const brut = ALIAS[parts[0]] || parts[0]
+  const view = (VIEWS.includes(brut as View) ? brut : 'home') as View
   const param = parts[1] ? decodeURIComponent(parts[1]) : null
   return { view, param }
 }

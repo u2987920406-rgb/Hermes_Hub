@@ -1,4 +1,13 @@
-import { BookOpen, CornerDownLeft, FolderOpen, Home, Search, Settings, Trash2 } from 'lucide-react'
+import {
+  BookOpen,
+  CornerDownLeft,
+  FolderOpen,
+  Home,
+  Search,
+  Settings,
+  Trash2,
+  Users,
+} from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useHubStore } from '../store/useHubStore'
 import type { View } from '../types'
@@ -49,6 +58,7 @@ export function CommandPalette({ open, onClose, onNavigate }: Props) {
 
     const aller: Resultat[] = [
       { id: 'go-home', groupe: 'Aller a', label: 'Accueil', icon: Home, action: () => onNavigate('home') },
+      { id: 'go-agora', groupe: 'Aller a', label: 'Agora', icon: Users, action: () => onNavigate('agora') },
       { id: 'go-projects', groupe: 'Aller a', label: 'Projets', icon: FolderOpen, action: () => onNavigate('projects') },
       { id: 'go-vault', groupe: 'Aller a', label: 'Coffre memoire', icon: BookOpen, action: () => onNavigate('vault') },
       { id: 'go-trash', groupe: 'Aller a', label: 'Corbeille', icon: Trash2, action: () => onNavigate('trash') },

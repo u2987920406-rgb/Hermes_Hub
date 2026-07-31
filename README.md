@@ -156,6 +156,19 @@ Documents/Hermes-{Prenom}/
   d'environnement : le Hub lance donc `hermes skin use <nom>` (~0.4 s) juste
   avant d'ouvrir le terminal. Le profil `clean` ayant son propre `config.yaml`,
   sa couleur ne perturbe jamais les autres sessions.
+- **Discussion** : parler a Hermes sans ouvrir de terminal. Le Hub lance
+  `hermes acp` (le protocole des editeurs, VS Code et Zed) et lui parle en
+  JSON-RPC sur stdin/stdout. On ne passe pas par `hermes -z`, qui ne rend que
+  le texte final : ici la reponse arrive morceau par morceau, les appels
+  d'outils s'affichent pendant qu'ils tournent, et les demandes
+  d'autorisation deviennent des boutons. C'est la meme session qu'au terminal
+  (memoire, regles, skills), avec le travail rendu visible.
+  - Un seul pont pour tout le Hub : deux fenetres ouvertes voient la meme
+    conversation. Un flux qui arrive en cours de tour recoit d'abord l'etat
+    courant, sans quoi une autorisation emise avant son ouverture resterait
+    sans reponse et Hermes attendrait indefiniment.
+  - Le selecteur de modele ne vaut que pour la session : il ne touche pas au
+    `config.yaml` d'Hermes.
 - Il n'ecoute que sur `127.0.0.1` : rien n'est expose sur le reseau
 
 ## Questions posées (9)

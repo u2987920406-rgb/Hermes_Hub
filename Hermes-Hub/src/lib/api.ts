@@ -3,11 +3,14 @@
  * of these calls - there is no local-only state pretending to be data.
  */
 import type {
+  AgoraData,
   AppConfig,
   Diagnostics,
+  EvenementChat,
   MemoryFile,
   Project,
   ProjectStatus,
+  SessionChat,
   Skin,
   Stats,
   TrashItem,
@@ -154,4 +157,51 @@ export const api = {
     request<{ opened: string }>('/launch/obsidian', { method: 'POST', body: body({}) }),
   openFolder: (input: { projectId?: string; target?: 'workspace' | 'vault' } = {}) =>
     request<{ opened: string }>('/open/folder', { method: 'POST', body: body(input) }),
+
+  // --- Agora : l'equipe et le plan en cours -----------------------------------
+  agora: () => request<AgoraData>('/agora'),
+
+  // --- Discussion avec Hermes -------------------------------------------------
+  // `chatSession` ouvre reellement la session ACP : le premier appel demarre
+  // Hermes et peut prendre une dizaine de secondes.
+  chatSession: () => request<SessionChat>('/chat/session'),
+  chatEnvoyer: (texte: string) =>
+    request<{ recu: boolean }>('/chat/message', { method: 'POST', body: body({ texte }) }),
+  chatInterrompre: () =>
+    request<{ interrompu: boolean }>('/chat/cancel', { method: 'POST', body: body({}) }),
+  chatAutoriser: (demande: string, option: string | null) =>
+    request<{ traite: boolean }>('/chat/permission', {
+      method: 'POST',
+      body: body({ demande, option }),
+    }),
+  chatModele: (modele: string) =>
+    request<{ modele: string }>('/chat/model', { method: 'POST', body: body({ modele }) }),
+  chatMode: (mode: string) =>
+    request<{ mode: string }>('/chat/mode', { method: 'POST', body: body({ mode }) }),
+  chatBascule: () => request<{ actif: boolean }>('/chat/bascule'),
+  chatReglerBascule: (actif: boolean) =>
+    request<{ actif: boolean }>('/chat/bascule', { method: 'POST', body: body({ actif }) }),
+}
+
+/**
+ * Flux des evenements de la discussion. La reponse d'Hermes n'arrive pas en
+ * bloc : elle se construit morceau par morceau, et les appels d'outils tombent
+ * entre les morceaux de texte. Rend la fonction d'arret.
+ */
+export function ecouterChat(onEvenement: (e: EvenementChat) => void): () => void {
+  const source = new EventSource('/api/chat/stream')
+
+  source.onmessage = (msg) => {
+    try {
+      onEvenement(JSON.parse(msg.data) as EvenementChat)
+    } catch {
+      /* trame illisible : la suivante repartira proprement */
+    }
+  }
+
+  // EventSource se reconnecte tout seul ; on n'affiche donc pas d'erreur ici,
+  // sans quoi le moindre rechargement du serveur ferait clignoter une alerte.
+  source.onerror = () => {}
+
+  return () => source.close()
 }

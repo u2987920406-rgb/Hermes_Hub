@@ -14,6 +14,9 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { PontAcp } from './acp.js'
+import { lireAgora } from './agora.js'
+import { ecrireBascule, lireBascule } from './modeles.js'
 import { projectFiles, vaultNote } from './templates.js'
 import {
   HUB_DIR,
@@ -1171,6 +1174,70 @@ function openObsidian() {
 }
 
 // -----------------------------------------------------------------------------
+// Discussion avec Hermes (pont ACP)
+// -----------------------------------------------------------------------------
+/**
+ * Un seul pont pour tout le Hub : la discussion est un lieu, pas un onglet.
+ * Deux fenetres ouvertes voient donc la meme conversation, comme deux ecrans
+ * poses sur le meme bureau.
+ */
+let pont = null
+/** Flux SSE ouverts. Ce sont des spectateurs : aucun n'est proprietaire. */
+const spectateurs = new Set()
+
+function obtenirPont() {
+  if (pont) return pont
+  pont = new PontAcp({ cwd: WORKSPACE })
+  pont.on('evenement', (e) => diffuser(e))
+  return pont
+}
+
+function diffuser(evenement) {
+  const trame = `data: ${JSON.stringify(evenement)}\n\n`
+  for (const flux of spectateurs) {
+    try {
+      flux.write(trame)
+    } catch {
+      spectateurs.delete(flux)
+    }
+  }
+}
+
+function ouvrirFlux(req, res) {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-store',
+    Connection: 'keep-alive',
+    // Le Hub n'a pas de proxy, mais un antivirus qui s'intercale peut vouloir
+    // tamponner la reponse : l'en-tete le lui interdit explicitement.
+    'X-Accel-Buffering': 'no',
+  })
+  res.write(': connecte\n\n')
+
+  // Un flux qui arrive en cours de tour doit se mettre au niveau : sans ca, une
+  // autorisation emise avant l'ouverture resterait sans reponse et Hermes
+  // attendrait indefiniment.
+  if (pont) res.write(`data: ${JSON.stringify(pont.etat())}\n\n`)
+
+  spectateurs.add(res)
+
+  // Sans trafic, une connexion inactive finit par etre coupee. Le commentaire
+  // SSE ne produit aucun evenement cote navigateur.
+  const battement = setInterval(() => {
+    try {
+      res.write(': ping\n\n')
+    } catch {
+      /* ferme entre-temps : le close ci-dessous nettoie */
+    }
+  }, 20000)
+
+  req.on('close', () => {
+    clearInterval(battement)
+    spectateurs.delete(res)
+  })
+}
+
+// -----------------------------------------------------------------------------
 // Routing
 // -----------------------------------------------------------------------------
 async function handleApi(req, res, url) {
@@ -1321,6 +1388,78 @@ async function handleApi(req, res, url) {
     }
   }
 
+  if (rest[0] === 'agora' && method === 'GET') {
+    return sendJson(res, 200, await lireAgora())
+  }
+
+  if (rest[0] === 'chat') {
+    // Le flux precede la session : le navigateur doit deja ecouter quand les
+    // premiers evenements du demarrage partent.
+    if (rest[1] === 'stream' && method === 'GET') return ouvrirFlux(req, res)
+
+    if (rest[1] === 'session' && method === 'GET') {
+      return sendJson(res, 200, await obtenirPont().ouvrirSession())
+    }
+
+    if (rest[1] === 'message' && method === 'POST') {
+      const body = await readBody(req)
+      const texte = String(body.texte || '').trim()
+      if (!texte) {
+        const err = new Error('Message vide')
+        err.status = 400
+        throw err
+      }
+      const p = obtenirPont()
+      if (p.enCours) {
+        // Refus rendu a celui qui a envoye, et a lui seul : diffuser cette
+        // erreur alarmerait les autres fenetres, qui n'ont rien demande.
+        const err = new Error('Hermes travaille encore sur le message precedent')
+        err.status = 409
+        throw err
+      }
+
+      // On ne retient pas la reponse : elle arrive par le flux, morceau par
+      // morceau. L'appel confirme seulement qu'Hermes a pris le message.
+      p.envoyer(texte).catch((e) => {
+        if (e.status !== 409) diffuser({ type: 'panne', message: e.message })
+      })
+      return sendJson(res, 202, { recu: true })
+    }
+
+    if (rest[1] === 'cancel' && method === 'POST') {
+      return sendJson(res, 200, await obtenirPont().interrompre())
+    }
+
+    if (rest[1] === 'permission' && method === 'POST') {
+      const body = await readBody(req)
+      const traite = obtenirPont().autoriser(String(body.demande), body.option || null)
+      return sendJson(res, 200, { traite })
+    }
+
+    if (rest[1] === 'model' && method === 'POST') {
+      const body = await readBody(req)
+      return sendJson(res, 200, await obtenirPont().choisirModele(String(body.modele)))
+    }
+
+    if (rest[1] === 'mode' && method === 'POST') {
+      const body = await readBody(req)
+      return sendJson(res, 200, await obtenirPont().choisirMode(String(body.mode)))
+    }
+
+    // Bascule automatique de modele quand le fournisseur coupe.
+    if (rest[1] === 'bascule') {
+      if (method === 'GET') return sendJson(res, 200, { actif: lireBascule() })
+      if (method === 'POST') {
+        const body = await readBody(req)
+        const actif = ecrireBascule(body.actif === true)
+        // Diffuse : l'interrupteur doit suivre dans les autres fenetres
+        // ouvertes, sinon deux onglets afficheraient des etats contraires.
+        diffuser({ type: 'bascule-reglage', actif })
+        return sendJson(res, 200, { actif })
+      }
+    }
+  }
+
   if (rest[0] === 'autostart') {
     if (method === 'GET') return sendJson(res, 200, autoStartStatus())
     if (method === 'POST') {
@@ -1383,6 +1522,15 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log('  Ferme cette fenetre pour arreter le Hub.')
   if (OPEN_BROWSER) detach('cmd.exe', ['/c', 'start', '', target], WORKSPACE)
 })
+
+// Le pont ACP est un process enfant : sans ca, fermer le Hub laisserait un
+// `hermes acp` orphelin qui tourne jusqu'au redemarrage de la machine.
+for (const signal of ['SIGINT', 'SIGTERM', 'exit']) {
+  process.on(signal, () => {
+    if (pont) pont.fermer()
+    if (signal !== 'exit') process.exit(0)
+  })
+}
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
