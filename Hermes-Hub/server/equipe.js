@@ -20,6 +20,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { HUB_DIR, readJson, writeJson } from './workspace.js'
 
 const HERMES_HOME = path.join(process.env.LOCALAPPDATA || os.homedir(), 'hermes')
 const PROFILES_DIR = path.join(HERMES_HOME, 'profiles')
@@ -161,6 +162,42 @@ export function listerAgents() {
 }
 
 // -----------------------------------------------------------------------------
+// Les equipes
+// -----------------------------------------------------------------------------
+/**
+ * Une equipe est un groupe d'agents qu'on nomme et qu'on appelle d'un bloc.
+ *
+ * A ne pas confondre avec un pole, qui est un graphe de taches : le pole dit
+ * ce qui est fait, l'equipe dit qui pourrait le faire. Un agent appartient a
+ * autant d'equipes qu'on veut.
+ *
+ * Le fichier appartient au Hub - Hermes n'a pas cette notion.
+ */
+const FICHIER_EQUIPES = path.join(HUB_DIR, 'equipes.json')
+
+export function lireEquipes() {
+  const brut = readJson(FICHIER_EQUIPES, null)
+  if (!Array.isArray(brut)) return []
+
+  const existants = new Set(listerAgents().map((a) => a.id))
+  return brut
+    .filter((e) => e && typeof e.nom === 'string')
+    .map((e) => ({
+      id: String(e.id || e.nom).toLowerCase().replace(/\s+/g, '-'),
+      nom: e.nom,
+      couleur: e.couleur || 'ciel',
+      // Un profil supprime en ligne de commande ne doit pas laisser un membre
+      // fantome dans l'equipe.
+      membres: (Array.isArray(e.membres) ? e.membres : []).filter((m) => existants.has(m)),
+    }))
+}
+
+export function ecrireEquipes(equipes) {
+  writeJson(FICHIER_EQUIPES, equipes)
+  return lireEquipes()
+}
+
+// -----------------------------------------------------------------------------
 // Le tableau
 // -----------------------------------------------------------------------------
 let sqlite = null
@@ -252,14 +289,15 @@ function grouperEnPoles(taches, liens) {
 
 export async function lireOrchestration() {
   const agents = listerAgents()
+  const equipes = lireEquipes()
 
   if (!fs.existsSync(KANBAN_DB)) {
-    return { agents, poles: [], isolees: [], tableau: { disponible: false, raison: 'init' } }
+    return { agents, equipes, poles: [], isolees: [], tableau: { disponible: false, raison: 'init' } }
   }
 
   const mod = await chargerSqlite()
   if (!mod) {
-    return { agents, poles: [], isolees: [], tableau: { disponible: false, raison: 'node' } }
+    return { agents, equipes, poles: [], isolees: [], tableau: { disponible: false, raison: 'node' } }
   }
 
   let db
@@ -268,6 +306,7 @@ export async function lireOrchestration() {
   } catch (err) {
     return {
       agents,
+      equipes,
       poles: [],
       isolees: [],
       tableau: { disponible: false, raison: 'lecture', message: err.message },
@@ -314,10 +353,11 @@ export async function lireOrchestration() {
     for (const a of agents) a.eveille = a.enCours > 0
 
     const { poles, isolees } = grouperEnPoles(taches, liens)
-    return { agents, poles, isolees, tableau: { disponible: true } }
+    return { agents, equipes, poles, isolees, tableau: { disponible: true } }
   } catch (err) {
     return {
       agents,
+      equipes,
       poles: [],
       isolees: [],
       tableau: { disponible: false, raison: 'lecture', message: err.message },

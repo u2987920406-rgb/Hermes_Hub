@@ -182,8 +182,19 @@ export interface Pole {
   creeLe: number
 }
 
+/** Un groupe d'agents qu'on nomme et qu'on appelle d'un bloc - a distinguer du
+    pole, qui est un graphe de taches. Le pole dit ce qui est fait, l'equipe dit
+    qui pourrait le faire. */
+export interface Equipe {
+  id: string
+  nom: string
+  couleur: string
+  membres: string[]
+}
+
 export interface Orchestration {
   agents: Agent[]
+  equipes: Equipe[]
   poles: Pole[]
   isolees: Tache[]
   tableau: {
@@ -237,8 +248,11 @@ export type BlocTour =
       pas sans explication. */
   | { type: 'bascule'; de: string | null; vers: string; raison: string }
 
-export interface TourHermes {
-  role: 'hermes'
+/** Un tour appartient a un agent : dans une piece a plusieurs, une reponse
+    sans emetteur n'est pas attribuable. */
+export interface TourAgent {
+  role: 'agent'
+  agent: string
   blocs: BlocTour[]
   /** Faux tant que le tour n'est pas termine : pilote l'indicateur d'activite. */
   fini: boolean
@@ -248,9 +262,21 @@ export interface TourHermes {
 export interface TourMoi {
   role: 'moi'
   texte: string
+  /** A qui le message a ete adresse, tel que le serveur l'a resolu. */
+  destinataires: string[]
 }
 
-export type Tour = TourMoi | TourHermes
+/** Un agent en confie un autre : trace laissee dans le fil pour qu'une reponse
+    n'arrive jamais sans qu'on sache qui l'a demandee. */
+export interface TourDelegation {
+  role: 'delegation'
+  de: string
+  nom: string
+  vers: string[]
+  texte: string
+}
+
+export type Tour = TourMoi | TourAgent | TourDelegation
 
 export interface EtapePlan {
   libelle: string
@@ -265,10 +291,27 @@ export interface DemandeAutorisation {
   options: { id: string; libelle: string; genre: string }[]
 }
 
-/** Evenements pousses par le serveur pendant un tour (flux SSE). */
-export type EvenementChat =
-  /** Premier evenement de tout flux : l'etat d'un tour deja commence. */
-  | { type: 'reprise'; enCours: boolean; autorisations: DemandeAutorisation[] }
+/**
+ * Evenements pousses par le serveur (flux SSE).
+ *
+ * Tous portent le nom de leur agent, sauf ceux qui concernent le Hub lui-meme -
+ * l'echo du message envoye, ou le reglage de la bascule.
+ */
+type EvenementBrut =
+  /** Premier evenement de tout flux : l'etat des agents deja au travail. */
+  | { type: 'reprise'; agents: { agent: string; enCours: boolean; autorisations: DemandeAutorisation[] }[] }
+  /** Echo de ce que je viens d'envoyer, avec les destinataires resolus. */
+  | { type: 'moi'; texte: string; destinataires: string[] }
+  /** Un agent vient d'etre lance : son processus existe. */
+  | { type: 'reveil'; nom: string }
+  /** Son processus vient de disparaitre. */
+  | { type: 'sommeil' }
+  /** Un agent en a appele un autre : la delegation se voit dans le fil, sinon
+      une reponse surgit sans qu'on sache qui l'a demandee. */
+  | { type: 'delegation'; nom: string; vers: string[]; texte: string }
+  /** Trop de mentions d'un coup : l'agent recopiait l'annuaire au lieu de
+      deleguer. On ne reveille personne et on le dit. */
+  | { type: 'delegation-ignoree'; nom: string; citees: number }
   | { type: 'tour-debut' }
   | { type: 'texte'; texte: string }
   | { type: 'reflexion'; texte: string }
@@ -291,6 +334,10 @@ export type EvenementChat =
   | { type: 'bascule-echec'; raison: string; vers: string; message: string }
   /** L'interrupteur a bouge dans une autre fenetre. */
   | { type: 'bascule-reglage'; actif: boolean }
+
+/** Le nom de l'emetteur voyage sur chaque trame : `agent` est l'identifiant du
+    profil, absent seulement pour ce qui vient du Hub et non d'un agent. */
+export type EvenementChat = EvenementBrut & { agent?: string }
 
 /** Traduction des noms d'outils ACP en mots du Hub. */
 export const GENRES_OUTIL: Record<string, string> = {

@@ -14,16 +14,17 @@
  * Rien n'est invente ici : les agents sont les profils d'Hermes, les poles sont
  * lus dans son tableau kanban.
  */
-import { AlertTriangle, Network, RefreshCw, Users } from 'lucide-react'
+import { AlertTriangle, MessageSquare, Network, RefreshCw, Users } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { Conversation } from '../components/Conversation'
 import { Modal } from '../components/Modal'
 import { Organigramme } from '../components/Organigramme'
 import type { LienOrg, NoeudOrg } from '../components/Organigramme'
 import { PageHeader } from '../components/PageHeader'
 import { api } from '../lib/api'
 import { ETATS_TACHE } from '../types'
-import type { Agent, EtatTache, Orchestration, Pole } from '../types'
+import type { Agent, Equipe as EquipeType, EtatTache, Orchestration, Pole } from '../types'
 
 interface Props {
   onMenu: () => void
@@ -33,20 +34,26 @@ const FINI: EtatTache[] = ['done']
 const BLOQUE: EtatTache[] = ['blocked', 'review']
 const DORMANT: EtatTache[] = ['triage', 'todo', 'scheduled']
 
-type Volet = 'agents' | 'poles'
+type Volet = 'conversation' | 'agents' | 'poles'
 
 const VOLETS: { id: Volet; label: string; icon: typeof Users }[] = [
+  { id: 'conversation', label: 'Conversation', icon: MessageSquare },
   { id: 'agents', label: 'Agents', icon: Users },
   { id: 'poles', label: 'Poles / Equipes', icon: Network },
 ]
 
 /** Ce qui est ouvert par-dessus : l'organigramme de l'equipe, ou celui d'un pole. */
-type Ouvert = { genre: 'equipe' } | { genre: 'pole'; id: string }
+type Ouvert =
+  | { genre: 'equipe' }
+  | { genre: 'equipe-nommee'; id: string }
+  | { genre: 'pole'; id: string }
 
 export function OrchestrationView({ onMenu }: Props) {
   const [data, setData] = useState<Orchestration | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
-  const [volet, setVolet] = useState<Volet>('agents')
+  const [volet, setVolet] = useState<Volet>('conversation')
+  /** Remonte de la conversation : les agents dont le processus tourne. */
+  const [eveilles, setEveilles] = useState<string[]>([])
   const [ouvert, setOuvert] = useState<Ouvert | null>(null)
 
   const charger = useCallback(async () => {
@@ -62,11 +69,18 @@ export function OrchestrationView({ onMenu }: Props) {
     void charger()
   }, [charger])
 
-  const agents = data?.agents || []
+  // Un agent est eveille de deux facons : son processus tourne (la conversation
+  // le sait en direct), ou une tache du tableau lui est confiee. Les deux
+  // comptent, et la lecture du tableau ne rafraichit qu'a la demande.
+  const bruts = data?.agents || []
+  const agents = bruts.map((a) => ({ ...a, eveille: a.eveille || eveilles.includes(a.id) }))
   const poles = data?.poles || []
+  const equipes = data?.equipes || []
   const prets = agents.filter((a) => a.pretAServir).length
   const actifs = poles.filter((p) => p.enCours).length
   const poleOuvert = ouvert?.genre === 'pole' ? poles.find((p) => p.id === ouvert.id) : null
+  const equipeOuverte =
+    ouvert?.genre === 'equipe-nommee' ? equipes.find((e) => e.id === ouvert.id) : null
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -99,14 +113,23 @@ export function OrchestrationView({ onMenu }: Props) {
             >
               <Icone className="h-4 w-4 flex-shrink-0" />
               {label}
+              {/* Un fil de conversation n'a pas de quantite : seul ce qui se
+                  compte porte un compteur. */}
               <span className="ml-auto hidden text-[10px] tabular-nums opacity-60 lg:inline">
-                {id === 'agents' ? agents.length : poles.length}
+                {id === 'agents' ? agents.length : id === 'poles' ? poles.length : ''}
               </span>
             </button>
           ))}
         </nav>
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          {/* La conversation gere son propre defilement : elle garde le champ
+              de saisie colle en bas pendant que le fil monte. */}
+          {volet === 'conversation' && (
+            <Conversation agents={agents} onEveilChange={setEveilles} />
+          )}
+
+          {volet !== 'conversation' && (
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="mx-auto max-w-4xl space-y-4">
               {erreur && (
@@ -143,9 +166,30 @@ export function OrchestrationView({ onMenu }: Props) {
               {volet === 'poles' && (
                 <>
                   <Entete
-                    titre={`${poles.length} pole${poles.length > 1 ? 's' : ''}`}
-                    detail={actifs > 0 ? `${actifs} en cours` : 'aucun en cours'}
+                    titre={`${equipes.length} equipe${equipes.length > 1 ? 's' : ''}`}
+                    detail="Un groupe d agents qu on appelle d un bloc"
                   />
+                  {equipes.length > 0 && (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {equipes.map((e) => (
+                        <VignetteEquipe
+                          key={e.id}
+                          equipe={e}
+                          agents={e.membres
+                            .map((m) => agents.find((a) => a.id === m))
+                            .filter((a): a is Agent => !!a)}
+                          onOuvrir={() => setOuvert({ genre: 'equipe-nommee', id: e.id })}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="pt-2">
+                    <Entete
+                      titre={`${poles.length} pole${poles.length > 1 ? 's' : ''}`}
+                      detail={actifs > 0 ? `${actifs} en cours` : 'aucun en cours'}
+                    />
+                  </div>
 
                   {data && !data.tableau.disponible && (
                     <TableauIndisponible raison={data.tableau.raison} />
@@ -174,6 +218,7 @@ export function OrchestrationView({ onMenu }: Props) {
               )}
             </div>
           </div>
+          )}
         </div>
       </div>
 
@@ -190,6 +235,27 @@ export function OrchestrationView({ onMenu }: Props) {
             pour lui confier une tache. Un agent mal decrit ne recoit rien, et le travail
             retombe sur Hermes.
           </p>
+        </Modal>
+      )}
+
+      {equipeOuverte && (
+        <Modal
+          title={`Equipe ${equipeOuverte.nom}`}
+          icon={<Users className="h-4 w-4 text-violet-500" />}
+          maxWidth="max-w-4xl"
+          onClose={() => setOuvert(null)}
+        >
+          <p className="mb-4 rounded-lg bg-slate-50 px-3 py-2 text-xs muted dark:bg-navy-800">
+            Ecris <b>@equipe {equipeOuverte.nom}</b> dans la conversation pour les appeler
+            tous en meme temps.
+          </p>
+          <Organigramme
+            {...equipeEnGraphe(
+              equipeOuverte.membres
+                .map((m) => agents.find((a) => a.id === m))
+                .filter((a): a is Agent => !!a),
+            )}
+          />
         </Modal>
       )}
 
@@ -414,6 +480,51 @@ function Vignette({
             />
           </span>
         )}
+      </span>
+    </button>
+  )
+}
+
+/** Une equipe nommee : son nom, ses membres, et la mention pour l'appeler. */
+function VignetteEquipe({
+  equipe,
+  agents,
+  onOuvrir,
+}: {
+  equipe: EquipeType
+  agents: Agent[]
+  onOuvrir: () => void
+}) {
+  const style = { '--agent': `var(--jeton-${equipe.couleur})` } as CSSProperties
+
+  return (
+    <button
+      type="button"
+      onClick={onOuvrir}
+      style={style}
+      className="card group relative overflow-hidden p-0 text-left transition-shadow hover:shadow-md"
+    >
+      <span
+        className="pointer-events-none absolute inset-0 opacity-[0.06] transition-opacity group-hover:opacity-[0.12] dark:opacity-[0.12] dark:group-hover:opacity-[0.2]"
+        style={{ backgroundColor: 'var(--agent)' }}
+      />
+      <span className="relative flex flex-col gap-2.5 p-3.5">
+        <span className="flex items-center gap-2.5">
+          <span
+            className="grid h-8 w-8 flex-none place-items-center rounded-lg"
+            style={{ backgroundColor: 'var(--agent)', color: 'var(--sur-jeton)' }}
+          >
+            <Users className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-semibold">{equipe.nom}</span>
+            <span className="block truncate text-[11px] muted">
+              {agents.length} membre{agents.length > 1 ? 's' : ''}
+            </span>
+          </span>
+          <span className="puce sens-info">@equipe {equipe.nom}</span>
+        </span>
+        <Trombinoscope agents={agents} />
       </span>
     </button>
   )

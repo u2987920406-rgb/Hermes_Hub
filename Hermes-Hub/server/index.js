@@ -14,8 +14,8 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { PontAcp } from './acp.js'
-import { lireOrchestration } from './equipe.js'
+import { lireOrchestration, listerAgents } from './equipe.js'
+import { Equipage, resoudre } from './equipage.js'
 import { ecrireBascule, lireBascule } from './modeles.js'
 import { projectFiles, vaultNote } from './templates.js'
 import {
@@ -1222,20 +1222,14 @@ function openObsidian() {
 // Discussion avec Hermes (pont ACP)
 // -----------------------------------------------------------------------------
 /**
- * Un seul pont pour tout le Hub : la discussion est un lieu, pas un onglet.
+ * Un seul equipage pour tout le Hub : la discussion est un lieu, pas un onglet.
  * Deux fenetres ouvertes voient donc la meme conversation, comme deux ecrans
  * poses sur le meme bureau.
  */
-let pont = null
 /** Flux SSE ouverts. Ce sont des spectateurs : aucun n'est proprietaire. */
 const spectateurs = new Set()
 
-function obtenirPont() {
-  if (pont) return pont
-  pont = new PontAcp({ cwd: WORKSPACE })
-  pont.on('evenement', (e) => diffuser(e))
-  return pont
-}
+const equipage = new Equipage({ cwd: WORKSPACE, diffuser: (e) => diffuser(e) })
 
 function diffuser(evenement) {
   const trame = `data: ${JSON.stringify(evenement)}\n\n`
@@ -1262,7 +1256,7 @@ function ouvrirFlux(req, res) {
   // Un flux qui arrive en cours de tour doit se mettre au niveau : sans ca, une
   // autorisation emise avant l'ouverture resterait sans reponse et Hermes
   // attendrait indefiniment.
-  if (pont) res.write(`data: ${JSON.stringify(pont.etat())}\n\n`)
+  res.write(`data: ${JSON.stringify({ type: 'reprise', ...equipage.etat() })}\n\n`)
 
   spectateurs.add(res)
 
@@ -1443,8 +1437,13 @@ async function handleApi(req, res, url) {
     // premiers evenements du demarrage partent.
     if (rest[1] === 'stream' && method === 'GET') return ouvrirFlux(req, res)
 
-    if (rest[1] === 'session' && method === 'GET') {
-      return sendJson(res, 200, await obtenirPont().ouvrirSession())
+    // Qui est eveille en ce moment, et qui pourrait l'etre.
+    if (rest[1] === 'agents' && method === 'GET') {
+      const agents = listerAgents()
+      const eveilles = new Set(equipage.eveilles())
+      return sendJson(res, 200, {
+        agents: agents.map((a) => ({ ...a, eveille: eveilles.has(a.id) })),
+      })
     }
 
     if (rest[1] === 'message' && method === 'POST') {
@@ -1455,41 +1454,70 @@ async function handleApi(req, res, url) {
         err.status = 400
         throw err
       }
-      const p = obtenirPont()
-      if (p.enCours) {
+
+      // Equipes et poles repondent tous deux a `@equipe <nom>` : l'un dit qui
+      // pourrait faire le travail, l'autre qui l'a fait. Sans cette liste, un
+      // nom a espaces ne peut pas etre decoupe correctement.
+      const etat = await lireOrchestration()
+      const groupes = [
+        ...etat.equipes.map((e) => ({ titre: e.nom, membres: e.membres })),
+        ...etat.poles.map((p) => ({
+          titre: p.titre,
+          membres: [...new Set(p.taches.map((t) => t.agent || 'default'))],
+        })),
+      ]
+      const { destinataires, inconnues } = resoudre(texte, etat.agents, groupes)
+
+      if (inconnues.length) {
         // Refus rendu a celui qui a envoye, et a lui seul : diffuser cette
         // erreur alarmerait les autres fenetres, qui n'ont rien demande.
-        const err = new Error('Hermes travaille encore sur le message precedent')
+        const err = new Error(
+          `Personne ne repond a ${inconnues.join(', ')}. Verifie le nom dans Orchestration.`,
+        )
+        err.status = 400
+        throw err
+      }
+
+      const occupe = destinataires.find((a) => {
+        const p = equipage.ponts.get(a.id)
+        return p && p.pont.enCours
+      })
+      if (occupe) {
+        const err = new Error(`${occupe.nom} travaille encore sur le message precedent`)
         err.status = 409
         throw err
       }
 
+      diffuser({ type: 'moi', texte, destinataires: destinataires.map((a) => a.id) })
+
       // On ne retient pas la reponse : elle arrive par le flux, morceau par
-      // morceau. L'appel confirme seulement qu'Hermes a pris le message.
-      p.envoyer(texte).catch((e) => {
-        if (e.status !== 409) diffuser({ type: 'panne', message: e.message })
+      // morceau. L'appel confirme seulement que le message a ete pris.
+      equipage.envoyer(texte, destinataires, { tous: etat.agents, groupes }).catch((e) => {
+        diffuser({ type: 'panne', message: e.message })
       })
-      return sendJson(res, 202, { recu: true })
+      return sendJson(res, 202, { recu: true, destinataires: destinataires.map((a) => a.id) })
     }
 
     if (rest[1] === 'cancel' && method === 'POST') {
-      return sendJson(res, 200, await obtenirPont().interrompre())
+      return sendJson(res, 200, await equipage.interrompre())
+    }
+
+    // Endormir a la main : utile pour liberer la memoire sans attendre le delai.
+    if (rest[1] === 'sommeil' && method === 'POST') {
+      const body = await readBody(req)
+      if (body.agent) return sendJson(res, 200, { endormi: equipage.endormir(String(body.agent)) })
+      equipage.endormirTous()
+      return sendJson(res, 200, { endormi: true })
     }
 
     if (rest[1] === 'permission' && method === 'POST') {
       const body = await readBody(req)
-      const traite = obtenirPont().autoriser(String(body.demande), body.option || null)
+      const traite = equipage.autoriser(
+        String(body.agent || 'default'),
+        String(body.demande),
+        body.option || null,
+      )
       return sendJson(res, 200, { traite })
-    }
-
-    if (rest[1] === 'model' && method === 'POST') {
-      const body = await readBody(req)
-      return sendJson(res, 200, await obtenirPont().choisirModele(String(body.modele)))
-    }
-
-    if (rest[1] === 'mode' && method === 'POST') {
-      const body = await readBody(req)
-      return sendJson(res, 200, await obtenirPont().choisirMode(String(body.mode)))
     }
 
     // Bascule automatique de modele quand le fournisseur coupe.
@@ -1569,11 +1597,12 @@ server.listen(PORT, '127.0.0.1', () => {
   if (OPEN_BROWSER) detach('cmd.exe', ['/c', 'start', '', target], WORKSPACE)
 })
 
-// Le pont ACP est un process enfant : sans ca, fermer le Hub laisserait un
-// `hermes acp` orphelin qui tourne jusqu'au redemarrage de la machine.
+// Chaque agent eveille est un process enfant : sans ca, fermer le Hub
+// laisserait autant d'`hermes acp` orphelins qu'il y avait d'agents au
+// travail, et ils tourneraient jusqu'au redemarrage de la machine.
 for (const signal of ['SIGINT', 'SIGTERM', 'exit']) {
   process.on(signal, () => {
-    if (pont) pont.fermer()
+    equipage.endormirTous()
     if (signal !== 'exit') process.exit(0)
   })
 }

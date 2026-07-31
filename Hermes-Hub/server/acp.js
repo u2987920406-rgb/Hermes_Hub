@@ -55,8 +55,13 @@ export class PontAcp extends EventEmitter {
     this.demarrage = null
     this.enCours = false
     /** Texte du tour en cours, garde pour y lire une eventuelle panne de
-        modele : l'echec d'appel arrive dans la reponse, pas dans une erreur. */
+        modele et les mentions d'une delegation : l'un comme l'autre arrivent
+        dans la reponse, pas dans une erreur du protocole. */
     this.texteTour = ''
+    /** Vrai quand on a demande la fermeture : distingue un sommeil d'une chute. */
+    this.ferme = false
+    /** L'annuaire de l'equipe n'est donne qu'une fois par session. */
+    this.annuaireDonne = false
   }
 
   // ---------------------------------------------------------------------------
@@ -93,10 +98,14 @@ export class PontAcp extends EventEmitter {
 
     this.child.on('exit', (code) => {
       console.log('[acp] process termine, code', code)
-      this.emettre({
-        type: 'panne',
-        message: 'La session Hermes s-est fermee. Recharge la page pour en ouvrir une nouvelle.',
-      })
+      // Un agent qu'on endort sort par la meme porte qu'un agent qui tombe :
+      // sans ce drapeau, chaque mise en sommeil afficherait une alerte rouge.
+      if (!this.ferme) {
+        this.emettre({
+          type: 'panne',
+          message: 'La session Hermes s-est fermee. Recharge la page pour en ouvrir une nouvelle.',
+        })
+      }
       this.#arreter()
     })
   }
@@ -121,7 +130,9 @@ export class PontAcp extends EventEmitter {
     this.enCours = false
   }
 
+  /** Fermeture voulue : l'agent se rendort, ce n'est pas une panne. */
   fermer() {
+    this.ferme = true
     if (this.child) this.child.kill()
     this.#arreter()
   }
@@ -369,7 +380,10 @@ export class PontAcp extends EventEmitter {
   async envoyer(texte) {
     const session = await this.ouvrirSession()
     if (this.enCours) {
-      const err = new Error('Hermes travaille encore sur le message precedent')
+      // Le nom de l'agent, pas « Hermes » : dans une piece a plusieurs, une
+      // erreur qui nomme le mauvais interlocuteur envoie chercher au mauvais
+      // endroit.
+      const err = new Error(`${this.agent} travaille encore sur le message precedent`)
       err.status = 409
       throw err
     }

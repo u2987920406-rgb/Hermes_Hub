@@ -3,6 +3,7 @@
  * of these calls - there is no local-only state pretending to be data.
  */
 import type {
+  Agent,
   AppConfig,
   Orchestration,
   Diagnostics,
@@ -162,24 +163,26 @@ export const api = {
   // --- Orchestration : l'equipe et ses poles -----------------------------------
   orchestration: () => request<Orchestration>('/orchestration'),
 
-  // --- Pont vers Hermes (ACP) -------------------------------------------------
-  // Conserve pour Orchestration : c'est la plomberie du protocole, pas un ecran.
-  // `chatSession` ouvre reellement la session ACP : le premier appel demarre
-  // Hermes et peut prendre une dizaine de secondes.
-  chatSession: () => request<SessionChat>('/chat/session'),
+  // --- La conversation a mentions ---------------------------------------------
+  // Le serveur resout les mentions et rend les destinataires : la regle de
+  // routage vit a un seul endroit, et l'interface n'a pas a la deviner. Le
+  // premier message adresse a un agent endormi paie son demarrage, quelques
+  // secondes - la reponse arrive par le flux, pas par cet appel.
+  chatAgents: () => request<{ agents: Agent[] }>('/chat/agents'),
   chatEnvoyer: (texte: string) =>
-    request<{ recu: boolean }>('/chat/message', { method: 'POST', body: body({ texte }) }),
+    request<{ recu: boolean; destinataires: string[] }>('/chat/message', {
+      method: 'POST',
+      body: body({ texte }),
+    }),
   chatInterrompre: () =>
     request<{ interrompu: boolean }>('/chat/cancel', { method: 'POST', body: body({}) }),
-  chatAutoriser: (demande: string, option: string | null) =>
+  chatEndormir: (agent?: string) =>
+    request<{ endormi: boolean }>('/chat/sommeil', { method: 'POST', body: body({ agent }) }),
+  chatAutoriser: (agent: string, demande: string, option: string | null) =>
     request<{ traite: boolean }>('/chat/permission', {
       method: 'POST',
-      body: body({ demande, option }),
+      body: body({ agent, demande, option }),
     }),
-  chatModele: (modele: string) =>
-    request<{ modele: string }>('/chat/model', { method: 'POST', body: body({ modele }) }),
-  chatMode: (mode: string) =>
-    request<{ mode: string }>('/chat/mode', { method: 'POST', body: body({ mode }) }),
   chatBascule: () => request<{ actif: boolean }>('/chat/bascule'),
   chatReglerBascule: (actif: boolean) =>
     request<{ actif: boolean }>('/chat/bascule', { method: 'POST', body: body({ actif }) }),
