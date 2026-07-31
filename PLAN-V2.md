@@ -68,6 +68,58 @@ L'Agent Vision est possible, mais il n'a **aucun repli** : si `stepfun` coupe, l
 bascule automatique ne trouvera pas d'autre gratuit capable de voir. A savoir
 avant de batir un pole dessus. Ollama (voir 3.5) leve cette limite.
 
+### La decomposition rend deja un plan assignable *(mesure du 31 juillet 2026)*
+
+C'etait la seule vraie inconnue du plan. Elle est levee.
+
+Protocole : board neuf dans le bac a sable, une tache en triage portant la
+requete de test mot pour mot, puis `hermes kanban decompose <id> --json`.
+
+```
+{"task_id":"t_4041ab5b","ok":true,"reason":"decomposed into 3 children",
+ "fanout":true,"child_ids":["t_a599b3ea","t_f9c4c267","t_48b7fe90"]}
+```
+
+**22,7 secondes, un seul appel modele, trois taches coherentes en francais :**
+
+| Tache | Assignee | Etat |
+|---|---|---|
+| Rechercher les nouveautes IA sur 5 sites tendance | `default` | ready |
+| Synthetiser les nouveautes IA en tableau | **`redacteur`** | todo |
+| Generer un PDF a partir du tableau de synthese | `default` | todo |
+
+Les corps sont detailles et executables - le premier nomme meme des sources
+plausibles, le deuxieme fixe les colonnes attendues.
+
+**Le graphe de dependances existe**, dans la table `task_links`, lisible
+directement comme le Hub lit deja le board :
+
+```
+recherche ──▶ tableau ──▶ PDF
+    └───────────┴──────────┴──▶ tache d'origine (jonction)
+```
+
+Un vrai DAG : la chaine, plus la tache de depart devenue nœud de jonction qui
+se termine quand ses trois filles sont finies. **Un pole, c'est une tache avec
+des enfants** - le modele de donnees est acquis, il n'y a rien a inventer.
+
+Trois consequences pour le plan :
+
+1. **La phase 3 est courte.** Le difficile - transformer une phrase francaise en
+   graphe de taches assignables et ordonnees - est fait par Hermes. Il reste au
+   Hub a lire, a montrer et a poser la porte.
+2. **La qualite du routage depend de l'existence de l'equipe.** `redacteur` a ete
+   trouve parce que ce profil existe et que sa description correspond ; les deux
+   autres taches sont tombees sur `default` faute de profil qui fasse de la
+   recherche web ou du PDF. La phase 1 n'est donc pas qu'un affichage : c'est
+   elle qui rend le routage juste.
+3. **Le decomposeur n'attribue pas de competences** (`skills: []`). Les
+   competences vivent sur le profil, pas sur la tache - ce qui confirme la
+   regle des 2-3 competences par agent comme un reglage d'equipe.
+
+Detail d'interface : `hermes kanban ls --json` ne rend pas les liens. Il faut
+`kanban show`, ou lire `task_links` - ce que le Hub fait deja.
+
 ---
 
 ## 2. Les decisions prises
@@ -534,7 +586,7 @@ figes. Le message dit lequel et pourquoi.
 
 | Ou | Quoi | Reponse |
 |---|---|---|
-| Moment 4 | la decomposition ne rend pas un plan assignable | **la vraie inconnue** - a mesurer avant la phase 1 |
+| Moment 5 | une tache tombe sur `default` faute de profil qui corresponde | **le risque reel** - la qualite du routage tient a la description des profils, donc a la phase 1 |
 | Moment 6 | profil cree sans `--clone-from default` | il ne repondra jamais ; le Hub doit le refuser, pas le creer |
 | Moment 9 | le fournisseur coupe le modele | la bascule automatique existe deja et fonctionne |
 | Moment 9 | agent vision sans repli | un seul gratuit voit les images, voir 1.3 |
@@ -573,15 +625,18 @@ fin.
 
 ### Phase 3 - La simulation locale et la porte
 
-Le format JSON commun est fige. Hermes decompose une demande nouvelle en un appel,
-et la simulation rejoue le plan localement dans la fenetre volante. Boutons
-Valider / Modifier. Rien ne s'execute avant ton accord.
+Le format JSON commun est fige. `hermes kanban decompose` transforme la demande
+en graphe assignable - **mesure faite, 22,7 s et un seul appel** (section 1) - et
+la simulation rejoue ce graphe localement dans la fenetre volante, en lisant
+`tasks` et `task_links`. Boutons Valider / Modifier. Rien ne s'execute avant ton
+accord.
 
 *Livrable* : ta requete de test - les cinq sites tendance IA, tableau + PDF -
 affiche sa simulation avant que rien ne bouge.
 *Preuve* : entre l'envoi et ta validation, aucun agent n'a ete lance.
 
-**Phase pivot.** Tout le reste s'y branche.
+**Phase pivot**, mais courte : le difficile est deja fait par Hermes. Prevoir un
+indicateur d'attente - vingt secondes sans signal paraissent une panne.
 
 ### Phase 4 - Le graphe vivant (Studio)
 
@@ -629,14 +684,15 @@ multi-poles, monitoring detaille.
 
 ---
 
-## 7. A faire avant la phase 1
+## 7. Les mesures qui commandent le plan
 
-Deux mesures qui peuvent changer le plan, donc a prendre maintenant.
+Deux inconnues pouvaient le changer. La premiere est levee.
 
-1. **Ce que `hermes kanban` sait deja decomposer.** La phase 3 repose entierement
-   dessus. Si la decomposition rend deja un plan assignable, la phase 3 est courte.
-   Sinon, elle est le vrai chantier de la V2 - et il vaut mieux le savoir avant de
-   dessiner des ecrans.
+1. ~~**Ce que `hermes kanban` sait deja decomposer.**~~ **Fait le 31 juillet 2026**
+   - la decomposition rend un graphe assignable en 22,7 s. Voir 1.4. La phase 3
+   - la decomposition rend un graphe assignable en 22,7 s. Voir la section 1.
+   La phase 3 est courte, et la phase 1 gagne en importance : c'est l'existence
+   de l'equipe qui rend le routage juste.
 
 2. **Ollama sur ta machine.** Trier, resumer, extraire, reformater : c'est ce
    qu'un petit modele local fait bien. Ca supprime la limite de debit, la
