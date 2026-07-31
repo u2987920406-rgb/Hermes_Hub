@@ -120,6 +120,50 @@ Trois consequences pour le plan :
 Detail d'interface : `hermes kanban ls --json` ne rend pas les liens. Il faut
 `kanban show`, ou lire `task_links` - ce que le Hub fait deja.
 
+### Les modeles locaux tiennent la charge *(mesure du 31 juillet 2026)*
+
+Seconde inconnue levee. Ollama tourne sur le poste avec sept modeles installes.
+Tache d'essai : extraction structuree d'un extrait de page vers du JSON - le
+travail exact d'un agent de lecture.
+
+**A froid, le chargement en memoire ecrase tout. A chaud, l'ecart est net :**
+
+| Modele | 1er jeton (froid) | 1er jeton (chaud) | Total (chaud) | Debit | JSON |
+|---|---|---|---|---|---|
+| `hermes3:3b` | 3,6 s | **0,49 s** | **1,80 s** | 15 j/s | complet |
+| `gemma4:e2b` | 28,7 s | 10,4 s | 11,5 s | 24 j/s | complet |
+| `gemma4:e4b` | 60,5 s | - | 68,9 s | 11 j/s | complet |
+
+Les trois rendent un JSON exploitable et complet : **la qualite ne departage
+pas, le temps si.**
+
+Trois enseignements :
+
+1. **`hermes3:3b` est le cerveau d'agent.** Moins de deux secondes pour une
+   extraction courte, en local, sans limite de debit et sans reseau. C'est plus
+   rapide et plus sur qu'un gratuit du portail qui peut couper en plein tour.
+2. **Le debit n'est pas la latence.** `gemma4:e2b` a le meilleur debit (24 j/s)
+   et la pire attente : ses 10,4 s avant le premier jeton sont constants a chaud,
+   donc ce n'est pas du chargement mais un preambule de raisonnement - et il
+   sort 281 jetons la ou 28 suffisent. **Un cerveau d'agent se choisit au temps
+   de reponse, jamais au debit.**
+3. **Il faut garder les modeles chauds.** Le premier appel coute 3 a 5 secondes
+   de plus. Pendant un run, le Hub doit maintenir les modeles des agents en
+   memoire (`keep_alive`), sinon chaque reveil paie le chargement.
+
+**Vision.** `glm-ocr` n'est pas un modele de vision generale : c'est un
+specialiste de l'OCR. Sur une capture d'ecran il n'a pas decrit l'image, il en a
+extrait les champs de texte - et en 210 secondes, ce qui l'exclut d'une boucle.
+En revanche **`gemma4:e2b` est multimodal** : il a decrit la meme image en
+35,5 s. L'Agent Vision a donc un repli local, lent mais reel, ce qui leve la
+fragilite signalee plus haut - un seul gratuit voyant les images, sans secours.
+
+**Consequence sur l'ambition.** Le manque de credits cesse d'etre un plafond
+pour les taches courtes : trier, extraire, resumer, reformater se font en local
+en une a deux secondes. Le portail reste utile pour ce qui demande du
+raisonnement - la decomposition, la synthese finale. Les phases 2 a 7 peuvent
+donc viser une equipe reellement active plutot qu'un pole a la fois.
+
 ---
 
 ## 2. Les decisions prises
@@ -694,8 +738,9 @@ Deux inconnues pouvaient le changer. La premiere est levee.
    La phase 3 est courte, et la phase 1 gagne en importance : c'est l'existence
    de l'equipe qui rend le routage juste.
 
-2. **Ollama sur ta machine.** Trier, resumer, extraire, reformater : c'est ce
-   qu'un petit modele local fait bien. Ca supprime la limite de debit, la
-   dependance reseau, et ca donne un repli a l'Agent Vision. Hermes connait deja
-   Ollama. Une demi-journee de mesure, et l'ambition des phases 2 a 7 s'ajuste en
-   consequence.
+2. ~~**Ollama sur ta machine.**~~ **Fait le 31 juillet 2026** - `hermes3:3b`
+   repond en 1,8 s a chaud avec un JSON complet, et `gemma4:e2b` sert de repli
+   vision. Voir la section 1. Les taches courtes des agents passent en local ;
+   le portail reste pour le raisonnement.
+
+**Les deux inconnues sont levees. Le plan tient : la phase 1 peut commencer.**
