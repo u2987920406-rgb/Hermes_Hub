@@ -62,6 +62,16 @@ export class PontAcp extends EventEmitter {
     this.ferme = false
     /** L'annuaire de l'equipe n'est donne qu'une fois par session. */
     this.annuaireDonne = false
+    /**
+     * Ce que l'agent est en train de faire, pose par l'appelant le temps d'un
+     * tour et fusionne dans chaque evenement.
+     *
+     * Sans lui, le texte d'une tache en cours d'execution est indiscernable
+     * d'une reponse dans la conversation : meme type, meme agent, meme flux.
+     * L'interface l'afficherait dans le fil, et l'historique l'y ecrirait.
+     * Un `{ pole, tache }` suffit a dire « ceci appartient a un chantier ».
+     */
+    this.contexte = null
   }
 
   // ---------------------------------------------------------------------------
@@ -111,9 +121,10 @@ export class PontAcp extends EventEmitter {
   }
 
   /** Tout evenement porte le nom de son agent : dans une piece a plusieurs, un
-      message sans emetteur n'est pas attribuable. */
+      message sans emetteur n'est pas attribuable. Et, quand il y en a un, le
+      chantier auquel il appartient. */
   emettre(evenement) {
-    this.emit('evenement', { ...evenement, agent: this.agent })
+    this.emit('evenement', { ...evenement, agent: this.agent, ...(this.contexte || {}) })
   }
 
   #arreter() {
@@ -377,7 +388,14 @@ export class PontAcp extends EventEmitter {
     return this.demarrage
   }
 
-  async envoyer(texte) {
+  /**
+   * @param {{ delai?: number }} options patience accordee a ce tour. La valeur
+   *   par defaut - dix minutes - convient a une conversation, ou une reponse
+   *   qui tarde tant est une panne. Une tache de pole, elle, peut legitimement
+   *   travailler plus longtemps, et l'abandonner en cours de route jetterait un
+   *   travail reel : l'execution donne donc sa propre borne.
+   */
+  async envoyer(texte, { delai } = {}) {
     const session = await this.ouvrirSession()
     if (this.enCours) {
       // Le nom de l'agent, pas « Hermes » : dans une piece a plusieurs, une
@@ -400,10 +418,14 @@ export class PontAcp extends EventEmitter {
       for (;;) {
         this.texteTour = ''
 
-        const res = await this.appeler('session/prompt', {
-          sessionId: session.sessionId,
-          prompt: [{ type: 'text', text: texte }],
-        })
+        const res = await this.appeler(
+          'session/prompt',
+          {
+            sessionId: session.sessionId,
+            prompt: [{ type: 'text', text: texte }],
+          },
+          delai,
+        )
 
         const suite = await this.#basculerSiPanne(epuises)
         if (suite === 'relancer') continue

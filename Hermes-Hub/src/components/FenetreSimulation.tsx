@@ -25,12 +25,20 @@ import {
   Maximize2,
   Minimize2,
   Pencil,
+  Play,
   ShieldAlert,
+  Square,
   X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
-import type { Risque, Simulation, TacheSimulee } from '../types'
+import type {
+  Chantier,
+  DemandeAutorisation,
+  Risque,
+  Simulation,
+  TacheSimulee,
+} from '../types'
 
 interface Props {
   simulation: Simulation | null
@@ -42,6 +50,14 @@ interface Props {
   onModifier: () => void
   onFermer: () => void
   validation?: boolean
+  /** Le chantier de ce pole, s'il tourne en ce moment. */
+  chantier?: Chantier | null
+  /** Ce qu'un agent au travail attend de toi pour continuer. */
+  accords?: (DemandeAutorisation & { agent: string })[]
+  onAccord: (demande: string, agent: string, option: string) => void
+  onLancer: () => void
+  onArreter: () => void
+  lancement?: boolean
 }
 
 const MOTS_RISQUE: Record<Risque, string> = {
@@ -70,6 +86,12 @@ export function FenetreSimulation({
   onModifier,
   onFermer,
   validation,
+  chantier,
+  accords,
+  onAccord,
+  onLancer,
+  onArreter,
+  lancement,
 }: Props) {
   const [compact, setCompact] = useState(false)
 
@@ -103,6 +125,11 @@ export function FenetreSimulation({
         />
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+          {/* En tete du defilement, et pas au fil des vagues : un agent arrete
+              net attend, et ce qui attend doit se voir sans chercher. */}
+          {(accords || []).map((d) => (
+            <Accord key={d.demande} demande={d} onRepondre={onAccord} />
+          ))}
           {chargement && <EnAttente />}
           {erreur && (
             <div className="bandeau sens-danger">
@@ -117,8 +144,12 @@ export function FenetreSimulation({
           <PiedDePage
             simulation={simulation}
             validation={validation}
+            chantier={chantier}
+            lancement={lancement}
             onValider={onValider}
             onModifier={onModifier}
+            onLancer={onLancer}
+            onArreter={onArreter}
           />
         )}
       </div>
@@ -269,6 +300,49 @@ function Corps({ simulation, compact }: { simulation: Simulation; compact: boole
   )
 }
 
+/**
+ * Un agent au travail demande la permission d'agir.
+ *
+ * Ce n'est pas un ornement : le pole s'arrete la, entierement, jusqu'a la
+ * reponse. La simulation avait annonce ces demandes ; celle-ci est la vraie, et
+ * elle arrive au meme endroit - dans la fenetre du pole, pas dans la
+ * conversation, ou elle serait adressee a un fil qui ne parle pas de ce
+ * travail.
+ */
+function Accord({
+  demande,
+  onRepondre,
+}: {
+  demande: DemandeAutorisation & { agent: string }
+  onRepondre: (demande: string, agent: string, option: string) => void
+}) {
+  return (
+    <div className="card mb-3 space-y-2 border-l-4 border-l-rose-500 p-3">
+      <p className="flex items-center gap-2 text-xs font-semibold">
+        <ShieldAlert className="h-4 w-4 flex-none" />
+        {demande.agent} attend ton accord pour continuer
+      </p>
+      <p className="text-sm">{demande.titre}</p>
+      {demande.detail && <p className="text-[11px] muted">{demande.detail}</p>}
+      <div className="flex flex-wrap gap-2 pt-1">
+        {demande.options.map((o) => (
+          <button
+            key={o.id}
+            onClick={() => onRepondre(demande.demande, demande.agent, o.id)}
+            className={
+              o.genre === 'reject_once' || o.genre === 'reject_always'
+                ? 'btn-ghost px-3 py-1.5 text-xs'
+                : 'btn-primary px-3 py-1.5 text-xs'
+            }
+          >
+            {o.libelle}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function Chiffre({ valeur, libelle }: { valeur: string; libelle: string }) {
   return (
     <span className="rounded-lg bg-slate-100 px-2 py-1 dark:bg-navy-800">
@@ -353,40 +427,87 @@ function Etape({ tache, compact }: { tache: TacheSimulee; compact: boolean }) {
  * Valider ouvre la porte, ca ne lance rien. La nuance est ecrite sous les
  * boutons parce que c'est exactement la ou elle se joue : un bouton nomme
  * « Valider » se lit spontanement comme « Lancer ».
+ *
+ * D'ou deux gestes et jamais un seul. « Lancer » n'apparait qu'une fois le pole
+ * valide - avant, il n'y a rien a pousser a travers une porte fermee - et le
+ * refus est aussi prononce par le serveur : un bouton absent ne protege que
+ * ceux qui passent par le bouton.
  */
 function PiedDePage({
   simulation,
   validation,
+  chantier,
+  lancement,
   onValider,
   onModifier,
+  onLancer,
+  onArreter,
 }: {
   simulation: Simulation
   validation?: boolean
+  chantier?: Chantier | null
+  lancement?: boolean
   onValider: () => void
   onModifier: () => void
+  onLancer: () => void
+  onArreter: () => void
 }) {
   const deja = !!simulation.validation
+  const tourne = !!chantier?.actif
+  const total = simulation.vagues.reduce((n, v) => n + v.taches.length, 0)
+  const faites = chantier?.faites.length || 0
 
   return (
     <div className="flex flex-none flex-col gap-2 border-t border-slate-200 px-4 py-3 dark:border-navy-800 sm:flex-row sm:items-center">
       <p className="min-w-0 flex-1 text-[11px] leading-snug muted">
-        {deja
-          ? 'Ce pole est deja valide. Rien ne s est execute pour autant : le lancement est un autre geste.'
-          : 'Valider ouvre la porte - aucun agent ne demarre a cet instant.'}
+        {tourne ? (
+          <>
+            <b className="tabular-nums">
+              {faites}/{total}
+            </b>{' '}
+            {chantier?.enCours.length
+              ? `- ${chantier.enCours.map((t) => t.titre).join(', ')}`
+              : '- en attente de la prochaine tache'}
+          </>
+        ) : deja ? (
+          'Ce pole est valide. Lancer reveille les agents un par un, dans l ordre du graphe.'
+        ) : (
+          'Valider ouvre la porte - aucun agent ne demarre a cet instant.'
+        )}
       </p>
       <div className="flex gap-2">
-        <button className="btn-ghost text-xs" onClick={onModifier}>
-          <Pencil className="mr-1.5 inline h-3.5 w-3.5" />
-          Modifier
-        </button>
-        <button className="btn-primary text-xs" onClick={onValider} disabled={validation || deja}>
-          {validation ? (
-            <Loader2 className="mr-1.5 inline h-3.5 w-3.5 animate-spin" />
+        {!tourne && (
+          <button className="btn-ghost text-xs" onClick={onModifier}>
+            <Pencil className="mr-1.5 inline h-3.5 w-3.5" />
+            Modifier
+          </button>
+        )}
+        {!deja && (
+          <button className="btn-primary text-xs" onClick={onValider} disabled={validation}>
+            {validation ? (
+              <Loader2 className="mr-1.5 inline h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Check className="mr-1.5 inline h-3.5 w-3.5" />
+            )}
+            Valider
+          </button>
+        )}
+        {deja &&
+          (tourne ? (
+            <button className="btn-ghost text-xs" onClick={onArreter}>
+              <Square className="mr-1.5 inline h-3.5 w-3.5" />
+              Arreter
+            </button>
           ) : (
-            <Check className="mr-1.5 inline h-3.5 w-3.5" />
-          )}
-          {deja ? 'Valide' : 'Valider'}
-        </button>
+            <button className="btn-primary text-xs" onClick={onLancer} disabled={lancement}>
+              {lancement ? (
+                <Loader2 className="mr-1.5 inline h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Play className="mr-1.5 inline h-3.5 w-3.5" />
+              )}
+              Lancer
+            </button>
+          ))}
       </div>
     </div>
   )

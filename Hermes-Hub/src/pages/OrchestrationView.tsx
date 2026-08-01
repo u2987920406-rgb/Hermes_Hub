@@ -33,10 +33,12 @@ import { Modal } from '../components/Modal'
 import { Organigramme } from '../components/Organigramme'
 import type { LienOrg, NoeudOrg } from '../components/Organigramme'
 import { PageHeader } from '../components/PageHeader'
-import { api } from '../lib/api'
+import { api, ecouterChat } from '../lib/api'
 import { ETATS_TACHE } from '../types'
 import type {
   Agent,
+  Chantier,
+  DemandeAutorisation,
   Equipe as EquipeType,
   EtatTache,
   FilResume,
@@ -94,6 +96,18 @@ export function OrchestrationView({ onMenu }: Props) {
   const [validation, setValidation] = useState(false)
   const [demande, setDemande] = useState('')
 
+  /** Les poles en train de tourner. L'etat vit cote serveur - ici on le relit
+      quand quelque chose bouge, plutot que d'en tenir une seconde copie qui
+      finirait par diverger. */
+  const [chantiers, setChantiers] = useState<Chantier[]>([])
+  const [lancement, setLancement] = useState(false)
+
+  /** Ce que des agents au travail attendent de toi. Tant qu'une demande est la,
+      la tache qui l'a posee ne bouge plus d'un pouce. */
+  const [accords, setAccords] = useState<(DemandeAutorisation & { agent: string; pole: string })[]>(
+    [],
+  )
+
   /** La conversation a rouvrir : posee par l'historique, consommee par le
       volet Conversation. Null = le direct. */
   const [filAOuvrir, setFilAOuvrir] = useState<string | null>(null)
@@ -119,6 +133,63 @@ export function OrchestrationView({ onMenu }: Props) {
   useEffect(() => {
     void charger()
   }, [charger])
+
+  const chargerChantiers = useCallback(async () => {
+    setChantiers((await api.chantiers().catch(() => null))?.chantiers || [])
+  }, [])
+
+  /**
+   * Le flux, pour les poles.
+   *
+   * La conversation ouvre le sien de son cote, mais elle n'est montee que dans
+   * son volet : sans cette ecoute-ci, un pole lance puis regarde depuis l'onglet
+   * Poles n'aurait plus personne pour raconter ce qui lui arrive.
+   *
+   * On relit plutot que de rejouer : chaque changement d'etat declenche une
+   * relecture des chantiers, et une tache terminee relit aussi le tableau,
+   * puisque c'est lui qui porte les compteurs des vignettes.
+   */
+  useEffect(() => {
+    void chargerChantiers()
+    return ecouterChat((e) => {
+      if (e.type === 'reprise') return setChantiers(e.chantiers || [])
+
+      // Les demandes d'accord de la conversation ne nous regardent pas : elles
+      // ont leur place dans le fil, ou elles sont deja affichees.
+      if (e.type === 'autorisation' && e.pole) {
+        return setAccords((a) => [
+          ...a,
+          {
+            demande: e.demande,
+            titre: e.titre,
+            detail: e.detail,
+            options: e.options,
+            agent: e.agent || 'default',
+            pole: e.pole as string,
+          },
+        ])
+      }
+
+      if (e.type === 'tache-etat') {
+        // Une tache qui quitte `running` emporte ses demandes en suspens :
+        // elles ne s'adressent plus a personne.
+        if (e.etat !== 'running') setAccords((a) => a.filter((d) => d.agent !== e.agent))
+        void chargerChantiers()
+        if (e.etat !== 'running') void charger()
+        return
+      }
+      if (e.type === 'chantier-debut' || e.type === 'chantier-fin' || e.type === 'chantier-panne') {
+        if (e.type !== 'chantier-debut') setAccords((a) => a.filter((d) => d.pole !== e.pole))
+        void chargerChantiers()
+        void charger()
+      }
+    })
+  }, [chargerChantiers, charger])
+
+  const repondreAccord = useCallback(async (demande: string, agent: string, option: string) => {
+    setAccords((a) => a.filter((d) => d.demande !== demande))
+    await api.chatAutoriser(agent, demande, option).catch(() => null)
+  }, [])
 
   /** Simuler un pole qui existe deja : lecture pure, quelques dizaines de ms. */
   const simuler = useCallback(async (pole: string) => {
@@ -172,6 +243,31 @@ export function OrchestrationView({ onMenu }: Props) {
       setValidation(false)
     }
   }, [simu])
+
+  /**
+   * Lancer. Le serveur rend la main tout de suite - ce qui suit arrive par le
+   * flux, tache par tache, et c'est lui qui remplira le pied de la fenetre.
+   */
+  const lancer = useCallback(async () => {
+    if (!simu) return
+    setLancement(true)
+    setSimuErreur(null)
+    try {
+      await api.lancerPole(simu.pole.id)
+      await chargerChantiers()
+    } catch (e) {
+      setSimuErreur(e instanceof Error ? e.message : String(e))
+    } finally {
+      setLancement(false)
+    }
+  }, [simu, chargerChantiers])
+
+  const arreterPole = useCallback(async () => {
+    if (!simu) return
+    await api.arreterPole(simu.pole.id).catch(() => null)
+    await chargerChantiers()
+    void charger()
+  }, [simu, chargerChantiers, charger])
 
   // Un agent est eveille de deux facons : son processus tourne (la conversation
   // le sait en direct), ou une tache du tableau lui est confiee. Les deux
@@ -349,7 +445,14 @@ export function OrchestrationView({ onMenu }: Props) {
                           agents={agentsDuPole(p, agents)}
                           avancement={{ faites: p.finies, total: p.taches.length }}
                           etat={
-                            p.enCours ? 'encours' : p.finies === p.taches.length ? 'fini' : 'attente'
+                            // Un chantier ouvert compte comme en cours meme
+                            // entre deux taches : sans ca, la vignette
+                            // clignoterait a chaque changement de vague.
+                            p.enCours || chantiers.some((c) => c.pole === p.id && c.actif)
+                              ? 'encours'
+                              : p.finies === p.taches.length
+                                ? 'fini'
+                                : 'attente'
                           }
                           onOuvrir={() => setOuvert({ genre: 'pole', id: p.id })}
                         />
@@ -444,6 +547,12 @@ export function OrchestrationView({ onMenu }: Props) {
           chargement={simuOccupee}
           erreur={simuErreur}
           validation={validation}
+          chantier={chantiers.find((c) => c.pole === simu?.pole.id) || null}
+          accords={accords.filter((d) => d.pole === simu?.pole.id)}
+          onAccord={(demande, agent, option) => void repondreAccord(demande, agent, option)}
+          lancement={lancement}
+          onLancer={() => void lancer()}
+          onArreter={() => void arreterPole()}
           onValider={() => void valider()}
           onModifier={() => {
             // « Modifier » renvoie a la conversation : c'est la qu'on reformule

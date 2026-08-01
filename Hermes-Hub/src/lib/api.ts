@@ -5,6 +5,7 @@
 import type {
   Agent,
   AppConfig,
+  Chantier,
   Decomposition,
   Orchestration,
   Diagnostics,
@@ -182,6 +183,23 @@ export const api = {
       method: 'POST',
       body: body({ pole, empreinte }),
     }),
+
+  // --- L'execution -------------------------------------------------------------
+  // Le geste qui pousse a travers la porte, distinct de celui qui l'ouvre. Le
+  // serveur repond tout de suite : le travail dure des minutes et se raconte
+  // par le flux, tache par tache. Un pole non valide est refuse ici aussi, pas
+  // seulement par un bouton grise.
+  lancerPole: (pole: string) =>
+    request<{ lance: boolean; pole: string; dossier: string }>('/orchestration/execution', {
+      method: 'POST',
+      body: body({ pole }),
+    }),
+  arreterPole: (pole: string) =>
+    request<{ arrete: boolean; pole: string }>('/orchestration/execution/stop', {
+      method: 'POST',
+      body: body({ pole }),
+    }),
+  chantiers: () => request<{ chantiers: Chantier[] }>('/orchestration/execution'),
 
   // --- La conversation a mentions ---------------------------------------------
   // Le serveur resout les mentions et rend les destinataires : la regle de

@@ -139,6 +139,16 @@ function resumer(texte, groupes) {
 export function noter(evenement) {
   if (!evenement || !GARDES.has(evenement.type)) return
 
+  // Ce qui appartient a un pole n'appartient pas a la conversation.
+  //
+  // Un agent qui execute une tache emet exactement les memes evenements qu'un
+  // agent qui repond dans le fil - meme type, meme emetteur, meme flux. Sans
+  // cette porte, un pole de sept taches viendrait s'ecrire dans la derniere
+  // conversation ouverte, sous un titre qui ne parle pas de lui, et le fil
+  // deviendrait illisible. Le resultat d'une tache, lui, est garde par Hermes
+  // sur la tache elle-meme.
+  if (evenement.pole) return
+
   if (evenement.type === 'moi') {
     const { portee, cible, titre } = cibler(
       evenement.texte,

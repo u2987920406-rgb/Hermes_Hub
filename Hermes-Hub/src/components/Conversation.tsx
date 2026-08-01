@@ -153,6 +153,21 @@ export function Conversation({
   const appliquer = useCallback((e: EvenementChat) => {
     const agent = e.agent || 'default'
 
+    /**
+     * Ce qui appartient a un pole n'appartient pas a la conversation.
+     *
+     * Un agent qui execute une tache emet exactement les memes evenements qu'un
+     * agent qui repond ici - meme type, meme emetteur, meme flux. Sans cette
+     * porte, lancer un pole de sept taches ferait defiler sept monologues dans
+     * le fil, adresses a personne, entre deux vraies reponses. Le serveur pose
+     * la meme regle sur l'historique ecrit ; celle-ci vaut pour le direct.
+     *
+     * L'eveil fait exception, et c'est voulu : un agent occupe par une tache
+     * est reellement occupe, et la liste laterale doit le montrer plutot que de
+     * le proposer comme disponible.
+     */
+    if (e.pole && e.type !== 'reveil' && e.type !== 'sommeil') return
+
     // Un message envoye ramene toujours au direct : on vient de parler, c'est
     // la reponse qu'on attend, pas la conversation qu'on relisait.
     if (e.type === 'moi') filVuRef.current = null

@@ -16,6 +16,14 @@ import { fileURLToPath } from 'node:url'
 
 import { lireOrchestration, listerAgents } from './equipe.js'
 import { Equipage, lireMentions, resoudre } from './equipage.js'
+import {
+  arreter as arreterChantier,
+  autoriserChantier,
+  endormirChantiers,
+  etatChantiers,
+  lancer as lancerChantier,
+  relacherOrphelines,
+} from './execution.js'
 import { annulerValidation, simuler, valider } from './simulation.js'
 import { clore, lire as lireConversation, lister as listerConversations, noter, supprimer as supprimerConversation } from './historique.js'
 import { ecrireBascule, lireBascule } from './modeles.js'
@@ -1260,8 +1268,11 @@ function ouvrirFlux(req, res) {
 
   // Un flux qui arrive en cours de tour doit se mettre au niveau : sans ca, une
   // autorisation emise avant l'ouverture resterait sans reponse et Hermes
-  // attendrait indefiniment.
-  res.write(`data: ${JSON.stringify({ type: 'reprise', ...equipage.etat() })}\n\n`)
+  // attendrait indefiniment. Les chantiers en cours suivent le meme chemin :
+  // une page rechargee au milieu d'un pole doit retrouver ce qui tourne.
+  res.write(
+    `data: ${JSON.stringify({ type: 'reprise', ...equipage.etat(), ...etatChantiers() })}\n\n`,
+  )
 
   spectateurs.add(res)
 
@@ -1572,6 +1583,39 @@ async function handleApi(req, res, url) {
       if (method === 'POST') return sendJson(res, 200, valider(pole, body.empreinte))
       if (method === 'DELETE') return sendJson(res, 200, annulerValidation(pole))
     }
+
+    // L'execution. C'est le geste qui pousse a travers la porte - un autre que
+    // celui qui l'ouvre, et c'est toute la difference entre valider et lancer.
+    //
+    // Le refus faute de validation est prononce cote serveur, dans `lancer` :
+    // un bouton grise ne protege que ceux qui passent par le bouton.
+    if (rest[1] === 'execution') {
+      if (!rest[2] && method === 'GET') return sendJson(res, 200, etatChantiers())
+
+      if (!rest[2] && method === 'POST') {
+        const body = await readBody(req)
+        const pole = String(body.pole || '')
+        if (!pole) {
+          const err = new Error('Pole non precise')
+          err.status = 400
+          throw err
+        }
+        // 202 : le travail dure des minutes et se raconte par le flux. Rien
+        // d'utile ne tiendrait dans cette reponse-ci.
+        return sendJson(res, 202, await lancerChantier(pole, { diffuser }))
+      }
+
+      if (rest[2] === 'stop' && method === 'POST') {
+        const body = await readBody(req)
+        const pole = String(body.pole || '')
+        if (!pole) {
+          const err = new Error('Pole non precise')
+          err.status = 400
+          throw err
+        }
+        return sendJson(res, 200, await arreterChantier(pole))
+      }
+    }
   }
 
   if (rest[0] === 'chat') {
@@ -1672,13 +1716,17 @@ async function handleApi(req, res, url) {
       return sendJson(res, 200, { endormi: true })
     }
 
+    // Une meme route pour les deux equipages : celui de la conversation et
+    // ceux des poles au travail. Le navigateur n'a pas a savoir d'ou vient la
+    // demande - il repond a un identifiant, et c'est au serveur de trouver le
+    // pont qui l'attend.
     if (rest[1] === 'permission' && method === 'POST') {
       const body = await readBody(req)
-      const traite = equipage.autoriser(
-        String(body.agent || 'default'),
-        String(body.demande),
-        body.option || null,
-      )
+      const agent = String(body.agent || 'default')
+      const demande = String(body.demande)
+      const option = body.option || null
+      const traite =
+        equipage.autoriser(agent, demande, option) || autoriserChantier(agent, demande, option)
       return sendJson(res, 200, { traite })
     }
 
@@ -1791,6 +1839,13 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log('  interface : ' + target)
   console.log('  Ferme cette fenetre pour arreter le Hub.')
   if (OPEN_BROWSER) detach('cmd.exe', ['/c', 'start', '', target], WORKSPACE)
+
+  // Un Hub ferme en plein pole laisse ses taches en `running` : elles bloquent
+  // leurs filles, et Hermes ne peut pas s'en apercevoir seul - sa detection de
+  // plantage suit le `worker_pid` de ses propres lancements, et le Hub n'en
+  // pose aucun. On relache ce qu'on avait note, apres l'ecoute pour ne pas
+  // retarder l'ouverture.
+  relacherOrphelines().catch((e) => console.error('[hub] reprise des baux :', e.message))
 })
 
 // Chaque agent eveille est un process enfant : sans ca, fermer le Hub
@@ -1799,6 +1854,7 @@ server.listen(PORT, '127.0.0.1', () => {
 for (const signal of ['SIGINT', 'SIGTERM', 'exit']) {
   process.on(signal, () => {
     equipage.endormirTous()
+    endormirChantiers()
     if (signal !== 'exit') process.exit(0)
   })
 }

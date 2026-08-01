@@ -319,6 +319,27 @@ export interface Simulation {
   validation: Validation | null
 }
 
+// -----------------------------------------------------------------------------
+// L'execution
+// -----------------------------------------------------------------------------
+/**
+ * Un pole en train d'etre execute.
+ *
+ * A ne pas confondre avec le pole lui-meme, qui existe sur le tableau qu'il
+ * tourne ou non : le chantier est l'episode pendant lequel le Hub le fait
+ * avancer. Un pole a autant de chantiers qu'on l'a lance de fois.
+ */
+export interface Chantier {
+  pole: string
+  titre: string
+  /** Ou les agents de ce pole ecrivent : un dossier a eux, dans le workspace. */
+  dossier: string
+  actif: boolean
+  enCours: { tache: string; agent: string; titre: string }[]
+  faites: string[]
+  echouees: { tache: string; raison: string }[]
+}
+
 export const ETATS_TACHE: Record<EtatTache, string> = {
   triage: 'A cadrer',
   todo: 'En attente',
@@ -412,8 +433,13 @@ export interface DemandeAutorisation {
  * l'echo du message envoye, ou le reglage de la bascule.
  */
 type EvenementBrut =
-  /** Premier evenement de tout flux : l'etat des agents deja au travail. */
-  | { type: 'reprise'; agents: { agent: string; enCours: boolean; autorisations: DemandeAutorisation[] }[] }
+  /** Premier evenement de tout flux : l'etat des agents deja au travail, et
+      des poles en train de tourner. */
+  | {
+      type: 'reprise'
+      agents: { agent: string; enCours: boolean; autorisations: DemandeAutorisation[] }[]
+      chantiers?: Chantier[]
+    }
   /** Echo de ce que je viens d'envoyer, avec les destinataires resolus. Les
       groupes appeles voyagent avec, parce que seul le serveur connait la liste
       des equipes et sait donc ou s'arrete leur nom dans la phrase. */
@@ -450,10 +476,44 @@ type EvenementBrut =
   | { type: 'bascule-echec'; raison: string; vers: string; message: string }
   /** L'interrupteur a bouge dans une autre fenetre. */
   | { type: 'bascule-reglage'; actif: boolean }
+  /** Un pole vient d'etre lance : ses agents vont travailler dans `dossier`. */
+  | { type: 'chantier-debut'; titre: string; dossier: string }
+  /** Plus rien de pret sur ce pole. `restantes` a zero veut dire qu'il est
+      fait ; au-dessus, il reste des taches que le tableau ne debloquera pas
+      tout seul - une bloquee, ou un parent en echec. */
+  | {
+      type: 'chantier-fin'
+      titre: string
+      arrete: boolean
+      faites: number
+      echouees: number
+      restantes: number
+    }
+  | { type: 'chantier-panne'; message: string }
+  /** Le battement du tableau : une tache change d'etat. C'est lui qui allume
+      les noeuds du graphe, et il porte le resultat quand elle se termine. */
+  | {
+      type: 'tache-etat'
+      tache: string
+      titre?: string
+      etat: EtatTache
+      raison?: string
+      resultat?: string
+      /** Vrai quand le retour en `ready` vient d'un arret demande, pas d'un
+          echec : la tache n'a rien de casse, elle a ete relachee. */
+      arret?: boolean
+    }
 
-/** Le nom de l'emetteur voyage sur chaque trame : `agent` est l'identifiant du
-    profil, absent seulement pour ce qui vient du Hub et non d'un agent. */
-export type EvenementChat = EvenementBrut & { agent?: string }
+/**
+ * Le nom de l'emetteur voyage sur chaque trame : `agent` est l'identifiant du
+ * profil, absent seulement pour ce qui vient du Hub et non d'un agent.
+ *
+ * `pole` et `tache` marquent ce qui appartient a un chantier. Sans eux, le
+ * texte d'un agent qui execute une tache serait indiscernable d'une reponse
+ * dans la conversation - meme type, meme emetteur, meme flux - et viendrait
+ * s'ecrire dans le fil ouvert.
+ */
+export type EvenementChat = EvenementBrut & { agent?: string; pole?: string; tache?: string }
 
 /** Traduction des noms d'outils ACP en mots du Hub. */
 export const GENRES_OUTIL: Record<string, string> = {
