@@ -137,6 +137,9 @@ export interface Agent {
   icone: string
   /** Ce que le decomposeur de kanban lit pour router une tache. */
   description: string
+  /** Son metier en trois mots, lu dans la premiere phrase de sa description :
+      de quoi reconnaitre qui est qui sans ouvrir sa fiche. */
+  metier: string
   modele: string | null
   /** Faux quand le profil n'a aucune credential : il ne repondra jamais. */
   pretAServir: boolean
@@ -203,6 +206,30 @@ export interface Orchestration {
     raison?: 'init' | 'node' | 'lecture'
     message?: string
   }
+}
+
+// -----------------------------------------------------------------------------
+// L'historique des conversations
+// -----------------------------------------------------------------------------
+/** Ce qui fait une conversation, c'est a qui on parle : une journee avec
+    l'equipe Musique est un fil, un tete-a-tete avec un agent en est un autre. */
+export interface FilResume {
+  id: string
+  titre: string
+  portee: 'agent' | 'equipe' | 'groupe'
+  cible: string
+  /** Le nom lisible de l'interlocuteur - l'equipe, ou l'agent. */
+  interlocuteur: string
+  participants: string[]
+  debutLe: number
+  majLe: number
+  messages: number
+  /** Le fil auquel les nouveaux messages s'ajoutent en ce moment. */
+  encours: boolean
+}
+
+export interface Fil extends FilResume {
+  evenements: (EvenementChat & { a: number })[]
 }
 
 // -----------------------------------------------------------------------------
@@ -387,8 +414,10 @@ export interface DemandeAutorisation {
 type EvenementBrut =
   /** Premier evenement de tout flux : l'etat des agents deja au travail. */
   | { type: 'reprise'; agents: { agent: string; enCours: boolean; autorisations: DemandeAutorisation[] }[] }
-  /** Echo de ce que je viens d'envoyer, avec les destinataires resolus. */
-  | { type: 'moi'; texte: string; destinataires: string[] }
+  /** Echo de ce que je viens d'envoyer, avec les destinataires resolus. Les
+      groupes appeles voyagent avec, parce que seul le serveur connait la liste
+      des equipes et sait donc ou s'arrete leur nom dans la phrase. */
+  | { type: 'moi'; texte: string; destinataires: string[]; groupes?: string[] }
   /** Un agent vient d'etre lance : son processus existe. */
   | { type: 'reveil'; nom: string }
   /** Son processus vient de disparaitre. */

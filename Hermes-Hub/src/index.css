@@ -188,14 +188,35 @@
   --info: #0284c7;
   --neutre: #64748b;
 
-  --jeton-ardoise: #475569;
-  --jeton-ciel: #0284c7;
-  --jeton-violet: #7c3aed;
-  --jeton-cyan: #0891b2;
-  --jeton-ambre: #d97706;
-  --jeton-emeraude: #059669;
-  --jeton-rose: #db2777;
-  --jeton-orange: #ea580c;
+  /* -------------------------------------------------------------------------
+     Les jetons d'agent : quatorze teintes vives, LES MEMES dans les trois
+     themes.
+
+     C'est deliberement l'exception a la regle du theme. Un fond s'adapte a
+     l'ambiance - le lin de l'antique, le navy du sombre - mais la couleur d'un
+     agent est son identite : si Elena vire au brun terreux en passant a
+     l'antique, on ne la reconnait plus, et le code couleur ne sert plus a rien.
+     Les fonds restent donc thematiques, les identites restent vives.
+
+     Les teintes sont espacees d'environ 28 degres sur la roue : deux agents
+     voisins dans la liste ne doivent jamais se confondre du coin de l'oeil.
+     ------------------------------------------------------------------------- */
+  --jeton-ardoise: #64748b;
+  --jeton-ciel: #0ea5e9;
+  --jeton-azur: #3b82f6;
+  --jeton-indigo: #6366f1;
+  --jeton-violet: #8b5cf6;
+  --jeton-mauve: #a855f7;
+  --jeton-fuchsia: #d946ef;
+  --jeton-rose: #ec4899;
+  --jeton-corail: #fb7185;
+  --jeton-orange: #f97316;
+  --jeton-ambre: #f59e0b;
+  --jeton-citron: #d4b106;
+  --jeton-lime: #84cc16;
+  --jeton-emeraude: #10b981;
+  --jeton-jade: #14b8a6;
+  --jeton-cyan: #06b6d4;
 }
 
 .dark {
@@ -207,14 +228,10 @@
   --info: #38bdf8;
   --neutre: #94a3b8;
 
+  /* Les jetons ne sont pas redefinis ici : voir le bloc `:root`. Une identite
+     d'agent ne change pas avec le theme. Seule l'ardoise s'eclaircit, parce
+     qu'elle sert de gris et qu'un gris doit se detacher de son fond. */
   --jeton-ardoise: #94a3b8;
-  --jeton-ciel: #38bdf8;
-  --jeton-violet: #a78bfa;
-  --jeton-cyan: #22d3ee;
-  --jeton-ambre: #fbbf24;
-  --jeton-emeraude: #34d399;
-  --jeton-rose: #f472b6;
-  --jeton-orange: #fb923c;
 }
 
 .antique {
@@ -226,14 +243,10 @@
   --info: #1d6fa5;
   --neutre: #6e6a59;
 
-  --jeton-ardoise: #3f4a5a;
-  --jeton-ciel: #1d6fa5;
-  --jeton-violet: #6b4aa6;
-  --jeton-cyan: #10707f;
-  --jeton-ambre: #a9631a;
-  --jeton-emeraude: #2f7d55;
-  --jeton-rose: #a8386a;
-  --jeton-orange: #b4531f;
+  /* Meme regle qu'en sombre : les jetons vifs de `:root` traversent l'antique
+     sans etre assourdis. Le lin et la pierre restent l'ambiance, les agents
+     restent eux-memes. */
+  --jeton-ardoise: #4a5568;
 }
 
 /* ==========================================================================

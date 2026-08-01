@@ -14,7 +14,17 @@
  * Rien n'est invente ici : les agents sont les profils d'Hermes, les poles sont
  * lus dans son tableau kanban.
  */
-import { AlertTriangle, MessageSquare, Network, Play, RefreshCw, Sparkles, Users } from 'lucide-react'
+import {
+  AlertTriangle,
+  History,
+  MessageSquare,
+  Network,
+  Play,
+  RefreshCw,
+  Sparkles,
+  Trash2,
+  Users,
+} from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Conversation } from '../components/Conversation'
@@ -29,6 +39,7 @@ import type {
   Agent,
   Equipe as EquipeType,
   EtatTache,
+  FilResume,
   Orchestration,
   Pole,
   Simulation,
@@ -42,9 +53,15 @@ const FINI: EtatTache[] = ['done']
 const BLOQUE: EtatTache[] = ['blocked', 'review']
 const DORMANT: EtatTache[] = ['triage', 'todo', 'scheduled']
 
-type Volet = 'conversation' | 'agents' | 'poles'
+type Volet = 'historique' | 'conversation' | 'agents' | 'poles'
 
+/**
+ * L'historique ouvre la liste, la conversation la continue. Il est place
+ * au-dessus parce qu'on ouvre une application sur ce qu'on a laisse en cours,
+ * pas sur une page blanche.
+ */
 const VOLETS: { id: Volet; label: string; icon: typeof Users }[] = [
+  { id: 'historique', label: 'Historique', icon: History },
   { id: 'conversation', label: 'Conversation', icon: MessageSquare },
   { id: 'agents', label: 'Agents', icon: Users },
   { id: 'poles', label: 'Poles / Equipes', icon: Network },
@@ -76,6 +93,19 @@ export function OrchestrationView({ onMenu }: Props) {
   const [simuErreur, setSimuErreur] = useState<string | null>(null)
   const [validation, setValidation] = useState(false)
   const [demande, setDemande] = useState('')
+
+  /** La conversation a rouvrir : posee par l'historique, consommee par le
+      volet Conversation. Null = le direct. */
+  const [filAOuvrir, setFilAOuvrir] = useState<string | null>(null)
+  const [fils, setFils] = useState<FilResume[]>([])
+
+  const chargerFils = useCallback(async () => {
+    setFils(await api.conversations().catch(() => []))
+  }, [])
+
+  useEffect(() => {
+    if (volet === 'historique') void chargerFils()
+  }, [volet, chargerFils])
 
   const charger = useCallback(async () => {
     try {
@@ -190,7 +220,13 @@ export function OrchestrationView({ onMenu }: Props) {
               {/* Un fil de conversation n'a pas de quantite : seul ce qui se
                   compte porte un compteur. */}
               <span className="ml-auto hidden text-[10px] tabular-nums opacity-60 lg:inline">
-                {id === 'agents' ? agents.length : id === 'poles' ? poles.length : ''}
+                {id === 'agents'
+                  ? agents.length
+                  : id === 'poles'
+                    ? poles.length
+                    : id === 'historique'
+                      ? fils.length || ''
+                      : ''}
               </span>
             </button>
           ))}
@@ -200,10 +236,32 @@ export function OrchestrationView({ onMenu }: Props) {
           {/* La conversation gere son propre defilement : elle garde le champ
               de saisie colle en bas pendant que le fil monte. */}
           {volet === 'conversation' && (
-            <Conversation agents={agents} onEveilChange={setEveilles} />
+            <Conversation
+              agents={agents}
+              equipes={equipes}
+              filAOuvrir={filAOuvrir}
+              onFilOuvert={() => setFilAOuvrir(null)}
+              onEveilChange={setEveilles}
+            />
           )}
 
-          {volet !== 'conversation' && (
+          {volet === 'historique' && (
+            <Historique
+              fils={fils}
+              agents={agents}
+              equipes={equipes}
+              onOuvrir={(id) => {
+                setFilAOuvrir(id)
+                setVolet('conversation')
+              }}
+              onJeter={async (id) => {
+                await api.supprimerConversation(id).catch(() => null)
+                void chargerFils()
+              }}
+            />
+          )}
+
+          {volet !== 'conversation' && volet !== 'historique' && (
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="mx-auto max-w-4xl space-y-4">
               {erreur && (
@@ -323,7 +381,7 @@ export function OrchestrationView({ onMenu }: Props) {
         <Modal
           title={`Equipe ${equipeOuverte.nom}`}
           icon={<Users className="h-4 w-4 text-violet-500" />}
-          maxWidth="max-w-4xl"
+          maxWidth="max-w-5xl"
           onClose={() => setOuvert(null)}
         >
           <p className="mb-4 rounded-lg bg-slate-50 px-3 py-2 text-xs muted dark:bg-navy-800">
@@ -335,6 +393,7 @@ export function OrchestrationView({ onMenu }: Props) {
               equipeOuverte.membres
                 .map((m) => agents.find((a) => a.id === m))
                 .filter((a): a is Agent => !!a),
+              true,
             )}
           />
         </Modal>
@@ -394,6 +453,141 @@ export function OrchestrationView({ onMenu }: Props) {
       )}
     </div>
   )
+}
+
+/**
+ * L'historique, en pleine page.
+ *
+ * Il etait d'abord dans un tiroir du chat ; il a sa place ici, au meme rang
+ * que la conversation qu'il prolonge. Une conversation ne se retrouve pas en
+ * tapant, elle se retrouve en reconnaissant : l'interlocuteur, sa couleur, le
+ * jour. Les trois filtres sont donc des boutons, et rien ne demande le clavier.
+ */
+function Historique({
+  fils,
+  agents,
+  equipes,
+  onOuvrir,
+  onJeter,
+}: {
+  fils: FilResume[]
+  agents: Agent[]
+  equipes: EquipeType[]
+  onOuvrir: (id: string) => void
+  onJeter: (id: string) => void
+}) {
+  const [tri, setTri] = useState<'tous' | 'equipe' | 'agent'>('tous')
+  const visibles = fils.filter((f) => tri === 'tous' || f.portee === tri)
+
+  const couleurDe = (f: FilResume) => {
+    if (f.portee === 'equipe') {
+      const e = equipes.find((x) => x.nom.toLowerCase() === f.cible.toLowerCase())
+      return e?.couleur || 'ciel'
+    }
+    return agents.find((a) => a.id === f.cible)?.couleur || 'ardoise'
+  }
+
+  const ONGLETS: { id: 'tous' | 'equipe' | 'agent'; libelle: string }[] = [
+    { id: 'tous', libelle: 'Tout' },
+    { id: 'equipe', libelle: 'Equipes' },
+    { id: 'agent', libelle: 'Agents' },
+  ]
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+      <div className="mx-auto max-w-4xl space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">
+              {fils.length} conversation{fils.length > 1 ? 's' : ''}
+            </p>
+            <p className="text-xs muted">
+              Rangees par interlocuteur : une equipe, ou un agent pris a part.
+            </p>
+          </div>
+          <div className="flex gap-1">
+            {ONGLETS.map((o) => (
+              <button
+                key={o.id}
+                onClick={() => setTri(o.id)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  tri === o.id
+                    ? 'bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'
+                    : 'muted hover:bg-slate-100 dark:hover:bg-navy-800'
+                }`}
+              >
+                {o.libelle}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {visibles.length === 0 ? (
+          <div className="card p-5 text-center">
+            <p className="text-sm font-medium">Aucune conversation gardee</p>
+            <p className="mx-auto mt-1 max-w-md text-xs muted">
+              Des que tu parles a quelqu un, le fil s ecrit tout seul et se retrouve ici -
+              reflexion et appels d outils compris.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {visibles.map((f) => (
+              <div
+                key={f.id}
+                style={{ '--agent': `var(--jeton-${couleurDe(f)})` } as CSSProperties}
+                className="card group relative overflow-hidden p-0"
+              >
+                <span
+                  className="pointer-events-none absolute inset-y-0 left-0 w-1"
+                  style={{ backgroundColor: 'var(--agent)' }}
+                />
+                <button
+                  onClick={() => onOuvrir(f.id)}
+                  className="block w-full py-2.5 pl-4 pr-9 text-left"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="text-[13px] font-semibold">{f.interlocuteur}</span>
+                    <span className="puce sens-neutre">
+                      {f.portee === 'equipe' ? 'equipe' : 'agent'}
+                    </span>
+                    {f.encours && <span className="puce puce-pleine sens-succes">en cours</span>}
+                    <span className="ml-auto text-[10px] muted">{quand(f.majLe)}</span>
+                  </span>
+                  <span className="mt-0.5 block truncate text-[11.5px] muted">{f.titre}</span>
+                  <span className="mt-1 block text-[10px] muted">
+                    {f.messages} message{f.messages > 1 ? 's' : ''}
+                    {f.participants.length > 1 ? ` - ${f.participants.length} agents` : ''}
+                  </span>
+                </button>
+                <button
+                  onClick={() => onJeter(f.id)}
+                  className="absolute right-1.5 top-2.5 rounded p-1.5 opacity-0 transition-opacity hover:bg-rose-100 group-hover:opacity-100 dark:hover:bg-rose-500/20"
+                  title="Jeter cette conversation"
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-rose-500" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Une date lisible sans calcul mental. */
+function quand(ms: number) {
+  const jour = 86400000
+  const d = new Date(ms)
+  const aujourdhui = new Date()
+  const minuit = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate())
+  const ecart = minuit.getTime() - new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+
+  if (ecart <= 0) return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  if (ecart <= jour) return 'hier'
+  if (ecart < 7 * jour) return d.toLocaleDateString('fr-FR', { weekday: 'long' })
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
 }
 
 /**
@@ -461,14 +655,43 @@ function agentsDuPole(pole: Pole, agents: Agent[]): Agent[] {
   return sortie
 }
 
-/** Hermes en tete, l equipe en dessous : l orchestrateur precede tout le monde. */
-function equipeEnGraphe(agents: Agent[]): { noeuds: NoeudOrg[]; liens: LienOrg[]; vide: string } {
+/**
+ * L'organigramme d'une equipe : une pyramide, pas une liste.
+ *
+ * Trois etages au plus - l'orchestrateur, ceux qui decident, ceux qui font.
+ * L'etage du milieu n'est pas declare a la main : un agent qui arbitre ou qui
+ * tient la coherence de l'ensemble se decrit comme tel, et le serveur le lit
+ * dans sa description. Une equipe sans chef reste donc a deux etages, ce qui
+ * est la verite de cette equipe-la plutot qu'une hierarchie inventee.
+ *
+ * Le sous-titre est le metier, jamais la description entiere : on veut
+ * reconnaitre qui est qui d'un coup d'oeil, pas lire cinq fiches.
+ */
+function equipeEnGraphe(
+  agents: Agent[],
+  /**
+   * L'etage du milieu n'a de sens que dans une equipe constituee. Sur
+   * l'annuaire entier, le seul agent qui arbitre se retrouverait a diriger
+   * douze personnes qui ne travaillent pas avec lui - une hierarchie fausse,
+   * et plus lisible du tout.
+   */
+  hierarchie = false,
+): {
+  noeuds: NoeudOrg[]
+  liens: LienOrg[]
+  vide: string
+  sens: 'bas'
+} {
   const chef = agents.find((a) => a.role === 'orchestrateur')
+  const meneurs = hierarchie ? agents.filter((a) => a.role === 'manager') : []
+  const executants = agents.filter((a) => a.role !== 'orchestrateur' && !meneurs.includes(a))
 
   const noeuds: NoeudOrg[] = agents.map((a) => ({
     id: a.id,
+    chapeau:
+      a.role === 'orchestrateur' ? 'orchestrateur' : a.role === 'manager' ? 'decide' : undefined,
     titre: a.nom,
-    sousTitre: a.description || 'Sans description : le decomposeur ne saura pas quoi lui confier.',
+    sousTitre: a.metier || 'Sans description : le decomposeur ne saura pas quoi lui confier.',
     couleur: a.couleur,
     icone: a.icone,
     endormi: !a.eveille,
@@ -477,11 +700,18 @@ function equipeEnGraphe(agents: Agent[]): { noeuds: NoeudOrg[]; liens: LienOrg[]
     etiquette: a.taches > 0 ? `${a.taches} tache${a.taches > 1 ? 's' : ''}` : undefined,
   }))
 
-  const liens: LienOrg[] = chef
-    ? agents.filter((a) => a.id !== chef.id).map((a) => ({ de: chef.id, vers: a.id }))
-    : []
+  const liens: LienOrg[] = []
+  if (chef) {
+    // Quand quelqu'un decide, l'orchestrateur lui parle a lui : c'est le sens
+    // de la delegation, et le dessin doit le dire.
+    const dessous = meneurs.length ? meneurs : executants
+    for (const a of dessous) liens.push({ de: chef.id, vers: a.id })
+  }
+  for (const m of meneurs) {
+    for (const a of executants) liens.push({ de: m.id, vers: a.id })
+  }
 
-  return { noeuds, liens, vide: 'Aucun profil Hermes trouve.' }
+  return { noeuds, liens, vide: 'Aucun profil Hermes trouve.', sens: 'bas' }
 }
 
 function poleEnGraphe(
@@ -540,17 +770,21 @@ function LigneAgent({ agent }: { agent: Agent }) {
   const style = { '--agent': `var(--jeton-${agent.couleur})` } as CSSProperties
 
   return (
-    <div style={style} className="card relative flex items-start gap-3 overflow-hidden p-3">
+    // Le fond reste celui de la carte : un aplat teinte par agent transformait
+    // la liste en nuancier, et le texte y perdait son contraste. La couleur
+    // vit dans le liseré et dans le point - assez pour identifier, jamais
+    // assez pour gener la lecture.
+    <div
+      style={{ ...style, borderColor: 'color-mix(in srgb, var(--agent) 55%, transparent)' }}
+      className="card relative flex items-start gap-3 overflow-hidden p-3"
+    >
       <span
-        className="pointer-events-none absolute inset-0 opacity-[0.05] dark:opacity-[0.1]"
-        style={{ backgroundColor: 'var(--agent)' }}
+        className="relative mt-1 h-3 w-3 flex-none rounded-full"
+        style={{
+          backgroundColor: 'var(--agent)',
+          boxShadow: '0 0 0 4px color-mix(in srgb, var(--agent) 20%, transparent)',
+        }}
       />
-      <span
-        className="relative grid h-9 w-9 flex-none place-items-center rounded-xl text-sm font-bold"
-        style={{ backgroundColor: 'var(--agent)', color: 'var(--sur-jeton)' }}
-      >
-        {agent.nom.charAt(0)}
-      </span>
 
       <div className="relative min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -612,14 +846,9 @@ function Vignette({
     <button
       type="button"
       onClick={onOuvrir}
-      style={style}
+      style={{ ...style, borderColor: 'color-mix(in srgb, var(--agent) 45%, transparent)' }}
       className="card group relative overflow-hidden p-0 text-left transition-shadow hover:shadow-md"
     >
-      <span
-        className="pointer-events-none absolute inset-0 opacity-[0.05] transition-opacity group-hover:opacity-[0.1] dark:opacity-[0.1] dark:group-hover:opacity-[0.18]"
-        style={{ backgroundColor: 'var(--agent)' }}
-      />
-
       <span className="relative flex flex-col gap-2.5 p-3.5">
         <span className="flex items-start gap-2.5">
           <span
@@ -666,13 +895,9 @@ function VignetteEquipe({
     <button
       type="button"
       onClick={onOuvrir}
-      style={style}
+      style={{ ...style, borderColor: 'color-mix(in srgb, var(--agent) 45%, transparent)' }}
       className="card group relative overflow-hidden p-0 text-left transition-shadow hover:shadow-md"
     >
-      <span
-        className="pointer-events-none absolute inset-0 opacity-[0.06] transition-opacity group-hover:opacity-[0.12] dark:opacity-[0.12] dark:group-hover:opacity-[0.2]"
-        style={{ backgroundColor: 'var(--agent)' }}
-      />
       <span className="relative flex flex-col gap-2.5 p-3.5">
         <span className="flex items-center gap-2.5">
           <span

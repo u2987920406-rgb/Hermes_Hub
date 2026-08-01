@@ -15,8 +15,9 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { lireOrchestration, listerAgents } from './equipe.js'
-import { Equipage, resoudre } from './equipage.js'
+import { Equipage, lireMentions, resoudre } from './equipage.js'
 import { annulerValidation, simuler, valider } from './simulation.js'
+import { clore, lire as lireConversation, lister as listerConversations, noter, supprimer as supprimerConversation } from './historique.js'
 import { ecrireBascule, lireBascule } from './modeles.js'
 import { projectFiles, vaultNote } from './templates.js'
 import {
@@ -1233,6 +1234,9 @@ const spectateurs = new Set()
 const equipage = new Equipage({ cwd: WORKSPACE, diffuser: (e) => diffuser(e) })
 
 function diffuser(evenement) {
+  // Tout passe par ici : c'est donc ici, et nulle part ailleurs, que la
+  // conversation s'ecrit sur le disque.
+  noter(evenement)
   const trame = `data: ${JSON.stringify(evenement)}\n\n`
   for (const flux of spectateurs) {
     try {
@@ -1575,6 +1579,16 @@ async function handleApi(req, res, url) {
     // premiers evenements du demarrage partent.
     if (rest[1] === 'stream' && method === 'GET') return ouvrirFlux(req, res)
 
+    // L'historique : les conversations passees, rangees par interlocuteur.
+    if (rest[1] === 'conversations') {
+      if (!rest[2] && method === 'GET') return sendJson(res, 200, listerConversations())
+      if (rest[2] === 'nouvelle' && method === 'POST') return sendJson(res, 200, clore())
+      if (rest[2] && method === 'GET') return sendJson(res, 200, lireConversation(rest[2]))
+      if (rest[2] && method === 'DELETE') {
+        return sendJson(res, 200, supprimerConversation(rest[2]))
+      }
+    }
+
     // Qui est eveille en ce moment, et qui pourrait l'etre.
     if (rest[1] === 'agents' && method === 'GET') {
       const agents = listerAgents()
@@ -1626,7 +1640,17 @@ async function handleApi(req, res, url) {
         throw err
       }
 
-      diffuser({ type: 'moi', texte, destinataires: destinataires.map((a) => a.id) })
+      // Le nom du groupe voyage avec le message : sans lui, l'historique
+      // devrait deviner ou s'arrete « @equipe Musique le refrain parle de
+      // pluie » - et il se tromperait, faute de connaitre les equipes.
+      const { groupes: nommes } = lireMentions(texte, groupes.map((g) => g.titre))
+
+      diffuser({
+        type: 'moi',
+        texte,
+        destinataires: destinataires.map((a) => a.id),
+        groupes: nommes,
+      })
 
       // On ne retient pas la reponse : elle arrive par le flux, morceau par
       // morceau. L'appel confirme seulement que le message a ete pris.

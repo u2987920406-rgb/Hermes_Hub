@@ -37,21 +37,121 @@ const KANBAN_DB = process.env.HERMES_KANBAN_DB || path.join(HERMES_HOME, 'kanban
  * Les jetons correspondent aux variables `--jeton-*` de `index.css`, calibrees
  * pour tenir sur les trois themes - y compris le lin de l'antique.
  */
-const PALETTE = ['ciel', 'violet', 'emeraude', 'rose', 'ambre', 'cyan', 'orange']
+const PALETTE = [
+  'ciel',
+  'rose',
+  'emeraude',
+  'violet',
+  'orange',
+  'cyan',
+  'fuchsia',
+  'lime',
+  'indigo',
+  'ambre',
+  'jade',
+  'corail',
+  'azur',
+  'mauve',
+  'citron',
+]
 
 const CONNUS = {
-  default: { nom: 'Hermes', role: 'orchestrateur', couleur: 'ardoise', icone: 'boussole' },
+  default: {
+    nom: 'Hermes',
+    role: 'orchestrateur',
+    couleur: 'ardoise',
+    icone: 'boussole',
+    metier: 'Orchestration',
+  },
   trieur: { nom: 'Trieur', role: 'worker', couleur: 'ciel', icone: 'entonnoir' },
   redacteur: { nom: 'Redacteur', role: 'worker', couleur: 'violet', icone: 'plume' },
   clean: { nom: 'Clean', role: 'bac-a-sable', couleur: 'ardoise', icone: 'etincelle' },
 }
 
-/** Couleur stable pour un profil inconnu : le meme agent garde la sienne d'une
-    session a l'autre, sinon l'organigramme changerait de sens a chaque visite. */
-function couleurStable(nom) {
+/** Sans accents : les descriptions sont ecrites tantot avec, tantot sans. */
+function aplatir(texte) {
+  return String(texte || '')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+}
+
+/**
+ * Le metier tient dans la premiere phrase de la description.
+ *
+ * Ce n'est pas un hasard : la description est ecrite pour le decomposeur, et
+ * on la commence naturellement par ce que l'agent fait - « Direction
+ * artistique musicale. », « Ecriture de paroles. ». On la relit donc telle
+ * quelle plutot que d'ajouter un champ que personne ne remplirait.
+ *
+ * Sans description, pas de metier invente : un agent muet doit se voir comme
+ * tel, c'est deja ce que l'interface signale ailleurs.
+ */
+function lireMetier(description) {
+  const phrase = String(description || '').split(/(?<=\.)\s+|\n/)[0] || ''
+  return phrase.replace(/\.$/, '').trim().slice(0, 48)
+}
+
+/**
+ * Qui decide, dans une equipe.
+ *
+ * Hermes n'a pas la notion de hierarchie et on ne va pas lui en inventer une
+ * dans un fichier a tenir a la main. On la lit la ou elle est deja ecrite : un
+ * agent qui arbitre, qui tranche, ou qui tient la coherence de l'ensemble se
+ * decrit comme tel. Les verbes retenus sont ceux qui portent sur le travail
+ * *des autres* - « decide du rythme de son montage » ne fait de personne un
+ * chef, et c'est pourquoi `decide` seul ne suffit pas.
+ */
+const SIGNES_CHEF =
+  /\b(arbitre|arbitrer|tranche|trancher|coordonne|coordonner|dirige|diriger|supervise|superviser|pilote|piloter)\b|coherence de l['e ]ensemble|les autres (proposent|suivent)|valide (le|la|les) (travail|propositions?|rendu)/
+
+function lireRole(description) {
+  return SIGNES_CHEF.test(aplatir(description)) ? 'manager' : 'worker'
+}
+
+/** Preference de couleur d'un profil : stable d'une session a l'autre, sinon
+    l'organigramme changerait de sens a chaque visite. */
+function preference(nom) {
   let somme = 0
   for (let i = 0; i < nom.length; i++) somme = (somme + nom.charCodeAt(i) * (i + 1)) % 9973
-  return PALETTE[somme % PALETTE.length]
+  return somme % PALETTE.length
+}
+
+/**
+ * Distribue les couleurs sans doublon.
+ *
+ * Un simple hachage suffisait a trois agents ; a treize il collait la meme
+ * teinte a Theo, Karim et Louise - et un code couleur qui se repete ne code
+ * plus rien. Chacun part donc de sa couleur preferee, et prend la suivante
+ * libre si elle est deja prise. Le parcours suit l'ordre alphabetique des
+ * identifiants : l'attribution ne depend pas de l'ordre de lecture du disque,
+ * donc elle ne bouge pas d'un demarrage a l'autre.
+ *
+ * Au-dela de la palette, on recycle plutot que d'inventer : mieux vaut deux
+ * agents de meme teinte que quinze nuances qu'on ne distingue plus.
+ */
+function distribuerCouleurs(noms, reservees = []) {
+  // Les couleurs fixees d'avance sont prises avant que le premier profil ne
+  // choisisse : sans ca, le distributeur redonne joyeusement le ciel de Trieur.
+  const prises = new Set(reservees)
+  const choix = new Map()
+
+  for (const nom of [...noms].sort()) {
+    const depart = preference(nom)
+    let couleur = null
+    for (let i = 0; i < PALETTE.length; i++) {
+      const essai = PALETTE[(depart + i) % PALETTE.length]
+      if (!prises.has(essai)) {
+        couleur = essai
+        break
+      }
+    }
+    couleur = couleur || PALETTE[depart]
+    prises.add(couleur)
+    choix.set(nom, couleur)
+  }
+
+  return choix
 }
 
 /**
@@ -133,10 +233,25 @@ export function listerAgents() {
     /* pas de dossier profils : il reste `default`, qui existe toujours */
   }
 
+  // Les couleurs se decident sur l'annuaire entier, pas profil par profil :
+  // eviter un doublon demande de savoir ce que les autres ont deja pris.
+  const couleurs = distribuerCouleurs(
+    [...noms].filter((n) => !CONNUS[n]?.couleur),
+    // L'ardoise est le gris d'Hermes et du bac a sable : elle n'entre pas dans
+    // la ronde des identites, et se partager n'a pas d'importance.
+    Object.values(CONNUS)
+      .map((c) => c.couleur)
+      .filter((c) => c && c !== 'ardoise'),
+  )
+
   return [...noms]
     .map((nom) => {
       const connu = CONNUS[nom] || {}
       const dossier = path.join(PROFILES_DIR, nom)
+      const description =
+        nom === 'default'
+          ? 'Orchestrateur. Recoit la demande, etablit le plan, choisit qui appeler et rassemble les resultats.'
+          : lireDescription(path.join(dossier, 'profile.yaml'))
 
       return {
         id: nom,
@@ -144,13 +259,13 @@ export function listerAgents() {
         // Le profil par defaut n'a pas de nom en ligne de commande : le nommer
         // changerait le home d'Hermes.
         profil: nom === 'default' ? null : nom,
-        role: connu.role || 'worker',
-        couleur: connu.couleur || couleurStable(nom),
+        role: connu.role || lireRole(description),
+        couleur: connu.couleur || couleurs.get(nom) || 'ardoise',
         icone: connu.icone || 'agent',
-        description:
-          nom === 'default'
-            ? 'Orchestrateur. Recoit la demande, etablit le plan, choisit qui appeler et rassemble les resultats.'
-            : lireDescription(path.join(dossier, 'profile.yaml')),
+        description,
+        /** Ce qu'il fait, en trois mots - de quoi le reconnaitre sans lire sa
+            fiche entiere. */
+        metier: connu.metier || lireMetier(description),
         modele: lireModele(path.join(nom === 'default' ? HERMES_HOME : dossier, 'config.yaml')),
         pretAServir: estPret(nom),
         taches: 0,

@@ -9,6 +9,8 @@ import type {
   Orchestration,
   Diagnostics,
   EvenementChat,
+  Fil,
+  FilResume,
   MemoryFile,
   Project,
   ProjectStatus,
@@ -201,6 +203,18 @@ export const api = {
       method: 'POST',
       body: body({ agent, demande, option }),
     }),
+  // L'historique. Le fil s'ecrit tout seul cote serveur : l'interface ne fait
+  // que le relire, et le jeter quand on n'en veut plus.
+  conversations: () => request<FilResume[]>('/chat/conversations'),
+  conversation: (id: string) => request<Fil>(`/chat/conversations/${enc(id)}`),
+  supprimerConversation: (id: string) =>
+    request<{ supprime: boolean }>(`/chat/conversations/${enc(id)}`, { method: 'DELETE' }),
+  nouvelleConversation: () =>
+    request<{ clos: boolean }>('/chat/conversations/nouvelle', {
+      method: 'POST',
+      body: body({}),
+    }),
+
   chatBascule: () => request<{ actif: boolean }>('/chat/bascule'),
   chatReglerBascule: (actif: boolean) =>
     request<{ actif: boolean }>('/chat/bascule', { method: 'POST', body: body({ actif }) }),
