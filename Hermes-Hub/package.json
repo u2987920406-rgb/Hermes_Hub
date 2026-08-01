@@ -1,6 +1,6 @@
 {
   "name": "hermes-hub",
-  "version": "1.0.2",
+  "version": "2.0.0-beta.1",
   "description": "- Liste de projets visuelle avec statut (En cours / Terminé / Factory Setup) - Lancement d'Hermes par clic sur un projet - Mode Hermes Factory Setup (session sans mémoire, vierge) - Accès au Coffre mémoire - Gestion de la configuration mémoire/profil",
   "main": "index.js",
   "scripts": {

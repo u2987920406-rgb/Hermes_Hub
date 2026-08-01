@@ -41,7 +41,7 @@ const CONFIG_FILE = path.join(HUB_DIR, 'config.json')
 // Version livree. Ecrite ici et non lue dans package.json : le client ne
 // recoit que dist/ et server/. A tenir a jour avec version.json a la racine du
 // depot - voir RELEASE.md.
-const VERSION = '1.0.2'
+const VERSION = '2.0.0-beta.1'
 
 const argv = process.argv.slice(2)
 const PORT = Number(argv[argv.indexOf('--port') + 1]) || Number(process.env.HUB_PORT) || 4317

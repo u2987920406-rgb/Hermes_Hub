@@ -1,8 +1,8 @@
 {
-  "version": "1.0.2",
-  "tag": "v1.0.2",
-  "hub_seul": true,
+  "version": "2.0.0-beta.1",
+  "tag": "v2.0.0-beta.1",
+  "hub_seul": false,
   "min_installer": "1.0.0",
-  "notes": "Le journal d'erreurs s'ouvre de nouveau : un fichier .log n'a aucune application associee sous Windows, le Hub passe maintenant par le Bloc-notes. Un journal vide n'ouvre plus une fenetre blanche, il le dit.",
-  "telechargement": "https://github.com/u2987920406-rgb/Hermes_Hub/archive/refs/tags/v1.0.2.zip"
+  "notes": "Premier point d'arret de la V2, sur le canal beta. L'Orchestration existe : l'equipe et ses poles, la conversation a mentions, la simulation locale et la porte avant l'execution. Chaque agent porte son metier, sa couleur et son icone, et l'apparence se regle par molettes sans ouvrir un composant. Le gabarit de projet n'a plus qu'une source, partagee par le Hub et le raccourci Nouveau-Projet. Rien ne s'execute encore sur le tableau : c'est la suite.",
+  "telechargement": "https://github.com/u2987920406-rgb/Hermes_Hub/archive/refs/tags/v2.0.0-beta.1.zip"
 }
