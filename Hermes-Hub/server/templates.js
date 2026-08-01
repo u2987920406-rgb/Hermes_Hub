@@ -1,7 +1,14 @@
 /**
- * The 6 standard project files. Kept byte-for-byte in step with the ones
- * Nouveau-Projet.ps1 writes, so a project created from the Hub and a project
- * created from the desktop shortcut are indistinguishable.
+ * Les fichiers standard d'un projet - la seule source.
+ *
+ * Le Hub les ecrit par `index.js`, et `Nouveau-Projet.ps1` par
+ * `ecrire-projet.mjs` : les deux chemins passent par ici, donc un projet cree
+ * depuis le Hub et un projet cree depuis le raccourci sont identiques par
+ * construction, et non par discipline.
+ *
+ * Ils l'etaient auparavant par recopie, `installer.bat` tenant sa propre copie
+ * en lignes `echo`. Le jour ou DESIGN.md est arrive, la copie ne l'a pas suivi :
+ * sept fichiers d'un cote, six de l'autre, sans que rien ne le signale.
  */
 
 export function projectFiles(name, objective) {
@@ -34,6 +41,7 @@ Des le premier message de l'utilisateur (peu importe ce qu'il dit: bonjour, salu
 - Tester avant de dire fini
 - Review visuelle + code par jalon
 - REPRISE.md apres chaque jalon
+- Sous git : finir chaque commit par "Ensuite :" (les 2 prochains coups) au lieu de REPRISE.md
 - ADM.md pour les decisions (cumulatif, jamais effacer)
 `,
 

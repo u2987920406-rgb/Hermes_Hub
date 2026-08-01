@@ -47,6 +47,14 @@ pastille manque, c'est que le Hub n'a pas ete lance par ce script.
 - **`git` n'est pas dans le PATH** : `& "C:\Program Files\Git\cmd\git.exe"`.
 - **La V2 vit sur la branche `v2`.** `main` reste figee sur la version livree,
   et `version.json` est l'interrupteur cote clients.
+- **Chaque commit finit par une ligne `Ensuite :`** - les deux prochains coups,
+  une phrase chacun. Le journal raconte deja ce qui a ete fait ; cette ligne est
+  le seul endroit ou vit ce qui etait *prevu*. `git log -1` donne alors le point
+  de reprise entier, et c'est la premiere commande d'une seance.
+  **Ne pas tenir de fichier de reprise a cote.** `REPRISE-AGORA.md` etait
+  exactement ca : le lendemain il annoncait un depot non commite alors que tout
+  etait pousse, et un blocage de credits deja leve. Un mémo ecrit a la main rote
+  quand la seance s'arrete mal - c'est-a-dire pile quand on en a besoin.
 - **Ne pas lancer `maj-hub.bat` sans accord** : il remplace le Hub installe
   dans `Documents\Hermes-raf`.
 

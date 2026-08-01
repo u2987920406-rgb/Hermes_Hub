@@ -966,100 +966,29 @@ set "OUT=%~1"
 >> "%OUT%" echo New-Item -ItemType Directory -Path $PROJET_DIR -Force ^| Out-Null
 >> "%OUT%" echo Set-Location $PROJET_DIR
 >> "%OUT%" echo Write-Host ""
->> "%OUT%" echo Write-Host "Creation des 6 fichiers standard..." -ForegroundColor Green
+>> "%OUT%" echo Write-Host "Creation des fichiers standard..." -ForegroundColor Green
 >> "%OUT%" echo Write-Host ""
 >> "%OUT%" echo.
->> "%OUT%" echo # .hermes.md
->> "%OUT%" echo $hermesContent = @"
->> "%OUT%" echo # $PROJET_NOM
->> "%OUT%" echo.
->> "%OUT%" echo ## Identite
->> "%OUT%" echo $PROJET_OBJ
->> "%OUT%" echo.
->> "%OUT%" echo ## PREMIERE ACTION OBLIGATOIRE (a effacer apres validation du plan)
->> "%OUT%" echo Des le premier message de l'utilisateur (peu importe ce qu'il dit: bonjour, salut, j'ai un projet, etc.):
->> "%OUT%" echo 1. Si BRIEF.md existe et a deja ete rempli : lire le brief, saluer l'utilisateur par son prenom si present, et continuer directement sans reposer la question du plan.
->> "%OUT%" echo 2. Sinon, repondre: "Bienvenue dans ton projet $PROJET_NOM."
->> "%OUT%" echo 3. Si l'utilisateur n'a pas encore parle d'idee ou de plan, poser: "As-tu deja une idee ou un plan ? Veux-tu qu'on le construise ensemble ?"
->> "%OUT%" echo 4. Si pas d'idee: questions guidees (stack, pourquoi, comment, pour qui)
->> "%OUT%" echo 5. Si idee existe: la peaufiner ensemble
->> "%OUT%" echo 6. Demander si profil isole souhaite (memoire separee)
->> "%OUT%" echo 7. Proposer des exemples si demande
->> "%OUT%" echo 8. Une fois valide, ecrire dans plan.md
->> "%OUT%" echo 9. EFFACER cette section du .hermes.md (pour ne plus reposer la question)
->> "%OUT%" echo 10. Seulement APRES, commencer a coder
->> "%OUT%" echo.
->> "%OUT%" echo ## Regles
->> "%OUT%" echo - Tester avant de dire fini
->> "%OUT%" echo - Review visuelle + code par jalon
->> "%OUT%" echo - REPRISE.md apres chaque jalon
->> "%OUT%" echo - ADM.md pour les decisions (cumulatif, jamais effacer)
->> "%OUT%" echo "@
->> "%OUT%" echo $hermesContent = $ExecutionContext.InvokeCommand.ExpandString($hermesContent)
->> "%OUT%" echo $hermesContent ^| Out-File -FilePath ".hermes.md" -Encoding utf8
->> "%OUT%" echo.
->> "%OUT%" echo # BRIEF.md
->> "%OUT%" echo $briefContent = @"
->> "%OUT%" echo # `$PROJET_NOM - BRIEF
->> "%OUT%" echo.
->> "%OUT%" echo ## Description
->> "%OUT%" echo `$PROJET_OBJ
->> "%OUT%" echo.
->> "%OUT%" echo ## Phase actuelle
->> "%OUT%" echo Demarrage
->> "%OUT%" echo.
->> "%OUT%" echo ## Voir aussi
->> "%OUT%" echo - REPRISE.md pour l'avancement
->> "%OUT%" echo - plan.md pour le plan complet
->> "%OUT%" echo - ADM.md pour les decisions
->> "%OUT%" echo "@
->> "%OUT%" echo $briefContent = $ExecutionContext.InvokeCommand.ExpandString($briefContent)
->> "%OUT%" echo $briefContent ^| Out-File -FilePath "BRIEF.md" -Encoding utf8
->> "%OUT%" echo.
->> "%OUT%" echo # plan.md
->> "%OUT%" echo $planContent = @"
->> "%OUT%" echo # `$PROJET_NOM - Plan
->> "%OUT%" echo.
->> "%OUT%" echo ## Phases
->> "%OUT%" echo (a definir avec Hermes au demarrage)
->> "%OUT%" echo "@
->> "%OUT%" echo $planContent = $ExecutionContext.InvokeCommand.ExpandString($planContent)
->> "%OUT%" echo $planContent ^| Out-File -FilePath "plan.md" -Encoding utf8
->> "%OUT%" echo.
->> "%OUT%" echo # REPRISE.md
->> "%OUT%" echo $repriseContent = @"
->> "%OUT%" echo # `$PROJET_NOM - REPRISE
->> "%OUT%" echo.
->> "%OUT%" echo ## Dernier jalon
->> "%OUT%" echo (a remplir apres le premier jalon)
->> "%OUT%" echo.
->> "%OUT%" echo ## Prochaine etape
->> "%OUT%" echo -
->> "%OUT%" echo "@
->> "%OUT%" echo $repriseContent = $ExecutionContext.InvokeCommand.ExpandString($repriseContent)
->> "%OUT%" echo $repriseContent ^| Out-File -FilePath "REPRISE.md" -Encoding utf8
->> "%OUT%" echo.
->> "%OUT%" echo # done.md
->> "%OUT%" echo $doneContent = @"
->> "%OUT%" echo # `$PROJET_NOM - Done
->> "%OUT%" echo.
->> "%OUT%" echo ## Historique
->> "%OUT%" echo (a remplir au fur et a mesure)
->> "%OUT%" echo "@
->> "%OUT%" echo $doneContent = $ExecutionContext.InvokeCommand.ExpandString($doneContent)
->> "%OUT%" echo $doneContent ^| Out-File -FilePath "done.md" -Encoding utf8
->> "%OUT%" echo.
->> "%OUT%" echo # ADM.md
->> "%OUT%" echo $admContent = @"
->> "%OUT%" echo # `$PROJET_NOM - ADM
->> "%OUT%" echo.
->> "%OUT%" echo ## Decisions (cumulatif, ne jamais effacer)
->> "%OUT%" echo.
->> "%OUT%" echo ### Demarrage
->> "%OUT%" echo - Creation du projet: `$PROJET_OBJ
->> "%OUT%" echo "@
->> "%OUT%" echo $admContent = $ExecutionContext.InvokeCommand.ExpandString($admContent)
->> "%OUT%" echo $admContent ^| Out-File -FilePath "ADM.md" -Encoding utf8
+>> "%OUT%" echo # Le gabarit ne vit qu'a un seul endroit: Hermes-Hub\server\templates.js.
+>> "%OUT%" echo # Ce script et le Hub ecrivent donc exactement les memes fichiers.
+>> "%OUT%" echo $GABARIT = Join-Path $SCRIPT_DIR "Hermes-Hub\server\ecrire-projet.mjs"
+>> "%OUT%" echo if (-not (Test-Path $GABARIT)) {
+>> "%OUT%" echo     Write-Host "Gabarit introuvable: $GABARIT" -ForegroundColor Red
+>> "%OUT%" echo     Write-Host "Le dossier Hermes-Hub doit rester a cote de ce script." -ForegroundColor Red
+>> "%OUT%" echo     Read-Host "Appuie sur Entree pour fermer"
+>> "%OUT%" echo     exit 1
+>> "%OUT%" echo }
+>> "%OUT%" echo if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+>> "%OUT%" echo     Write-Host "Node.js est introuvable. Relance installer.bat." -ForegroundColor Red
+>> "%OUT%" echo     Read-Host "Appuie sur Entree pour fermer"
+>> "%OUT%" echo     exit 1
+>> "%OUT%" echo }
+>> "%OUT%" echo node $GABARIT $PROJET_DIR $PROJET_NOM $PROJET_OBJ
+>> "%OUT%" echo if ($LASTEXITCODE -ne 0) {
+>> "%OUT%" echo     Write-Host "La creation des fichiers a echoue." -ForegroundColor Red
+>> "%OUT%" echo     Read-Host "Appuie sur Entree pour fermer"
+>> "%OUT%" echo     exit 1
+>> "%OUT%" echo }
 >> "%OUT%" echo.
 >> "%OUT%" echo Write-Host ""
 >> "%OUT%" echo Write-Host " ==============================" -ForegroundColor Green
