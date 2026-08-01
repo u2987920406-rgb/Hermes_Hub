@@ -15,6 +15,7 @@ export const STANDARD_FILES = [
   'REPRISE.md',
   'done.md',
   'ADM.md',
+  'DESIGN.md',
 ]
 
 export const VAULT_FOLDERS = [

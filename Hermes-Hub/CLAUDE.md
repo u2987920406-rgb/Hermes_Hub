@@ -23,6 +23,20 @@ Chercher a l'aveugle dans `Conversation.tsx` (900 lignes) ou
 `OrchestrationView.tsx` (980 lignes) fait perdre dix minutes pour une valeur
 qui tient dans la console.
 
+### Parle de l'atelier - il ne le demandera pas
+
+Quand kuchu dit qu'une chose est trop petite, trop serree, mal coloree :
+**ne le laisse pas decrire ce qu'il peut montrer.** Un atelier existe, et il
+n'y pensera pas.
+
+La pastille en bas a droite de l'interface ouvre des curseurs branches sur les
+molettes. Il les tourne lui-meme, l'ecran suit en direct, puis « Copier mes
+reglages » lui donne exactement ce qui a change - a coller ici, a inscrire dans
+`index.css`. Le viseur nomme la zone survolee, pour designer sans decrire.
+
+L'atelier n'apparait que sous `HUB_ATELIER=1`, pose par `dev-v2.ps1`. Si la
+pastille manque, c'est que le Hub n'a pas ete lance par ce script.
+
 ---
 
 ## Les regles du depot
