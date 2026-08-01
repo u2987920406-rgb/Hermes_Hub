@@ -224,6 +224,47 @@ export function annuaire(agents, moi, dernierNiveau = false) {
   ].join('\n')
 }
 
+/**
+ * Ce qu'il faut dire quand plusieurs agents recoivent le MEME message.
+ *
+ * Sans ca, chacun voit une demande qui lui est adressee et un annuaire de
+ * collegues a qui deleguer : il en conclut, tres logiquement, qu'il est seul
+ * saisi et doit couvrir toute la demande. Sur cinq agents d'une equipe, trois
+ * repondaient au nom de tout le monde - et le fil racontait trois fois le meme
+ * travail, signe de trois personnes differentes.
+ *
+ * Deux consequences a couper, pas une :
+ *   - repondre pour les autres, donc produire du faux : personne n'a mandate
+ *     l'agent qui parle, et ce qu'il prete a ses collegues, il l'invente ;
+ *   - appeler un collegue qui traite deja la meme demande, ce qui double le
+ *     travail et peut relancer une chaine entiere.
+ *
+ * La consigne part a CHAQUE message collectif, contrairement a l'annuaire qui
+ * n'est donne qu'une fois : etre plusieurs est vrai de ce message-ci, pas de la
+ * session.
+ */
+export function consigneCollective(destinataires, moi) {
+  if (!Array.isArray(destinataires) || destinataires.length < 2) return ''
+
+  const autres = destinataires.filter((a) => a.id !== moi)
+  if (!autres.length) return ''
+
+  const noms = autres.map((a) => a.nom || a.id).join(', ')
+
+  return [
+    `[Vous etes ${destinataires.length} sur cette demande]`,
+    `Le meme message vient d'etre envoye en meme temps a : ${noms}.`,
+    '',
+    'Donc :',
+    '- Reponds pour TON metier seulement, sur ta part du travail.',
+    "- N'ecris pas au nom de l'equipe et ne resume pas ce que font les autres :",
+    "  tu ne le sais pas, et l'utilisateur lit deja leurs reponses a cote.",
+    '- Ne les appelle pas par une mention : ils traitent deja cette demande.',
+    '- Si ta part depend de la leur, dis-le en une phrase et donne ce que tu',
+    "  peux des maintenant, plutot que d'attendre.",
+  ].join('\n')
+}
+
 // -----------------------------------------------------------------------------
 // Le registre des ponts
 // -----------------------------------------------------------------------------
@@ -342,9 +383,16 @@ export class Equipage {
           // Une seule fois par session : le pont reste ouvert entre deux
           // messages, le repeter alourdirait chaque tour pour rien.
           let aEnvoyer = texte
+
+          // Etre plusieurs est vrai de CE message, pas de la session : la
+          // consigne collective repart donc a chaque fois, la ou l'annuaire
+          // n'est donne qu'une fois.
+          const collective = consigneCollective(destinataires, agent.id)
+          if (collective) aEnvoyer = `${collective}\n\n---\n\n${aEnvoyer}`
+
           if (!pont.annuaireDonne) {
             const carte = annuaire(tous, agent.id, profondeur >= PROFONDEUR_MAX - 1)
-            if (carte) aEnvoyer = `${carte}\n\n---\n\n${texte}`
+            if (carte) aEnvoyer = `${carte}\n\n---\n\n${aEnvoyer}`
             pont.annuaireDonne = true
           }
 
