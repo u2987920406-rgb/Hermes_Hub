@@ -83,6 +83,7 @@ export function FenetreSimulation({
 
   return (
     <div
+      data-zone="fenetre-simulation"
       className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/40 p-4 backdrop-blur-md"
       role="dialog"
       aria-modal="true"

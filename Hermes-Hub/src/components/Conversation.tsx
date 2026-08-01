@@ -74,7 +74,7 @@ export function Conversation({
   const [recherche, setRecherche] = useState('')
 
   /**
-   * L'historique. `filVu` a null veut dire Â« le direct Â» : c'est le seul etat
+   * L'historique. `filVu` a null veut dire « le direct » : c'est le seul etat
    * ou les evenements qui arrivent s'ajoutent au fil affiche. En relisant une
    * conversation passee, on ne veut pas voir une reponse d'aujourd'hui s'y
    * glisser.
@@ -361,7 +361,7 @@ export function Conversation({
           {filOuvert ? (
             <>
               <span className="min-w-0 flex-1 truncate text-xs font-medium">
-                {filOuvert.interlocuteur} â€” {filOuvert.titre}
+                {filOuvert.interlocuteur} — {filOuvert.titre}
               </span>
               <button onClick={revenirAuDirect} className="btn-ghost px-2.5 py-1 text-[11px]">
                 <Radio className="mr-1 inline h-3.5 w-3.5" />
@@ -388,7 +388,7 @@ export function Conversation({
           )}
         </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+      <div data-zone="fil-conversation" className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
         <div className="mx-auto max-w-3xl space-y-4">
           {tours.length === 0 && <Accueil agents={agents} onMentionner={mentionner} />}
 
@@ -423,7 +423,10 @@ export function Conversation({
       </div>
 
       {/* La barre de saisie : l'equipe, puis le champ. */}
-      <div className="flex-none border-t border-slate-200 bg-white px-4 py-3 dark:border-navy-800 dark:bg-navy-900 sm:px-6">
+      <div
+        data-zone="barre-saisie"
+        className="flex-none border-t border-slate-200 bg-white px-4 py-3 dark:border-navy-800 dark:bg-navy-900 sm:px-6"
+      >
         <div className="mx-auto max-w-3xl space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <select
@@ -498,7 +501,7 @@ export function Conversation({
            * qui tient sur une ligne.
            */}
           {(deplie || terme || equipeChoisie) && (
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div data-zone="rangee-agents" className="flex flex-wrap items-center gap-1.5">
               {visibles.map((a) => (
                 <PastilleAgent
                   key={a.id}
@@ -509,7 +512,7 @@ export function Conversation({
               ))}
               {visibles.length === 0 && (
                 <p className="py-1 text-[11px] muted">
-                  Personne ne repond a Â« {recherche} Â». Cherche un metier : mixage, paroles,
+                  Personne ne repond a « {recherche} ». Cherche un metier : mixage, paroles,
                   tactique...
                 </p>
               )}
@@ -671,8 +674,8 @@ function ajouterBloc(tours: Tour[], agent: string, bloc: BlocTour): Tour[] {
   return [...tours, { role: 'agent', agent, blocs: [bloc], fini: false }]
 }
 
-/** Chercher Â« mixage Â» doit trouver Â« Mixage Â», et Â« metier Â» doit trouver
-    Â« mÃ©tier Â» : la casse et les accents ne sont pas des criteres. */
+/** Chercher « mixage » doit trouver « Mixage », et « metier » doit trouver
+    « métier » : la casse et les accents ne sont pas des criteres. */
 function aplatir(texte: string) {
   return texte
     .normalize('NFD')
@@ -687,8 +690,15 @@ function jetonDe(agent?: Agent): CSSProperties {
 
 function BulleMoi({ tour, agents }: { tour: { texte: string; destinataires: string[] }; agents: Map<string, Agent> }) {
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-sky-600 px-3.5 py-2 text-sm text-white">
+    <div data-zone="bulle-moi" className="flex flex-col items-end gap-1">
+      <div
+        className="whitespace-pre-wrap bg-sky-600 px-3.5 py-2 text-sm text-white"
+        style={{
+          maxWidth: 'var(--bulle-largeur)',
+          borderRadius: 'var(--bulle-rayon)',
+          borderBottomRightRadius: 'calc(var(--bulle-rayon) / 2)',
+        }}
+      >
         {tour.texte}
       </div>
       <div className="flex items-center gap-1 pr-1 text-[10px] muted">
@@ -711,7 +721,7 @@ function TraceDelegation({
   agents: Map<string, Agent>
 }) {
   return (
-    <div className="flex items-start gap-2 pl-8 text-[11px] muted">
+    <div data-zone="trace-delegation" className="flex items-start gap-2 pl-8 text-[11px] muted">
       <CornerDownRight className="mt-0.5 h-3.5 w-3.5 flex-none" />
       <p>
         <b>{tour.nom}</b> confie le travail a{' '}
@@ -721,7 +731,7 @@ function TraceDelegation({
             <b>{agents.get(id)?.nom || id}</b>
           </span>
         ))}
-        {tour.texte && <span className="italic"> â€” Â« {tour.texte.slice(0, 140)} Â»</span>}
+        {tour.texte && <span className="italic"> — « {tour.texte.slice(0, 140)} »</span>}
       </p>
     </div>
   )
@@ -730,34 +740,33 @@ function TraceDelegation({
 /**
  * L'en-tete porte le metier, pas seulement le nom.
  *
- * Dans une piece a cinq specialistes, Â« Elena Â» ne dit rien : il faut savoir
+ * Dans une piece a cinq specialistes, « Elena » ne dit rien : il faut savoir
  * qu'elle est directrice artistique pour comprendre pourquoi elle tranche. Un
  * lecteur oblige d'aller chercher qui est qui ailleurs a deja perdu le fil.
  */
 function BulleAgent({ tour, agent }: { tour: TourAgent; agent?: Agent }) {
   return (
-    <div style={jetonDe(agent)} className="space-y-1.5">
+    <div data-zone="bulle-agent" style={jetonDe(agent)} className="space-y-1.5">
       <div className="flex items-center gap-2">
         {/* Un point, pas une initiale dans un carre : a treize agents, treize
             pastilles a lettres font un mur d'abreviations qu'on dechiffre. La
             couleur suffit a reconnaitre, et le nom est juste a cote. */}
-        <span
-          className="h-2.5 w-2.5 flex-none rounded-full"
-          style={{ backgroundColor: 'var(--agent)', boxShadow: '0 0 0 3px color-mix(in srgb, var(--agent) 22%, transparent)' }}
-        />
+        <span className="point-agent" />
         <span className="min-w-0">
           <span className="flex items-center gap-1.5">
-            <span className="text-[13px] font-semibold">{agent?.nom || tour.agent}</span>
+            <span className="texte-nom font-semibold">{agent?.nom || tour.agent}</span>
             {agent?.role === 'manager' && <span className="puce sens-info">decide</span>}
             {!tour.fini && <Loader2 className="h-3 w-3 animate-spin muted" />}
           </span>
           {agent?.metier && (
-            <span className="block truncate text-[10.5px] leading-tight muted">{agent.metier}</span>
+            <span className="texte-metier block truncate muted">{agent.metier}</span>
           )}
         </span>
       </div>
 
-      <div className="space-y-1.5 pl-[18px]">
+      {/* Le corps s'aligne sous le nom, pas sous le point : le retrait suit
+          donc la taille du point via la console. */}
+      <div className="space-y-1.5" style={{ paddingLeft: 'var(--bulle-retrait)' }}>
         {tour.blocs.map((b, i) => (
           <Bloc key={i} bloc={b} />
         ))}
@@ -795,9 +804,9 @@ function Bloc({ bloc }: { bloc: BlocTour }) {
         <Wrench className="mt-0.5 h-3 w-3 flex-none" />
         <span>
           <span className="font-medium">{GENRES_OUTIL[bloc.genre] || bloc.genre}</span>
-          {' Â· '}
+          {' · '}
           {bloc.titre}
-          {!fini && !rate && ' â€¦'}
+          {!fini && !rate && ' …'}
         </span>
       </div>
     )
@@ -864,6 +873,7 @@ function PastilleAgent({
 }) {
   return (
     <button
+      data-zone="pastille-agent"
       onClick={onClick}
       title={
         agent.pretAServir
@@ -880,12 +890,9 @@ function PastilleAgent({
       // designe personne.
       style={{ ...jetonDe(agent), ...(eveille ? { boxShadow: '0 0 0 1px var(--agent)' } : {}) }}
     >
-      <span
-        className="h-2 w-2 flex-none rounded-full"
-        style={{ backgroundColor: 'var(--agent)' }}
-      />
-      <span className="truncate text-[11px] font-medium leading-tight">{agent.nom}</span>
-      <span className="max-w-[7rem] truncate text-[10px] leading-tight muted">
+      <span className="point-agent point-agent-compact" />
+      <span className="texte-nom truncate font-medium">{agent.nom}</span>
+      <span className="texte-metier max-w-[7rem] truncate muted">
         {agent.metier || 'sans metier'}
       </span>
     </button>

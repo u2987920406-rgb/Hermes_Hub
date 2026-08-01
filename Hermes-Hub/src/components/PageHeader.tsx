@@ -11,7 +11,7 @@ interface Props {
 
 export function PageHeader({ title, subtitle, icon, actions, onMenu }: Props) {
   return (
-    <header className="flex flex-shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-navy-800 dark:bg-navy-900 sm:px-6">
+    <header data-zone="entete-page" className="flex flex-shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-navy-800 dark:bg-navy-900 sm:px-6">
       <button
         onClick={onMenu}
         className="-ml-1 rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-navy-800 lg:hidden"

@@ -36,7 +36,7 @@ export function ProjectsView({ onNewProject, onOpenProject, onMenu }: Props) {
   const autres = visible.filter((p) => !p.pinned)
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div data-zone="ecran-projets" className="flex flex-1 flex-col overflow-hidden">
       <PageHeader
         title="Mes projets"
         subtitle={`${projects.length} projet${projects.length > 1 ? 's' : ''} sur le disque`}

@@ -25,6 +25,10 @@ $racine = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'bac
 $env:HERMES_WORKSPACE = Join-Path $racine 'workspace'
 $env:HERMES_KANBAN_DB = Join-Path $racine 'kanban.db'
 
+# L'atelier de design : la pastille en bas a droite de l'interface. Ce drapeau
+# n'existe qu'ici, donc un poste client ne l'a jamais - voir server/index.js.
+$env:HUB_ATELIER = '1'
+
 New-Item -ItemType Directory -Force -Path $env:HERMES_WORKSPACE | Out-Null
 
 Write-Host ""

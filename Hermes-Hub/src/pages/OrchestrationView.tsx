@@ -200,7 +200,10 @@ export function OrchestrationView({ onMenu }: Props) {
       />
 
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
-        <nav className="flex flex-shrink-0 gap-1 overflow-x-auto border-b border-slate-200 bg-white p-2 dark:border-navy-800 dark:bg-navy-900 lg:w-56 lg:flex-col lg:overflow-y-auto lg:border-b-0 lg:border-r">
+        <nav
+          data-zone="nav-orchestration"
+          className="flex flex-shrink-0 gap-1 overflow-x-auto border-b border-slate-200 bg-white p-2 dark:border-navy-800 dark:bg-navy-900 lg:w-56 lg:flex-col lg:overflow-y-auto lg:border-b-0 lg:border-r"
+        >
           <div className="hidden px-2 py-2 lg:block">
             <p className="text-[10px] font-medium uppercase tracking-wide muted">Orchestration</p>
           </div>
@@ -535,6 +538,7 @@ function Historique({
             {visibles.map((f) => (
               <div
                 key={f.id}
+                data-zone="ligne-historique"
                 style={{ '--agent': `var(--jeton-${couleurDe(f)})` } as CSSProperties}
                 className="card group relative overflow-hidden p-0"
               >
@@ -544,7 +548,7 @@ function Historique({
                 />
                 <button
                   onClick={() => onOuvrir(f.id)}
-                  className="block w-full py-2.5 pl-4 pr-9 text-left"
+                  className="rang-y block w-full pl-4 pr-9 text-left"
                 >
                   <span className="flex items-center gap-2">
                     <span className="text-[13px] font-semibold">{f.interlocuteur}</span>
@@ -562,10 +566,10 @@ function Historique({
                 </button>
                 <button
                   onClick={() => onJeter(f.id)}
-                  className="absolute right-1.5 top-2.5 rounded p-1.5 opacity-0 transition-opacity hover:bg-rose-100 group-hover:opacity-100 dark:hover:bg-rose-500/20"
+                  className="sens-danger absolute right-1.5 top-2.5 rounded p-1.5 opacity-0 transition-opacity group-hover:opacity-100 hover:[background:color-mix(in_srgb,var(--sens)_16%,transparent)]"
                   title="Jeter cette conversation"
                 >
-                  <Trash2 className="h-3.5 w-3.5 text-rose-500" />
+                  <Trash2 className="teinte-sens h-3.5 w-3.5" />
                 </button>
               </div>
             ))}
@@ -608,7 +612,7 @@ function BoiteDemande({
   occupee: boolean
 }) {
   return (
-    <div className="card space-y-2 p-3.5">
+    <div data-zone="boite-demande" className="card space-y-2 p-3.5">
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-amber-500" />
         <p className="text-sm font-semibold">Decris ce que tu veux</p>
@@ -775,26 +779,21 @@ function LigneAgent({ agent }: { agent: Agent }) {
     // vit dans le liseré et dans le point - assez pour identifier, jamais
     // assez pour gener la lecture.
     <div
-      style={{ ...style, borderColor: 'color-mix(in srgb, var(--agent) 55%, transparent)' }}
-      className="card relative flex items-start gap-3 overflow-hidden p-3"
+      data-zone="fiche-agent"
+      style={style}
+      className="card lisere-agent rang relative flex items-start gap-3 overflow-hidden"
     >
-      <span
-        className="relative mt-1 h-3 w-3 flex-none rounded-full"
-        style={{
-          backgroundColor: 'var(--agent)',
-          boxShadow: '0 0 0 4px color-mix(in srgb, var(--agent) 20%, transparent)',
-        }}
-      />
+      <span className="point-agent relative mt-1" />
 
       <div className="relative min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-sm font-semibold">{agent.nom}</span>
-          <span className="text-[10px] uppercase tracking-wide muted">{agent.role}</span>
+          <span className="texte-nom font-semibold">{agent.nom}</span>
+          <span className="texte-detail uppercase tracking-wide muted">{agent.role}</span>
           {agent.eveille && <span className="puce puce-pleine sens-succes">eveille</span>}
           {!agent.pretAServir && <span className="puce sens-alerte">sans cle</span>}
         </div>
 
-        <p className="mt-0.5 text-xs leading-snug muted">
+        <p className="texte-corps mt-0.5 muted">
           {agent.description || (
             <span className="sens-alerte teinte-sens">
               Sans description : le decomposeur ne saura pas quoi lui confier.
@@ -845,9 +844,10 @@ function Vignette({
   return (
     <button
       type="button"
+      data-zone="vignette-pole"
       onClick={onOuvrir}
-      style={{ ...style, borderColor: 'color-mix(in srgb, var(--agent) 45%, transparent)' }}
-      className="card group relative overflow-hidden p-0 text-left transition-shadow hover:shadow-md"
+      style={style}
+      className="card lisere-agent-vignette group relative overflow-hidden p-0 text-left transition-shadow hover:shadow-md"
     >
       <span className="relative flex flex-col gap-2.5 p-3.5">
         <span className="flex items-start gap-2.5">
@@ -894,9 +894,10 @@ function VignetteEquipe({
   return (
     <button
       type="button"
+      data-zone="vignette-equipe"
       onClick={onOuvrir}
-      style={{ ...style, borderColor: 'color-mix(in srgb, var(--agent) 45%, transparent)' }}
-      className="card group relative overflow-hidden p-0 text-left transition-shadow hover:shadow-md"
+      style={style}
+      className="card lisere-agent-vignette group relative overflow-hidden p-0 text-left transition-shadow hover:shadow-md"
     >
       <span className="relative flex flex-col gap-2.5 p-3.5">
         <span className="flex items-center gap-2.5">

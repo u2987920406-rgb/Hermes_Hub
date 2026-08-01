@@ -100,7 +100,7 @@ export function VaultView({ onMenu, noteAOuvrir }: Props) {
   const totalNotes = vault.reduce((sum, f) => sum + f.count, 0)
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div data-zone="ecran-coffre" className="flex flex-1 flex-col overflow-hidden">
       <PageHeader
         title="Coffre memoire"
         subtitle={`${totalNotes} note${totalNotes > 1 ? 's' : ''} dans ${vault.length} dossiers`}

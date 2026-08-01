@@ -1709,9 +1709,31 @@ async function handleApi(req, res, url) {
   throw err
 }
 
+/**
+ * L'atelier de design : servi seulement si on l'a demande.
+ *
+ * `design/atelier.js` vit hors de `src/`, donc Vite ne l'empaquette jamais et
+ * il n'est pas dans `dist/`. Sans `HUB_ATELIER=1`, ce serveur ne le sert pas et
+ * n'ajoute pas sa balise dans la page : un poste client recoit exactement le
+ * `index.html` construit, a l'octet pres.
+ *
+ * Deux verrous plutot qu'un - le fichier absent du paquet, et le drapeau
+ * absent en production - parce qu'un verrou seul finit toujours par sauter.
+ */
+const ATELIER = process.env.HUB_ATELIER === '1'
+const ATELIER_FILE = path.join(__dirname, '..', 'design', 'atelier.js')
+
 function serveStatic(req, res, url) {
   let rel = decodeURIComponent(url.pathname)
   if (rel === '/' || rel === '') rel = '/index.html'
+
+  if (ATELIER && rel === '/atelier.js' && fs.existsSync(ATELIER_FILE)) {
+    res.writeHead(200, {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'no-cache',
+    })
+    return fs.createReadStream(ATELIER_FILE).pipe(res)
+  }
 
   let file
   try {
@@ -1734,6 +1756,18 @@ function serveStatic(req, res, url) {
   const cache = file.includes(`${path.sep}assets${path.sep}`)
     ? 'public, max-age=31536000, immutable'
     : 'no-cache'
+
+  // La balise de l'atelier s'ajoute a la volee, jamais dans le fichier
+  // construit : `dist/index.html` reste ce que la construction a produit, et
+  // on ne peut pas oublier de la retirer avant une livraison.
+  if (ATELIER && file.endsWith('index.html') && fs.existsSync(ATELIER_FILE)) {
+    const page = fs
+      .readFileSync(file, 'utf8')
+      .replace('</body>', '<script src="/atelier.js" defer></script></body>')
+    res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' })
+    return res.end(page)
+  }
+
   res.writeHead(200, { 'Content-Type': type, 'Cache-Control': cache })
   fs.createReadStream(file).pipe(res)
 }

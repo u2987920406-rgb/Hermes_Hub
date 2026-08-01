@@ -37,7 +37,7 @@ export function NewProjectModal({ onClose, onCreated }: Props) {
       icon={<FolderPlus className="h-4 w-4 text-sky-500" />}
       onClose={onClose}
     >
-      <form onSubmit={submit} className="space-y-4">
+      <form data-zone="formulaire-nouveau-projet" onSubmit={submit} className="space-y-4">
         <div>
           <label htmlFor="np-name" className="mb-1.5 block text-xs font-medium">
             Nom du projet <span className="text-red-500">*</span>

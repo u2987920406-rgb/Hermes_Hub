@@ -44,7 +44,7 @@ export function HomeView({ onNavigate, onMenu }: Props) {
   ]
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div data-zone="ecran-accueil" className="flex flex-1 flex-col overflow-hidden">
       <PageHeader
         title={config?.userName ? `Bonjour ${config.userName}` : 'Bonjour'}
         subtitle="Que veux-tu faire aujourd'hui ?"

@@ -170,6 +170,7 @@ export function Sidebar({ current, onNavigate, open, onClose, onRechercher }: Si
       {/* Le repli ne vaut que sur grand ecran : en dessous, le menu est un tiroir
           qu'on ouvre et ferme entierement. */}
       <aside
+        data-zone="menu-lateral"
         className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-shrink-0 flex-col border-r border-white/10
                     bg-gradient-to-b from-navy-950 via-navy-900 to-navy-800
                     transition-[transform,width] duration-200

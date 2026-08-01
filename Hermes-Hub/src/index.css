@@ -158,6 +158,145 @@
   .teinte-sens {
     color: var(--sens);
   }
+
+  /* --- L'identite d'un agent, en classes ------------------------------------
+     Quatre inlines `boxShadow: '0 0 0 3px color-mix(...)'` recopiees dans
+     quatre composants, c'etait quatre endroits a retrouver pour changer un
+     point. Maintenant : une classe, une molette.
+
+     Ces classes attendent `--agent` posee sur un ancetre :
+       style={{ '--agent': `var(--jeton-${agent.couleur})` }} */
+  .point-agent {
+    @apply flex-none rounded-full;
+    width: var(--agent-point);
+    height: var(--agent-point);
+    background: var(--agent);
+    box-shadow: 0 0 0 var(--agent-halo-taille)
+      color-mix(in srgb, var(--agent) var(--agent-halo), transparent);
+  }
+
+  /* Dans une rangee serree, le halo colle les points entre eux. */
+  .point-agent-compact {
+    width: var(--agent-point-compact);
+    height: var(--agent-point-compact);
+    box-shadow: none;
+  }
+
+  .lisere-agent {
+    border-color: color-mix(in srgb, var(--agent) var(--agent-lisere), transparent);
+  }
+
+  .lisere-agent-noeud {
+    border-color: color-mix(in srgb, var(--agent) var(--agent-lisere-noeud), transparent);
+  }
+
+  .lisere-agent-vignette {
+    border-color: color-mix(in srgb, var(--agent) var(--agent-lisere-vignette), transparent);
+  }
+
+  /* --- La typographie qui porte du sens ------------------------------------
+     Ces classes remplacent les `text-[13px]` ecrits dans les composants. Une
+     taille nommee se regle ; une taille chiffree se retrouve a la main dans
+     trois fichiers. */
+  .texte-nom {
+    font-size: var(--texte-nom);
+    line-height: 1.25;
+  }
+
+  .texte-metier {
+    font-size: var(--texte-metier);
+    line-height: 1.25;
+  }
+
+  .texte-corps {
+    font-size: var(--texte-corps);
+    line-height: 1.5;
+  }
+
+  .texte-detail {
+    font-size: var(--texte-detail);
+    line-height: 1.3;
+  }
+
+  /* Les lignes de liste. Ce sont les SEULS endroits qui suivent `--densite` :
+     voir la console. `.rang` quand la ligne gere ses quatre cotes, `.rang-y`
+     quand l'horizontal est deja pris (une ligne avec un bouton en surimpression
+     a droite, par exemple). */
+  .rang {
+    padding: calc(0.75rem * var(--densite));
+  }
+
+  .rang-y {
+    padding-block: calc(0.625rem * var(--densite));
+  }
+}
+
+/* ==========================================================================
+   LA CONSOLE DE REGLAGES
+   --------------------------------------------------------------------------
+   Les molettes de l'interface. Tourner une valeur ici change l'application
+   entiere, sans ouvrir un seul composant.
+
+   Trois regles pour qui edite ce bloc :
+
+   1. Chaque molette dit ce qu'elle fait ET jusqu'ou on peut la tourner. Une
+      valeur sans plage est une invitation a casser quelque chose.
+   2. Une molette se merite : elle existe parce que quelqu'un a voulu la
+      tourner. Une console de soixante reglages ne sert personne - on a juste
+      deplace le probleme du composant vers la feuille de style.
+   3. Ce qui n'est PAS ici ne se regle pas ici : la geometrie de
+      l'organigramme vit dans `Organigramme.tsx` (bloc `REGLAGES`), parce que
+      le SVG a besoin de nombres, pas de chaines CSS.
+
+   L'index qui dit quelle molette agit sur quoi : `DESIGN.md`, section 5.
+   ========================================================================== */
+:root {
+  /* --- L'identite d'un agent ---------------------------------------------
+     Le fond d'une fiche reste neutre : l'identite tient au contour et au
+     point. Voir DESIGN.md section 4 pour le pourquoi. */
+
+  /* Force de la couleur dans le contour. 30 % = a peine suggere, 80 % = cadre
+     franc. Au-dela, le contour crie plus fort que le contenu. */
+  --agent-lisere: 55%; /* une fiche ou une ligne d'agent */
+  --agent-lisere-noeud: 60%; /* une case d'organigramme : petite, donc plus franche */
+  --agent-lisere-vignette: 45%; /* une vignette d'equipe ou de pole */
+
+  /* Le point qui dit qui parle. En dessous de 6 px il disparait, au-dessus de
+     14 px il devient une pastille et reprend le poids qu'on lui avait retire. */
+  --agent-point: 10px; /* bulle du fil, case d'organigramme, ligne d'agent */
+  --agent-point-compact: 8px; /* rangee de pastilles sous le fil */
+
+  /* Le voile autour du point : il le decolle du fond. `--agent-halo: 0%` le
+     supprime proprement. */
+  --agent-halo: 20%;
+  --agent-halo-taille: 3px;
+
+  /* --- La typographie ------------------------------------------------------
+     Les tailles qui portent du SENS, pas toutes celles de l'application. Un
+     nom, un metier, un corps de message, une mention discrete : ce sont les
+     quatre choses qu'on relit, donc les quatre qu'on veut pouvoir ajuster.
+
+     Chacune passe par `--texte-echelle`, qui les monte ou les descend
+     ensemble. Regler une taille : sa propre ligne. Tout grossir d'un cran :
+     l'echelle seule. */
+  --texte-echelle: 1; /* 0.9 = serre, 1.15 = confortable */
+
+  --texte-nom: calc(13px * var(--texte-echelle)); /* le nom d'un agent, partout */
+  --texte-metier: calc(10.5px * var(--texte-echelle)); /* sa ligne de metier, sous le nom */
+  --texte-corps: calc(13px * var(--texte-echelle)); /* ce qu'un agent dit, une description */
+  --texte-detail: calc(10.5px * var(--texte-echelle)); /* role, modele, mentions discretes */
+
+  /* --- Le fil de conversation --------------------------------------------- */
+  --bulle-rayon: 16px; /* 4 = anguleux, 24 = tres rond */
+  --bulle-largeur: 85%; /* part de la colonne qu'une bulle peut occuper */
+  --bulle-retrait: 18px; /* decalage du corps sous le point, pour l'aligner */
+
+  /* --- La densite ---------------------------------------------------------
+     Multiplie l'espacement des LISTES - lignes d'agent et d'historique - et
+     rien d'autre. Les boutons et les cartes gardent leur taille : les rendre
+     elastiques aussi ferait bouger tout l'ecran d'un coup.
+     0.85 = compact, 1 = normal, 1.2 = aere. */
+  --densite: 1;
 }
 
 /* ==========================================================================

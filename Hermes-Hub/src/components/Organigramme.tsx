@@ -41,12 +41,31 @@ export interface LienOrg {
   vers: string
 }
 
-const L = 184
-const H = 78
-const ECART_X = 68
-const ECART_Y = 18
-/** Entre deux etages d'une hierarchie : assez pour que la fleche se voie. */
-const ECART_NIVEAU = 44
+/**
+ * LA CONSOLE DE GEOMETRIE - le pendant JS de celle d'`index.css`.
+ *
+ * Ces cinq nombres ne peuvent pas etre des variables CSS : ils servent a
+ * calculer les coordonnees des courbes SVG, et une chaine `"184px"` ne
+ * s'additionne pas. C'est la seule raison de leur presence ici, et l'index de
+ * `DESIGN.md` le dit pour qu'on ne les cherche pas dans la feuille de style.
+ *
+ * Ce sont les molettes a tourner si un pole deborde de son bloc : reduire `L`
+ * agit plus vite que reduire les ecarts.
+ */
+const REGLAGES = {
+  /** Largeur d'une case. En dessous de 150, un nom sur deux lignes deborde. */
+  L: 184,
+  /** Hauteur d'une case. Elle doit loger nom + metier + etiquette. */
+  H: 78,
+  /** Entre deux cases d'un meme etage, horizontalement. */
+  ECART_X: 68,
+  /** Entre deux cases d'un meme etage, verticalement. */
+  ECART_Y: 18,
+  /** Entre deux etages : assez pour que la fleche se voie. */
+  ECART_NIVEAU: 44,
+} as const
+
+const { L, H, ECART_X, ECART_Y, ECART_NIVEAU } = REGLAGES
 
 /**
  * Profondeur d'un noeud = longueur du plus long chemin qui y mene. Un lien
@@ -229,6 +248,7 @@ export function Organigramme({ noeuds, liens, vide, numeroter, sens = 'droite' }
     // Rien ne depasse : le bloc est calcule pour la place disponible, donc
     // aucune barre de defilement a manipuler pour voir qui est qui.
     <div
+      data-zone="organigramme"
       ref={cadre}
       className={vertical ? 'flex justify-center pb-1' : 'pb-1'}
       // Les deux axes sont declares : masquer le seul axe horizontal ferait
@@ -327,21 +347,21 @@ function CarteNoeud({ noeud, etape }: { noeud: NoeudOrg; etape?: number }) {
 
   // L'etat prime sur l'identite pour la bordure - un travail termine ou bloque
   // doit se lire avant de savoir a qui il appartient. Partout ailleurs, c'est
-  // la couleur de l'agent qui tient le cadre.
+  // la couleur de l'agent qui tient le cadre, via `--agent-lisere-noeud`.
   const bordure = noeud.fini
     ? { borderColor: 'var(--succes)' }
     : noeud.bloque
       ? { borderColor: 'var(--alerte)' }
-      : // Le liseré porte seul l'identite maintenant que le fond est neutre :
-        // il doit donc etre franc, sans devenir un cadre qui crie.
-        { borderColor: 'color-mix(in srgb, var(--agent) 60%, transparent)' }
+      : undefined
 
   return (
     <div
+      data-zone="noeud-organigramme"
       style={{ ...style, ...bordure }}
       className={[
         'relative flex h-full flex-col gap-1 overflow-hidden rounded-xl border-[1.5px]',
         'bg-white px-2.5 py-2 dark:bg-navy-900',
+        bordure ? '' : 'lisere-agent-noeud',
         noeud.endormi ? 'opacity-70 saturate-[.45]' : '',
       ].join(' ')}
     >
@@ -359,20 +379,14 @@ function CarteNoeud({ noeud, etape }: { noeud: NoeudOrg; etape?: number }) {
       <div className="relative flex items-start gap-2">
         {/* Un point plutot qu'un carre a icone : la couleur porte l'identite,
             l'icone n'ajoutait qu'un pictogramme de plus a interpreter. */}
-        <span
-          className="mt-1 h-2.5 w-2.5 flex-none rounded-full"
-          style={{
-            backgroundColor: 'var(--agent)',
-            boxShadow: '0 0 0 3px color-mix(in srgb, var(--agent) 20%, transparent)',
-          }}
-        />
+        <span className="point-agent mt-1" />
         <span className="min-w-0 flex-1">
           {noeud.chapeau && (
             <span className="block text-[8.5px] font-bold uppercase tracking-[.12em] muted">
               {noeud.chapeau}
             </span>
           )}
-          <span className="line-clamp-2 text-[12.5px] font-semibold leading-tight">
+          <span className="texte-nom line-clamp-2 font-semibold">
             {noeud.titre}
           </span>
         </span>
@@ -394,7 +408,7 @@ function CarteNoeud({ noeud, etape }: { noeud: NoeudOrg; etape?: number }) {
       </div>
 
       {noeud.sousTitre && (
-        <p className="relative truncate text-[10.5px] leading-snug muted">{noeud.sousTitre}</p>
+        <p className="texte-metier relative truncate muted">{noeud.sousTitre}</p>
       )}
 
       <div className="relative mt-auto flex items-center gap-1.5">

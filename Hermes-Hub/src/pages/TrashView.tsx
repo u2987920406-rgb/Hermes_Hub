@@ -31,7 +31,7 @@ export function TrashView({ onMenu }: Props) {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div data-zone="ecran-corbeille" className="flex flex-1 flex-col overflow-hidden">
       <PageHeader
         title="Corbeille"
         subtitle={

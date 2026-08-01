@@ -21,7 +21,7 @@ export function CleanView({ onMenu }: Props) {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div data-zone="ecran-clean" className="flex flex-1 flex-col overflow-hidden">
       <PageHeader
         title="Hermes Clean Agent"
         subtitle="Session vierge, sans memoire"

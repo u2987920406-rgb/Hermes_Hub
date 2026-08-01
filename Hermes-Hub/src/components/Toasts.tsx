@@ -17,6 +17,7 @@ export function Toasts() {
 
   return (
     <div
+      data-zone="notifications"
       className="pointer-events-none fixed inset-x-4 bottom-4 z-[60] flex flex-col items-center gap-2 sm:inset-x-auto sm:right-6 sm:items-end"
       role="status"
       aria-live="polite"

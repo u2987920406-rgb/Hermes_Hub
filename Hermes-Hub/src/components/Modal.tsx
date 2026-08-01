@@ -26,6 +26,7 @@ export function Modal({ title, icon, onClose, children, maxWidth = 'max-w-md' }:
 
   return (
     <div
+      data-zone="fenetre-modale"
       className="fixed inset-0 z-50 flex items-end justify-center bg-navy-950/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
       role="dialog"

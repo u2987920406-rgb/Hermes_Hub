@@ -271,7 +271,7 @@ export function ConfigView({ onMenu }: Props) {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div data-zone="ecran-configuration" className="flex flex-1 flex-col overflow-hidden">
       <PageHeader
         title="Configuration"
         icon={<Settings className="h-4 w-4 text-slate-400" />}

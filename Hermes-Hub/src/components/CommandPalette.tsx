@@ -133,6 +133,7 @@ export function CommandPalette({ open, onClose, onNavigate }: Props) {
 
   return (
     <div
+      data-zone="palette-commandes"
       className="fixed inset-0 z-50 flex items-start justify-center bg-navy-950/50 p-4 backdrop-blur-sm sm:pt-24"
       onClick={onClose}
       role="dialog"

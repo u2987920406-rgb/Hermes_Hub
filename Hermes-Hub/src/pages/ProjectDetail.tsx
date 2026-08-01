@@ -132,7 +132,7 @@ export function ProjectDetail({ projectId, onBack, onMenu }: Props) {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div data-zone="ecran-detail-projet" className="flex flex-1 flex-col overflow-hidden">
       <PageHeader
         title={project.name}
         subtitle={`${statusLabels[project.status]} - ${project.path}`}

@@ -31,7 +31,10 @@ export function ProjectCard({ project, onOpen }: Props) {
 
   return (
     <>
-      <div className="card group flex flex-col p-5 transition-shadow hover:shadow-md">
+      <div
+        data-zone="carte-projet"
+        className="card group flex flex-col p-5 transition-shadow hover:shadow-md"
+      >
         <div className="mb-2 flex items-start justify-between gap-3">
           <button
             onClick={() => onOpen(project.id)}
