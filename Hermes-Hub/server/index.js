@@ -1247,6 +1247,15 @@ function diffuser(evenement) {
   noter(evenement)
   const trame = `data: ${JSON.stringify(evenement)}\n\n`
   for (const flux of spectateurs) {
+    // Un socket deja mort ne se signale pas en levant : `write` accepte, puis
+    // emet un `error` au tour suivant. Sans ce test - et sans l'ecouteur pose
+    // dans `ouvrirFlux` - un onglet ferme brutalement emporte le Hub entier,
+    // et avec lui tous les agents au travail. Vu en vrai : un pole termine, un
+    // client tombe, EPIPE, processus mort.
+    if (flux.destroyed || flux.writableEnded) {
+      spectateurs.delete(flux)
+      continue
+    }
     try {
       flux.write(trame)
     } catch {
@@ -1286,10 +1295,16 @@ function ouvrirFlux(req, res) {
     }
   }, 20000)
 
-  req.on('close', () => {
+  const oublier = () => {
     clearInterval(battement)
     spectateurs.delete(res)
-  })
+  }
+  req.on('close', oublier)
+  // `close` ne couvre pas tout : une coupure brutale remonte par un `error`
+  // sur la reponse, et un `error` de socket sans ecouteur arrete le processus.
+  // C'est la deuxieme moitie du garde-fou pose dans `diffuser`.
+  res.on('error', oublier)
+  req.on('error', oublier)
 }
 
 // -----------------------------------------------------------------------------

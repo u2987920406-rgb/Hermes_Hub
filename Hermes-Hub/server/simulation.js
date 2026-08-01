@@ -48,7 +48,7 @@ function estLocal(modele) {
  */
 const MOTIF_FICHIER = /(?:^|[\s`'"(\[])([\w./\\-]*[\w-]+\.(?:md|pdf|txt|csv|json|ya?ml|html?|docx?|xlsx?|png|jpe?g|svg))/gi
 
-function lireFichiers(corps) {
+export function lireFichiers(corps) {
   const vus = new Map()
   for (const m of String(corps || '').matchAll(MOTIF_FICHIER)) {
     const brut = m[1].replace(/\\/g, '/')
@@ -112,7 +112,7 @@ function pire(a, b) {
   return ORDRE_RISQUE[a] >= ORDRE_RISQUE[b] ? a : b
 }
 
-function lireCapacites(tache) {
+export function lireCapacites(tache) {
   const texte = sansAccents(`${tache.titre || ''}\n${tache.corps || ''}`)
   return SIGNES.filter((s) => s.motif.test(texte)).map(({ id, libelle, risque }) => ({
     id,

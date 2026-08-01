@@ -37,7 +37,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { Equipage } from './equipage.js'
 import { lireOrchestration } from './equipe.js'
-import { lireValidation } from './simulation.js'
+import { lireCapacites, lireFichiers, lireValidation } from './simulation.js'
 import { HUB_DIR, WORKSPACE, readJson, sanitizeName, writeJson } from './workspace.js'
 
 /**
@@ -123,6 +123,57 @@ function promouvoir() {
   } catch {
     return null
   }
+}
+
+// -----------------------------------------------------------------------------
+// La preuve par le disque
+// -----------------------------------------------------------------------------
+/**
+ * Un agent qui dit avoir ecrit un fichier a-t-il ecrit un fichier ?
+ *
+ * La question n'est pas theorique : une tache « Generer le PDF des paroles » a
+ * ete rendue `done` avec pour resultat « # Chanson: "Lore sur..." » et aucun
+ * PDF nulle part. Sans verification, ce mensonge part dans `kanban context`
+ * vers les taches filles, qui batissent sur un livrable qui n'existe pas.
+ *
+ * On ne verifie que ce qui est verifiable : une tache dont la formulation
+ * reclame une ecriture ET nomme au moins un fichier. Une tache qui rend du
+ * texte - une analyse, un arbitrage - n'a rien a prouver sur le disque.
+ *
+ * La borne est volontairement basse : il suffit qu'UN des fichiers nommes
+ * existe. Un agent qui en annonce trois et en produit deux a travaille ; un
+ * agent qui n'en produit aucun a invente. On cherche le second cas, pas la
+ * perfection - et on cherche par nom de base, en profondeur, parce qu'un agent
+ * range parfois dans un sous-dossier qu'il a cree lui-meme.
+ */
+function livrablesManquants(tache, dossier) {
+  const texte = `${tache.titre || ''}\n${tache.corps || ''}`
+  const ecrit = lireCapacites({ titre: tache.titre, corps: tache.corps }).some(
+    (c) => c.id === 'ecriture',
+  )
+  if (!ecrit) return null
+
+  const attendus = lireFichiers(texte)
+  if (!attendus.length) return null
+
+  const surLeDisque = new Set()
+  const parcourir = (dir, profondeur) => {
+    if (profondeur > 4) return
+    let entrees
+    try {
+      entrees = fs.readdirSync(dir, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const e of entrees) {
+      if (e.isDirectory()) parcourir(path.join(dir, e.name), profondeur + 1)
+      else surLeDisque.add(e.name.toLowerCase())
+    }
+  }
+  parcourir(dossier, 0)
+
+  const trouves = attendus.filter((f) => surLeDisque.has(path.posix.basename(f.chemin).toLowerCase()))
+  return trouves.length ? null : attendus.map((f) => f.chemin)
 }
 
 /** La derniere ligne utile d'une sortie d'erreur : le reste est du journal. */
@@ -302,6 +353,17 @@ class Chantier {
       enCours: [...this.enCours].map(([tache, v]) => ({ tache, ...v })),
       faites: this.faites,
       echouees: this.echouees,
+      // Les accords en attente doivent survivre a un rechargement de page.
+      //
+      // Un agent qui demande la permission d'ecrire arrete tout jusqu'a la
+      // reponse, et repondre exige l'identifiant de la demande. Sans lui ici,
+      // un navigateur qui arrive apres coup ne l'a plus : le pole reste bloque
+      // pour de bon. Le pont les conserve deja pour cette raison - on ne fait
+      // que les rendre visibles, comme `equipage.etat()` le fait pour la
+      // conversation.
+      accords: [...this.equipage.ponts].flatMap(([agent, { pont }]) =>
+        pont.etat().autorisations.map((a) => ({ ...a, agent })),
+      ),
     }
   }
 
@@ -377,7 +439,7 @@ class Chantier {
         this.#bloquer(t.id, t.titre, t.agent, `« ${t.agent} » n'est pas un profil Hermes.`)
         continue
       }
-      prets.push({ id: t.id, titre: t.titre, agentId: agent.id, agent })
+      prets.push({ id: t.id, titre: t.titre, corps: t.corps, agentId: agent.id, agent })
     }
     return prets
   }
@@ -395,7 +457,7 @@ class Chantier {
    * n'etait plus prete - quelqu'un d'autre l'a saisie, ou un parent n'avait pas
    * fini. On passe, sans la marquer en echec.
    */
-  async #executer({ id, titre, agentId, agent }) {
+  async #executer({ id, titre, corps, agentId, agent }) {
     const pris = hermes(['claim', id, '--ttl', String(BAIL_SECONDES)])
     if (pris.status !== 0) return false
 
@@ -417,6 +479,17 @@ class Chantier {
       await pont.envoyer(`${consigne(this.dossier)}\n\n---\n\n${contexte}`, { delai: TOUR_MAX })
 
       const resultat = String(pont.texteTour || '').trim().slice(0, RESULTAT_MAX)
+
+      // La porte de sortie : on ne clot pas une tache qui devait produire un
+      // fichier et n'en a produit aucun. Bloquer plutot que clore, sinon le
+      // mensonge part aux taches filles par `kanban context`.
+      const manquants = livrablesManquants({ titre, corps }, this.dossier)
+      if (manquants) {
+        throw new Error(
+          `elle devait produire ${manquants.join(', ')} - aucun de ces fichiers n'existe dans ${this.dossier}`,
+        )
+      }
+
       const fait = hermes(['complete', id, '--result', resultat || RIEN_RENDU])
       if (fait.status !== 0) {
         throw new Error(dernierMot(fait.stderr) || 'le tableau a refuse la cloture')

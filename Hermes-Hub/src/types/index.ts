@@ -338,6 +338,10 @@ export interface Chantier {
   enCours: { tache: string; agent: string; titre: string }[]
   faites: string[]
   echouees: { tache: string; raison: string }[]
+  /** Ce qu'un agent attend pour continuer. Rejoue a l'ouverture du flux : sans
+      lui, un rechargement de page perdrait l'identifiant de la demande, et le
+      pole resterait bloque sans moyen de repondre. */
+  accords?: (DemandeAutorisation & { agent: string })[]
 }
 
 export const ETATS_TACHE: Record<EtatTache, string> = {

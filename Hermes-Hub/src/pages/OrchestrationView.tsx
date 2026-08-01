@@ -152,7 +152,16 @@ export function OrchestrationView({ onMenu }: Props) {
   useEffect(() => {
     void chargerChantiers()
     return ecouterChat((e) => {
-      if (e.type === 'reprise') return setChantiers(e.chantiers || [])
+      if (e.type === 'reprise') {
+        const repris = e.chantiers || []
+        setChantiers(repris)
+        // Un accord emis avant l'ouverture de ce flux attend toujours : on le
+        // recupere ici, sinon la fenetre ne saurait plus a quoi repondre.
+        setAccords(
+          repris.flatMap((c) => (c.accords || []).map((a) => ({ ...a, pole: c.pole }))),
+        )
+        return
+      }
 
       // Les demandes d'accord de la conversation ne nous regardent pas : elles
       // ont leur place dans le fil, ou elles sont deja affichees.
