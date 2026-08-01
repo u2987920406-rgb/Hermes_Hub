@@ -5,6 +5,7 @@
 import type {
   Agent,
   AppConfig,
+  Decomposition,
   Orchestration,
   Diagnostics,
   EvenementChat,
@@ -12,8 +13,10 @@ import type {
   Project,
   ProjectStatus,
   SessionChat,
+  Simulation,
   Skin,
   Stats,
+  Validation,
   TrashItem,
   VaultFolder,
   VaultNote,
@@ -162,6 +165,21 @@ export const api = {
 
   // --- Orchestration : l'equipe et ses poles -----------------------------------
   orchestration: () => request<Orchestration>('/orchestration'),
+
+  // --- La demande, la simulation, la porte -------------------------------------
+  // `demande` est le seul appel modele de la phase : environ trente secondes,
+  // le temps qu'Hermes decoupe la phrase en taches liees. Tout ce qui suit est
+  // local - la simulation ne rejoue que ce qui est deja sur le disque, et
+  // valider n'execute rien.
+  demande: (texte: string) =>
+    request<Decomposition>('/orchestration/demande', { method: 'POST', body: body({ texte }) }),
+  simulation: (pole: string) =>
+    request<Simulation>(`/orchestration/simulation?pole=${enc(pole)}`),
+  validerPole: (pole: string, empreinte?: string) =>
+    request<Validation>('/orchestration/validation', {
+      method: 'POST',
+      body: body({ pole, empreinte }),
+    }),
 
   // --- La conversation a mentions ---------------------------------------------
   // Le serveur resout les mentions et rend les destinataires : la regle de

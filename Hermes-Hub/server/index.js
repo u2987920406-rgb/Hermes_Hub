@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url'
 
 import { lireOrchestration, listerAgents } from './equipe.js'
 import { Equipage, resoudre } from './equipage.js'
+import { annulerValidation, simuler, valider } from './simulation.js'
 import { ecrireBascule, lireBascule } from './modeles.js'
 import { projectFiles, vaultNote } from './templates.js'
 import {
@@ -1279,6 +1280,102 @@ function ouvrirFlux(req, res) {
 // -----------------------------------------------------------------------------
 // Routing
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// La decomposition
+// -----------------------------------------------------------------------------
+/**
+ * Le dernier objet JSON d'une sortie de CLI.
+ *
+ * On balaie les accolades plutot que les lignes : `kanban create` indente sa
+ * sortie sur vingt lignes, `decompose --json` en met une par tache, et les
+ * deux peuvent etre precedes de journal. Compter les accolades est la seule
+ * lecture qui tienne pour les trois cas - en ignorant celles qui vivent dans
+ * une chaine, sans quoi un titre contenant `{` decalerait tout le compte.
+ */
+function dernierJson(sortie) {
+  const texte = String(sortie || '')
+  const objets = []
+  let debut = -1
+  let profondeur = 0
+  let dansChaine = false
+  let echappe = false
+
+  for (let i = 0; i < texte.length; i++) {
+    const c = texte[i]
+    if (dansChaine) {
+      if (echappe) echappe = false
+      else if (c === '\\') echappe = true
+      else if (c === '"') dansChaine = false
+      continue
+    }
+    if (c === '"') dansChaine = true
+    else if (c === '{') {
+      if (profondeur === 0) debut = i
+      profondeur++
+    } else if (c === '}' && profondeur > 0) {
+      profondeur--
+      if (profondeur === 0 && debut >= 0) objets.push(texte.slice(debut, i + 1))
+    }
+  }
+
+  for (let i = objets.length - 1; i >= 0; i--) {
+    try {
+      return JSON.parse(objets[i])
+    } catch {
+      /* bloc tronque : on essaie le precedent */
+    }
+  }
+  return null
+}
+
+/**
+ * Une demande en francais devient un graphe de taches assignables.
+ *
+ * Le titre est la premiere ligne, coupee : c'est ce qui nommera le pole dans
+ * l'interface. Le corps garde la demande entiere, parce que c'est lui que le
+ * decomposeur lit pour repartir le travail.
+ *
+ * Mesure du 31/07/2026 : environ 23 secondes et un seul appel modele. D'ou le
+ * delai large - et l'indicateur d'attente cote interface, sans lequel vingt
+ * secondes de silence passent pour une panne.
+ */
+function decomposer(texte) {
+  const titre = texte.split(/\r?\n/)[0].slice(0, 120).trim() || texte.slice(0, 120)
+
+  const cree = spawnSync(
+    'hermes',
+    ['kanban', 'create', titre, '--body', texte, '--triage', '--json'],
+    { windowsHide: true, timeout: 30000, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 },
+  )
+  const tache = dernierJson(cree.stdout)
+  const id = tache?.task_id || tache?.id
+  if (!id) {
+    const err = new Error(
+      "La tache n'a pas pu etre creee sur le tableau. Verifie que `hermes kanban init` a ete lance.",
+    )
+    err.status = 502
+    throw err
+  }
+
+  const dec = spawnSync('hermes', ['kanban', 'decompose', id, '--json'], {
+    windowsHide: true,
+    timeout: 180000,
+    encoding: 'utf8',
+    maxBuffer: 4 * 1024 * 1024,
+  })
+  const plan = dernierJson(dec.stdout)
+
+  // Un decomposeur qui ne decoupe pas n'est pas une panne : une demande simple
+  // reste une seule tache. On le dit, plutot que de rendre un pole vide.
+  return {
+    pole: id,
+    titre,
+    decoupe: plan?.ok === true && Array.isArray(plan.child_ids) && plan.child_ids.length > 0,
+    enfants: plan?.child_ids || [],
+    raison: plan?.reason || (dec.status === 0 ? 'aucun decoupage' : 'la decomposition a echoue'),
+  }
+}
+
 async function handleApi(req, res, url) {
   const seg = url.pathname.split('/').filter(Boolean)   // ['api', ...]
   const rest = seg.slice(1)
@@ -1428,8 +1525,49 @@ async function handleApi(req, res, url) {
   }
 
   // L'equipe et ses poles : le seul lieu de l'orchestration.
-  if (rest[0] === 'orchestration' && method === 'GET') {
-    return sendJson(res, 200, await lireOrchestration())
+  if (rest[0] === 'orchestration') {
+    if (!rest[1] && method === 'GET') return sendJson(res, 200, await lireOrchestration())
+
+    // La demande en francais devient un graphe de taches assignables.
+    //
+    // C'est le seul appel modele de toute la phase, et il est ici plutot que
+    // dans la conversation parce qu'il ne produit pas une reponse : il produit
+    // un plan, que la simulation qui suit rejouera sans rien appeler.
+    if (rest[1] === 'demande' && method === 'POST') {
+      const body = await readBody(req)
+      const texte = String(body.texte || '').trim()
+      if (!texte) {
+        const err = new Error('Demande vide')
+        err.status = 400
+        throw err
+      }
+      return sendJson(res, 200, decomposer(texte))
+    }
+
+    // La simulation locale : aucun processus lance, aucun modele appele.
+    if (rest[1] === 'simulation' && method === 'GET') {
+      const pole = url.searchParams.get('pole')
+      if (!pole) {
+        const err = new Error('Pole non precise')
+        err.status = 400
+        throw err
+      }
+      return sendJson(res, 200, await simuler(pole))
+    }
+
+    // La porte. Elle s'ouvre, elle ne pousse personne a travers : valider
+    // n'execute rien, c'est un autre geste qui lancera le travail.
+    if (rest[1] === 'validation') {
+      const body = method === 'POST' ? await readBody(req) : {}
+      const pole = String(body.pole || url.searchParams.get('pole') || '')
+      if (!pole) {
+        const err = new Error('Pole non precise')
+        err.status = 400
+        throw err
+      }
+      if (method === 'POST') return sendJson(res, 200, valider(pole, body.empreinte))
+      if (method === 'DELETE') return sendJson(res, 200, annulerValidation(pole))
+    }
   }
 
   if (rest[0] === 'chat') {

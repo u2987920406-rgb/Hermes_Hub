@@ -14,17 +14,25 @@
  * Rien n'est invente ici : les agents sont les profils d'Hermes, les poles sont
  * lus dans son tableau kanban.
  */
-import { AlertTriangle, MessageSquare, Network, RefreshCw, Users } from 'lucide-react'
+import { AlertTriangle, MessageSquare, Network, Play, RefreshCw, Sparkles, Users } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Conversation } from '../components/Conversation'
+import { FenetreSimulation } from '../components/FenetreSimulation'
 import { Modal } from '../components/Modal'
 import { Organigramme } from '../components/Organigramme'
 import type { LienOrg, NoeudOrg } from '../components/Organigramme'
 import { PageHeader } from '../components/PageHeader'
 import { api } from '../lib/api'
 import { ETATS_TACHE } from '../types'
-import type { Agent, Equipe as EquipeType, EtatTache, Orchestration, Pole } from '../types'
+import type {
+  Agent,
+  Equipe as EquipeType,
+  EtatTache,
+  Orchestration,
+  Pole,
+  Simulation,
+} from '../types'
 
 interface Props {
   onMenu: () => void
@@ -56,6 +64,19 @@ export function OrchestrationView({ onMenu }: Props) {
   const [eveilles, setEveilles] = useState<string[]>([])
   const [ouvert, setOuvert] = useState<Ouvert | null>(null)
 
+  /**
+   * La simulation vit a cote du reste, jamais dedans : elle s'ouvre par-dessus
+   * et disparait entierement. `ouverte` est distinct de `simu` parce que la
+   * fenetre s'affiche AVANT d'avoir son contenu - c'est elle qui porte
+   * l'attente de la decomposition, qui dure une trentaine de secondes.
+   */
+  const [simuOuverte, setSimuOuverte] = useState(false)
+  const [simu, setSimu] = useState<Simulation | null>(null)
+  const [simuOccupee, setSimuOccupee] = useState(false)
+  const [simuErreur, setSimuErreur] = useState<string | null>(null)
+  const [validation, setValidation] = useState(false)
+  const [demande, setDemande] = useState('')
+
   const charger = useCallback(async () => {
     try {
       setData(await api.orchestration())
@@ -68,6 +89,59 @@ export function OrchestrationView({ onMenu }: Props) {
   useEffect(() => {
     void charger()
   }, [charger])
+
+  /** Simuler un pole qui existe deja : lecture pure, quelques dizaines de ms. */
+  const simuler = useCallback(async (pole: string) => {
+    setSimuOuverte(true)
+    setSimuErreur(null)
+    setSimuOccupee(true)
+    try {
+      setSimu(await api.simulation(pole))
+    } catch (e) {
+      setSimu(null)
+      setSimuErreur(e instanceof Error ? e.message : String(e))
+    } finally {
+      setSimuOccupee(false)
+    }
+  }, [])
+
+  /**
+   * Le parcours complet : la phrase devient un graphe, le graphe est rejoue.
+   * L'appel modele est ici et nulle part ailleurs - ce qui suit est local.
+   */
+  const preparer = useCallback(async () => {
+    const texte = demande.trim()
+    if (!texte) return
+    setSimuOuverte(true)
+    setSimu(null)
+    setSimuErreur(null)
+    setSimuOccupee(true)
+    try {
+      const plan = await api.demande(texte)
+      setSimu(await api.simulation(plan.pole))
+      setDemande('')
+      void charger()
+    } catch (e) {
+      setSimuErreur(e instanceof Error ? e.message : String(e))
+    } finally {
+      setSimuOccupee(false)
+    }
+  }, [demande, charger])
+
+  const valider = useCallback(async () => {
+    if (!simu) return
+    setValidation(true)
+    try {
+      await api.validerPole(simu.pole.id)
+      // On relit plutot que de bricoler l'etat en memoire : la validation est
+      // ecrite sur le disque, et c'est cette version-la qui fait foi.
+      setSimu(await api.simulation(simu.pole.id))
+    } catch (e) {
+      setSimuErreur(e instanceof Error ? e.message : String(e))
+    } finally {
+      setValidation(false)
+    }
+  }, [simu])
 
   // Un agent est eveille de deux facons : son processus tourne (la conversation
   // le sait en direct), ou une tache du tableau lui est confiee. Les deux
@@ -165,6 +239,13 @@ export function OrchestrationView({ onMenu }: Props) {
 
               {volet === 'poles' && (
                 <>
+                  <BoiteDemande
+                    valeur={demande}
+                    onChange={setDemande}
+                    onPreparer={() => void preparer()}
+                    occupee={simuOccupee}
+                  />
+
                   <Entete
                     titre={`${equipes.length} equipe${equipes.length > 1 ? 's' : ''}`}
                     detail="Un groupe d agents qu on appelle d un bloc"
@@ -272,8 +353,92 @@ export function OrchestrationView({ onMenu }: Props) {
             </p>
           )}
           <Organigramme {...poleEnGraphe(poleOuvert, agents)} />
+
+          {/* La simulation est la seule action offerte ici, et c'est voulu :
+              de ce panneau on ne lance rien, on va d'abord voir ce que ca
+              ferait. */}
+          <div className="mt-4 flex items-center gap-3 border-t border-slate-100 pt-3 dark:border-navy-800">
+            <p className="min-w-0 flex-1 text-[11px] muted">
+              La simulation rejoue ce graphe sans appeler aucun modele : qui se reveille, dans
+              quel ordre, quels fichiers seraient touches.
+            </p>
+            <button
+              className="btn-primary flex-none text-xs"
+              onClick={() => {
+                setOuvert(null)
+                void simuler(poleOuvert.id)
+              }}
+            >
+              <Play className="mr-1.5 inline h-3.5 w-3.5" />
+              Simuler
+            </button>
+          </div>
         </Modal>
       )}
+
+      {simuOuverte && (
+        <FenetreSimulation
+          simulation={simu}
+          chargement={simuOccupee}
+          erreur={simuErreur}
+          validation={validation}
+          onValider={() => void valider()}
+          onModifier={() => {
+            // « Modifier » renvoie a la conversation : c'est la qu'on reformule
+            // une demande, pas dans un formulaire de plus.
+            setSimuOuverte(false)
+            setVolet('conversation')
+          }}
+          onFermer={() => setSimuOuverte(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+/**
+ * La porte d'entree du mode assiste : une phrase en francais, rien de plus.
+ *
+ * Elle vit au-dessus des poles parce que c'est de la qu'ils naissent - et
+ * qu'une liste vide sans moyen de la remplir est un cul-de-sac.
+ */
+function BoiteDemande({
+  valeur,
+  onChange,
+  onPreparer,
+  occupee,
+}: {
+  valeur: string
+  onChange: (v: string) => void
+  onPreparer: () => void
+  occupee: boolean
+}) {
+  return (
+    <div className="card space-y-2 p-3.5">
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-amber-500" />
+        <p className="text-sm font-semibold">Decris ce que tu veux</p>
+      </div>
+      <textarea
+        value={valeur}
+        onChange={(e) => onChange(e.target.value)}
+        rows={2}
+        placeholder="cherche sur les 5 sites les plus tendance les nouveautes IA du moment, fais-moi un resume sous forme de tableau, plus un PDF"
+        className="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs leading-relaxed outline-none focus:border-sky-400 dark:border-navy-700 dark:bg-navy-900"
+      />
+      <div className="flex items-center gap-3">
+        <p className="min-w-0 flex-1 text-[11px] muted">
+          Hermes decoupe la demande en taches liees, puis la simulation te la montre. Rien ne
+          s execute avant ton accord.
+        </p>
+        <button
+          className="btn-primary flex-none text-xs"
+          onClick={onPreparer}
+          disabled={occupee || !valeur.trim()}
+        >
+          Preparer le plan
+        </button>
+      </div>
     </div>
   )
 }

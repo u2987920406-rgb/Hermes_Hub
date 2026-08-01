@@ -205,6 +205,93 @@ export interface Orchestration {
   }
 }
 
+// -----------------------------------------------------------------------------
+// La simulation locale
+// -----------------------------------------------------------------------------
+/** Ce que rend la decomposition : un pole neuf, et de quoi le simuler. */
+export interface Decomposition {
+  pole: string
+  titre: string
+  /** Faux quand la demande etait deja assez simple pour tenir en une tache. */
+  decoupe: boolean
+  enfants: string[]
+  raison: string
+}
+
+export type Risque = 'vert' | 'orange' | 'rouge'
+
+/** Ce qu'une tache va reclamer, lu dans sa formulation - pas devine. */
+export interface Capacite {
+  id: 'web' | 'ecriture' | 'terminal' | 'lecture'
+  libelle: string
+  risque: Risque
+}
+
+export interface TacheSimulee {
+  id: string
+  titre: string
+  corps: string
+  etat: EtatTache
+  agent: string
+  agentNom: string
+  couleur: string
+  icone: string
+  modele: string | null
+  /** Un cerveau qui repond sur la machine : ni quota, ni reseau. */
+  local: boolean
+  /** Cout du demarrage, en ms. Zero quand l'agent est deja eveille. */
+  reveil: number
+  dejaEveille: boolean
+  entrees: { id: string; titre: string }[]
+  fichiers: { chemin: string; dossier: string }[]
+  capacites: Capacite[]
+  risque: Risque
+  /** La tache de jonction : la demande d'origine, pas une etape de plus. */
+  demande: boolean
+}
+
+/** Tout ce qui peut partir en meme temps. C'est ce qui rend le parallelisme
+    visible - une liste ordonnee le cacherait. */
+export interface VagueSimulee {
+  rang: number
+  taches: TacheSimulee[]
+  cycle: boolean
+  reveilCumule: number
+}
+
+export interface Validation {
+  valideLe: number
+  empreinte: string | null
+}
+
+export interface Simulation {
+  pole: { id: string; titre: string; corps: string }
+  vagues: VagueSimulee[]
+  /** La mise en route de l'equipe, en ms - jamais la duree du travail, qui
+      n'est pas simulable. */
+  reveilTotal: number
+  agents: {
+    id: string
+    nom: string
+    couleur: string
+    icone: string
+    modele: string | null
+    local: boolean
+    pretAServir: boolean
+  }[]
+  fichiers: { chemin: string; dossier: string; action: 'lecture' | 'ecriture'; tache: string }[]
+  autorisations: {
+    tache: string
+    agent: string
+    agentNom: string
+    libelle: string
+    risque: Risque
+  }[]
+  risque: Risque
+  alertes: { genre: string; tache?: string; texte: string }[]
+  validation: Validation | null
+}
+
 export const ETATS_TACHE: Record<EtatTache, string> = {
   triage: 'A cadrer',
   todo: 'En attente',
