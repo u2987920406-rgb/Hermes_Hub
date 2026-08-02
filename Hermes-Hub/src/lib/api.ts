@@ -184,6 +184,40 @@ export const api = {
       body: body({ pole, empreinte }),
     }),
 
+  // --- Le graphe, remanie a la souris ------------------------------------------
+  // `apres` et `avant` disent le sens du temps, pas celui des fleches : une
+  // tache posee `apres` une autre attend qu'elle finisse. Toute modification
+  // referme la porte - le serveur retire la validation, et la simulation devra
+  // etre relue avant de lancer.
+  ajouterTache: (input: {
+    pole: string
+    titre: string
+    corps?: string
+    agent?: string
+    apres?: string[]
+    avant?: string[]
+    position?: { x: number; y: number }
+  }) =>
+    request<{ id: string; etat: string | null }>('/orchestration/tache', {
+      method: 'POST',
+      body: body(input),
+    }),
+  supprimerTache: (pole: string, id: string) =>
+    request<{ retiree: string }>(
+      `/orchestration/tache?pole=${enc(pole)}&id=${enc(id)}`,
+      { method: 'DELETE' },
+    ),
+  relier: (pole: string, de: string, vers: string) =>
+    request<{ de: string; vers: string; lie: boolean }>('/orchestration/lien', {
+      method: 'POST',
+      body: body({ pole, de, vers }),
+    }),
+  delier: (pole: string, de: string, vers: string) =>
+    request<{ de: string; vers: string; lie: boolean }>(
+      `/orchestration/lien?pole=${enc(pole)}&de=${enc(de)}&vers=${enc(vers)}`,
+      { method: 'DELETE' },
+    ),
+
   // --- L'execution -------------------------------------------------------------
   // Le geste qui pousse a travers la porte, distinct de celui qui l'ouvre. Le
   // serveur repond tout de suite : le travail dure des minutes et se raconte

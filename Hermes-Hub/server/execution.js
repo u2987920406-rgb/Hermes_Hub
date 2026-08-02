@@ -32,11 +32,11 @@
  * On recommence tant qu'il reste des taches pretes : les vagues n'ont pas
  * besoin d'etre calculees, elles tombent toutes seules de l'etat `ready`.
  */
-import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { Equipage } from './equipage.js'
 import { lireOrchestration } from './equipe.js'
+import { dernierMot, hermes } from './graphe.js'
 import { lireCapacites, lireFichiers, lireValidation } from './simulation.js'
 import { HUB_DIR, WORKSPACE, readJson, sanitizeName, writeJson } from './workspace.js'
 
@@ -107,22 +107,6 @@ const pause = (ms) => new Promise((f) => setTimeout(f, ms))
 // -----------------------------------------------------------------------------
 // La ligne de commande d'Hermes
 // -----------------------------------------------------------------------------
-/**
- * Toute ecriture sur le tableau passe par la CLI, jamais par SQLite.
- *
- * Le Hub lit la base en lecture seule et n'y ecrit rien lui-meme : un seul
- * ecrivain, celui qui connait les invariants - promotion, verrous, evenements,
- * runs. Le prix est d'environ deux secondes par appel, connu et accepte.
- */
-function hermes(args, { timeout = 30000 } = {}) {
-  return spawnSync('hermes', ['kanban', ...args], {
-    windowsHide: true,
-    timeout,
-    encoding: 'utf8',
-    maxBuffer: 4 * 1024 * 1024,
-  })
-}
-
 /**
  * Un tour de dispatcher sans lancer personne.
  *
@@ -195,15 +179,6 @@ function livrablesManquants(tache, dossier) {
 
   const trouves = attendus.filter((f) => surLeDisque.has(path.posix.basename(f.chemin).toLowerCase()))
   return trouves.length ? null : attendus.map((f) => f.chemin)
-}
-
-/** La derniere ligne utile d'une sortie d'erreur : le reste est du journal. */
-function dernierMot(sortie) {
-  const lignes = String(sortie || '')
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean)
-  return lignes[lignes.length - 1] || ''
 }
 
 // -----------------------------------------------------------------------------
@@ -686,6 +661,19 @@ export function endormirChantiers() {
 /** Ce qu'un flux qui arrive en cours de route doit savoir des chantiers. */
 export function etatChantiers() {
   return { chantiers: [...chantiers.values()].map((c) => c.etat()) }
+}
+
+/**
+ * Un pole au travail ne se remanie pas.
+ *
+ * Ses taches sont reclamees sous un bail, ses agents tournent, et la boucle
+ * relit la liste des pretes a chaque vague : retirer un lien sous ses pieds
+ * lancerait une tache dont le parent n'a pas fini, archiver une tache en cours
+ * laisserait un agent travailler pour un tableau qui l'a oubliee.
+ */
+export function poleActif(poleId) {
+  const c = chantiers.get(poleId)
+  return !!c && c.etat().actif
 }
 
 /**

@@ -692,6 +692,26 @@
 }
 
 /* ==========================================================================
+   Le Studio : le lien qu'on a choisi
+   --------------------------------------------------------------------------
+   Depuis qu'on retire un lien a la touche Suppr, il faut voir lequel va
+   partir. React Flow sait marquer une liaison selectionnee, mais le Studio
+   pose la couleur de l'agent amont EN LIGNE sur le trait - un style en ligne
+   bat toujours une classe, donc sa regle n'arrivait jamais a l'ecran. D'ou le
+   `!important`, qui est ici la seule facon d'ecrire ce que l'attribut `style`
+   couvre.
+
+   Le trait choisi cesse aussi d'etre pointille : un lien prevu est dessine en
+   pointille a 25 % d'opacite, et on ne voit pas ce qu'on s'apprete a defaire.
+   ========================================================================== */
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--jeton-ciel) !important;
+  stroke-width: 3 !important;
+  stroke-dasharray: none !important;
+  opacity: 1 !important;
+}
+
+/* ==========================================================================
    Le graphe vivant : les images-cles
    --------------------------------------------------------------------------
    Elles vivent hors de `@layer` et en fin de fichier, a cote des themes : ce

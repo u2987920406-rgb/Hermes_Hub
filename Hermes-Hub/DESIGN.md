@@ -65,7 +65,18 @@ pour le nommer quand on veut demander une modification.
 | Une vignette de pole | `vignette-pole` | `--agent-lisere-vignette` | idem |
 | Une vignette d'equipe | `vignette-equipe` | `--agent-lisere-vignette` | idem |
 | Le champ « Decris ce que tu veux » | `boite-demande` | — | idem |
+| Les autorisations en attente, en haut du pole | `accords-orchestration` | — | idem |
 | La fenetre de simulation | `fenetre-simulation` | — | `FenetreSimulation.tsx` |
+
+### Le Studio
+
+| Ce que tu vois | Zone a grep | Molettes | Sinon |
+|---|---|---|---|
+| L'ecran entier, sans barre laterale | `studio` | — | `StudioView.tsx` |
+| Une case du canevas | `noeud-studio` | `--agent-lisere-noeud`, `--agent-point` | `NoeudStudio.tsx` |
+| La fiche « une tache de plus » | `brouillon-tache` | — | `StudioView.tsx` |
+| Le panneau de reglages a droite | — | — | `StudioView.tsx`, cherche `<aside` |
+| Les traits entre les cases | — | — | pas de molette : la couleur vient de l'agent amont |
 
 ### L'organigramme
 
@@ -101,8 +112,10 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 <!-- ZONES:DEBUT -->
 | Zone | Fichier |
 |---|---|
+| `accords-orchestration` | `src/pages/OrchestrationView.tsx` |
 | `barre-saisie` | `src/components/Conversation.tsx` |
 | `boite-demande` | `src/pages/OrchestrationView.tsx` |
+| `brouillon-tache` | `src/pages/StudioView.tsx` |
 | `bulle-agent` | `src/components/Conversation.tsx` |
 | `bulle-moi` | `src/components/Conversation.tsx` |
 | `carte-projet` | `src/components/ProjectCard.tsx` |
@@ -123,11 +136,13 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `menu-lateral` | `src/components/Sidebar.tsx` |
 | `nav-orchestration` | `src/pages/OrchestrationView.tsx` |
 | `noeud-organigramme` | `src/components/Organigramme.tsx` |
+| `noeud-studio` | `src/components/NoeudStudio.tsx` |
 | `notifications` | `src/components/Toasts.tsx` |
 | `organigramme` | `src/components/Organigramme.tsx` |
 | `palette-commandes` | `src/components/CommandPalette.tsx` |
 | `pastille-agent` | `src/components/Conversation.tsx` |
 | `rangee-agents` | `src/components/Conversation.tsx` |
+| `studio` | `src/pages/StudioView.tsx` |
 | `trace-delegation` | `src/components/Conversation.tsx` |
 | `vignette-equipe` | `src/pages/OrchestrationView.tsx` |
 | `vignette-pole` | `src/pages/OrchestrationView.tsx` |

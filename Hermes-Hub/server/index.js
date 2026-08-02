@@ -22,8 +22,16 @@ import {
   endormirChantiers,
   etatChantiers,
   lancer as lancerChantier,
+  poleActif,
   relacherOrphelines,
 } from './execution.js'
+import {
+  ajouterTache,
+  delier,
+  dernierJson,
+  relier,
+  supprimerTache,
+} from './graphe.js'
 import { annulerValidation, simuler, valider } from './simulation.js'
 import { ecrireDisposition, lireDisposition, oublierDisposition } from './studio.js'
 import { clore, lire as lireConversation, lister as listerConversations, noter, supprimer as supprimerConversation } from './historique.js'
@@ -1315,51 +1323,6 @@ function ouvrirFlux(req, res) {
 // La decomposition
 // -----------------------------------------------------------------------------
 /**
- * Le dernier objet JSON d'une sortie de CLI.
- *
- * On balaie les accolades plutot que les lignes : `kanban create` indente sa
- * sortie sur vingt lignes, `decompose --json` en met une par tache, et les
- * deux peuvent etre precedes de journal. Compter les accolades est la seule
- * lecture qui tienne pour les trois cas - en ignorant celles qui vivent dans
- * une chaine, sans quoi un titre contenant `{` decalerait tout le compte.
- */
-function dernierJson(sortie) {
-  const texte = String(sortie || '')
-  const objets = []
-  let debut = -1
-  let profondeur = 0
-  let dansChaine = false
-  let echappe = false
-
-  for (let i = 0; i < texte.length; i++) {
-    const c = texte[i]
-    if (dansChaine) {
-      if (echappe) echappe = false
-      else if (c === '\\') echappe = true
-      else if (c === '"') dansChaine = false
-      continue
-    }
-    if (c === '"') dansChaine = true
-    else if (c === '{') {
-      if (profondeur === 0) debut = i
-      profondeur++
-    } else if (c === '}' && profondeur > 0) {
-      profondeur--
-      if (profondeur === 0 && debut >= 0) objets.push(texte.slice(debut, i + 1))
-    }
-  }
-
-  for (let i = objets.length - 1; i >= 0; i--) {
-    try {
-      return JSON.parse(objets[i])
-    } catch {
-      /* bloc tronque : on essaie le precedent */
-    }
-  }
-  return null
-}
-
-/**
  * Une demande en francais devient un graphe de taches assignables.
  *
  * Le titre est la premiere ligne, coupee : c'est ce qui nommera le pole dans
@@ -1405,6 +1368,62 @@ function decomposer(texte) {
     enfants: plan?.child_ids || [],
     raison: plan?.reason || (dec.status === 0 ? 'aucun decoupage' : 'la decomposition a echoue'),
   }
+}
+
+// -----------------------------------------------------------------------------
+// Le remaniement du graphe
+// -----------------------------------------------------------------------------
+/**
+ * Le pole qu'on s'apprete a modifier, et le droit de le faire.
+ *
+ * Trois refus, dans cet ordre : un pole qui tourne ne se remanie pas, un pole
+ * qui n'existe plus non plus, et on ne touche qu'aux taches qui lui
+ * appartiennent. Ce dernier point n'est pas de la mefiance envers l'interface :
+ * l'identifiant d'une tache voyage en clair dans la requete, et une faute de
+ * frappe qui delierait deux taches d'un AUTRE pole ne se verrait nulle part -
+ * ni sur l'ecran ouvert, ni dans le journal.
+ */
+async function poleRemaniable(poleId) {
+  if (!poleId) {
+    const err = new Error('Pole non precise')
+    err.status = 400
+    throw err
+  }
+  if (poleActif(poleId)) {
+    const err = new Error(
+      'Ce pole est en train de tourner. Arrete-le avant de changer son graphe.',
+    )
+    err.status = 409
+    throw err
+  }
+  const { poles } = await lireOrchestration()
+  const pole = poles.find((p) => p.id === poleId)
+  if (!pole) {
+    const err = new Error("Ce pole n'existe plus sur le tableau.")
+    err.status = 404
+    throw err
+  }
+  return pole
+}
+
+function exigerMembre(pole, id, quoi) {
+  if (!pole.taches.some((t) => t.id === id)) {
+    const err = new Error(`${quoi} n'appartient pas a ce pole.`)
+    err.status = 400
+    throw err
+  }
+}
+
+/**
+ * Un graphe change n'est plus le graphe qui a ete valide.
+ *
+ * La porte reste donc fermee jusqu'a une nouvelle lecture de la simulation.
+ * Sans ce retrait, deplacer un lien puis appuyer sur « Lancer » ferait partir
+ * un plan que personne n'a relu - la validation d'hier couvrant le travail
+ * d'aujourd'hui.
+ */
+function graphePerturbe(poleId) {
+  annulerValidation(poleId)
 }
 
 async function handleApi(req, res, url) {
@@ -1623,6 +1642,115 @@ async function handleApi(req, res, url) {
         return sendJson(res, 200, ecrireDisposition(cible, body.noeuds))
       }
       if (method === 'DELETE') return sendJson(res, 200, oublierDisposition(pole))
+    }
+
+    // Une tache de plus, ou une de moins. Le pendant du geste de souris dans le
+    // Studio - et le seul chemin par lequel le Hub ajoute au tableau autre
+    // chose que ce que le decomposeur a produit.
+    if (rest[1] === 'tache') {
+      if (method === 'POST') {
+        const body = await readBody(req)
+        const pole = await poleRemaniable(String(body.pole || ''))
+        const titre = String(body.titre || '').trim()
+        if (!titre) {
+          const err = new Error('Une tache sans titre ne se lit pas sur le graphe.')
+          err.status = 400
+          throw err
+        }
+
+        const parents = (Array.isArray(body.apres) ? body.apres : []).map(String)
+        const enfants = (Array.isArray(body.avant) ? body.avant : []).map(String)
+        for (const id of [...parents, ...enfants]) exigerMembre(pole, id, 'La tache reliee')
+
+        // Sans aucun lien, la tache serait isolee : elle n'appartiendrait a
+        // aucun pole et n'apparaitrait sur aucun graphe. On la rattache alors a
+        // la demande d'origine, qui est par construction la derniere du pole.
+        if (!parents.length && !enfants.length) enfants.push(pole.id)
+
+        const cree = ajouterTache({
+          titre,
+          corps: body.corps ? String(body.corps) : '',
+          agent: body.agent ? String(body.agent) : '',
+          modele: body.modele ? String(body.modele) : '',
+          parents,
+          enfants,
+        })
+
+        // La position est posee dans la foulee : un noeud cree a la souris doit
+        // apparaitre la ou on l'a lache, pas la ou le rangement automatique le
+        // mettrait.
+        if (body.position && Number.isFinite(Number(body.position.x))) {
+          const d = lireDisposition(pole.id).noeuds
+          ecrireDisposition(pole.id, { ...d, [cree.id]: body.position })
+        }
+
+        graphePerturbe(pole.id)
+        return sendJson(res, 201, cree)
+      }
+
+      if (method === 'DELETE') {
+        const pole = await poleRemaniable(String(url.searchParams.get('pole') || ''))
+        const id = String(url.searchParams.get('id') || '')
+        exigerMembre(pole, id, 'La tache')
+
+        // La demande d'origine nomme le pole et sert de point d'arrivee a tout
+        // le reste : la retirer dissoudrait le pole sous les pieds de l'ecran
+        // qui l'affiche.
+        if (id === pole.id) {
+          const err = new Error(
+            'Cette tache est la demande elle-meme : la retirer supprimerait le pole entier.',
+          )
+          err.status = 400
+          throw err
+        }
+
+        const tache = pole.taches.find((t) => t.id === id)
+        if (tache.etat === 'running') {
+          const err = new Error('Cette tache est en cours. Arrete-la avant de la retirer.')
+          err.status = 409
+          throw err
+        }
+
+        const fait = supprimerTache(id)
+        graphePerturbe(pole.id)
+        return sendJson(res, 200, fait)
+      }
+    }
+
+    // Une dependance, posee ou defaite a la souris. `de` finit avant `vers`.
+    if (rest[1] === 'lien') {
+      const lu = method === 'POST' ? await readBody(req) : {}
+      const nom = (cle) => String(lu[cle] || url.searchParams.get(cle) || '')
+      const pole = await poleRemaniable(nom('pole'))
+      const de = nom('de')
+      const vers = nom('vers')
+      exigerMembre(pole, de, 'La tache amont')
+      exigerMembre(pole, vers, 'La tache aval')
+
+      if (method === 'POST') {
+        const fait = relier(de, vers)
+        graphePerturbe(pole.id)
+        return sendJson(res, 201, fait)
+      }
+      if (method === 'DELETE') {
+        // Un noeud qu'on isole completement quitterait le pole a la prochaine
+        // lecture : il n'y a pas d'ecran ou il reapparaitrait, donc pas de
+        // moyen de le rattacher. On refuse plutot que de le faire disparaitre.
+        const restants = pole.liens.filter((l) => !(l.de === de && l.vers === vers))
+        const seul = (id) => !restants.some((l) => l.de === id || l.vers === id)
+        const orpheline = [de, vers].find((id) => seul(id))
+        if (orpheline) {
+          const err = new Error(
+            'Ce lien est le dernier de sa tache : la retirer la sortirait du pole. Relie-la ailleurs d-abord, ou supprime-la.',
+          )
+          err.status = 400
+          throw err
+        }
+
+        const fait = delier(de, vers)
+        graphePerturbe(pole.id)
+        return sendJson(res, 200, fait)
+      }
     }
 
     // L'execution. C'est le geste qui pousse a travers la porte - un autre que

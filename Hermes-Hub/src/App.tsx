@@ -108,8 +108,18 @@ export default function App() {
   // de s'y loger. C'est ce que dit le plan - le Hub est le centre de controle
   // leger, le Studio est l'atelier, et un atelier ne se regarde pas par une
   // fenetre.
+  //
+  // Les notifications le suivent : elles vivaient dans le cadre commun, et le
+  // Studio en sort. Depuis qu'on y remanie le graphe, un refus du tableau - un
+  // lien qui ferme une boucle, un pole qui tourne - n'avait nulle part ou
+  // s'afficher, et le geste semblait n'avoir simplement rien fait.
   if (route.view === 'studio') {
-    return <StudioView poleId={route.param ?? undefined} onQuitter={() => go('orchestration')} />
+    return (
+      <>
+        <StudioView poleId={route.param ?? undefined} onQuitter={() => go('orchestration')} />
+        <Toasts />
+      </>
+    )
   }
 
   return (
