@@ -194,6 +194,149 @@
     border-color: color-mix(in srgb, var(--agent) var(--agent-lisere-vignette), transparent);
   }
 
+  /* Le titre d'une case du graphe. Il ne suit PAS `--texte-echelle` : un graphe
+     se lit a distance, une liste se lit de pres, et les lier obligeait a
+     grossir toute l'application pour rendre le graphe lisible. */
+  .titre-noeud {
+    font-size: var(--noeud-titre);
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+
+  /* --- Le graphe vivant : les etats ----------------------------------------
+     UN SEUL attribut porte l'etat - `data-etat` - et tout le reste en decoule
+     ici. Pas de cascade de classes conditionnelles en TypeScript : la logique
+     visuelle se relit d'un bloc, au lieu de se reconstituer en lisant un
+     composant. C'est la regle du plan, section 4.8.
+
+     Les six etats : endormi, reveil, reflexion, encours, succes, erreur.
+     L'absence d'etat est legitime - une tache qui attend son tour. */
+  .noeud-agent {
+    border-color: color-mix(in srgb, var(--agent) var(--agent-lisere-noeud), transparent);
+    transition:
+      border-color 220ms ease,
+      opacity 220ms ease,
+      filter 220ms ease,
+      box-shadow 220ms ease,
+      transform 220ms ease;
+  }
+
+  /* Present, mais au repos. Il ne s'efface pas : il se retire. */
+  .noeud-agent[data-etat='endormi'] {
+    border-color: color-mix(in srgb, var(--neutre) 40%, transparent);
+    opacity: 0.55;
+    filter: saturate(0.45);
+  }
+
+  /* Son pont est ouvert : present et disponible. Une ombre dans sa propre
+     couleur, et rien qui bouge - etre la n'est pas travailler. */
+  .noeud-agent[data-etat='eveille'] {
+    box-shadow: 0 4px 18px -10px var(--agent);
+  }
+
+  /* Elle attend quelqu'un - une revue, un accord. Ambre et immobile : ce n'est
+     pas un echec, c'est une main levee. */
+  .noeud-agent[data-etat='attente'] {
+    border-color: var(--alerte);
+  }
+
+  /* Il se reveille : la bordure reprend sa couleur, une fois. */
+  .noeud-agent[data-etat='reveil'] {
+    animation: noeud-reveil calc(var(--noeud-eclair) * var(--graphe-mouvement)) ease-out;
+  }
+
+  /* Il reflechit : le halo respire. Tres doux - c'est une attente, pas une
+     alarme. */
+  .noeud-agent[data-etat='reflexion'] {
+    animation: noeud-respire calc(var(--noeud-respire) * var(--graphe-mouvement)) ease-in-out
+      infinite;
+  }
+
+  /* Il travaille : la boite entiere s'allume. Une aura dans sa couleur derriere
+     le cadre, et le noeud se souleve legerement pour se detacher de ses
+     voisins.
+
+     Ce n'etait pas ca avant : un lisere tournait autour du cadre. Deux defauts,
+     et kuchu a vu les deux. Le masque qui devait evider le centre ne se
+     composait pas - le degrade recouvrait le texte au lieu de le contourner -
+     et un anneau qui tourne se lit comme un chargement, pas comme un agent au
+     travail. Le mecanisme est retire, pas repare. */
+  .noeud-agent[data-etat='encours'] {
+    border-color: var(--agent);
+    transform: scale(var(--noeud-zoom));
+    /* Sans ca, l'aura passerait SOUS la carte voisine et serait rognee. */
+    z-index: 2;
+    animation: noeud-aura calc(var(--noeud-respire) * var(--graphe-mouvement)) ease-in-out infinite;
+  }
+
+  /* C'est fait : le noeud se retire. Un contour neutre, pas vert.
+     Sur un pole termine, quinze liserés verts font une guirlande qui crie
+     autant que les noeuds au travail - or une tache finie n'a plus rien a
+     demander. La coche reste verte, elle : c'est elle qui dit le succes, et
+     elle suffit. */
+  .noeud-agent[data-etat='succes'] {
+    border-color: color-mix(in srgb, var(--neutre) var(--noeud-fini), transparent);
+    transition-duration: calc(var(--noeud-succes) * var(--graphe-mouvement));
+  }
+
+  /* Une secousse, PUIS PLUS RIEN. La bordure rouge reste, elle. */
+  .noeud-agent[data-etat='erreur'] {
+    border-color: var(--danger);
+    animation: noeud-secousse calc(var(--noeud-eclair) * var(--graphe-mouvement)) ease-in-out;
+  }
+
+  /* --- Le graphe vivant : les liaisons -------------------------------------
+     Le scintillement est en CSS pur, donc compose par le GPU. Une animation
+     pilotee en JavaScript image par image s'effondrerait bien avant trente
+     liaisons simultanees. */
+  .liaison {
+    opacity: var(--liaison-repos);
+    transition: opacity 260ms ease;
+  }
+
+  /* Elle transporte : les tirets defilent le long du chemin. */
+  .liaison[data-transit='oui'] {
+    opacity: 1;
+    stroke-dasharray: 6 8;
+    animation: liaison-defile calc(var(--liaison-scintille) * var(--graphe-mouvement)) linear
+      infinite;
+  }
+
+  /* Elle a echoue : tirets FIGES. L'arret du mouvement dit l'echec avant que
+     la couleur ne soit lue. */
+  .liaison[data-transit='erreur'] {
+    opacity: 1;
+    stroke: var(--danger);
+    stroke-dasharray: 6 8;
+  }
+
+  /* Les pointes de fleche ne s'affichent QUE sur le chemin actif. Huit noeuds
+     relies font huit fleches qui pointent en meme temps, et l'oeil ne sait plus
+     ou aller : c'est du brouillon. La courbe suffit a dire la structure ; la
+     fleche dit la circulation, et elle n'a de sens que quand ca circule. */
+  .liaison:not([data-chemin]) {
+    marker-end: none;
+  }
+
+  /* Section 4.5 : quand un chemin s'active, les autres descendent sans
+     disparaitre. L'attention va au bon endroit, la structure reste lisible. */
+  [data-focus='oui'] .liaison:not([data-chemin]) {
+    opacity: var(--liaison-estompee);
+  }
+
+  .liaison[data-chemin='oui'] {
+    opacity: 0.95;
+  }
+
+  /* Le budget d'animation, section 4.7 : au-dela d'un certain nombre de
+     liaisons actives, le scintillement se coupe et la couleur suffit. Un
+     graphe qui rame donne l'impression que le systeme rame, meme quand les
+     agents travaillent parfaitement. */
+  [data-sobre='oui'] .liaison[data-transit='oui'] {
+    animation: none;
+  }
+
   /* --- La typographie qui porte du sens ------------------------------------
      Ces classes remplacent les `text-[13px]` ecrits dans les composants. Une
      taille nommee se regle ; une taille chiffree se retrouve a la main dans
@@ -297,6 +440,57 @@
      elastiques aussi ferait bouger tout l'ecran d'un coup.
      0.85 = compact, 1 = normal, 1.2 = aere. */
   --densite: 1;
+
+  /* --- Le graphe vivant ----------------------------------------------------
+     Le mouvement dit l'etat avant que la couleur ne soit lue. Trois regles le
+     gouvernent, et elles ne se negocient pas :
+
+       - l'erreur ne clignote JAMAIS en boucle : une secousse, puis plus rien.
+         Une bordure rouge fixe se voit aussi bien et ne fatigue pas au bout de
+         trois minutes ;
+       - un agent endormi se desature, il ne disparait pas : la carte mentale
+         du pole reste entiere, on voit ou il est meme au repos ;
+       - sous `prefers-reduced-motion`, tout le mouvement cesse et la couleur
+         seule porte l'information. Rien ne se perd.
+
+     Ralentir l'ensemble : monter `--graphe-mouvement`. Tout figer sans passer
+     par le systeme d'exploitation : le mettre a 0. */
+  --graphe-mouvement: 1; /* 0 = fige, 1 = normal, 2 = deux fois plus lent */
+
+  /* Le halo qui respire pendant la reflexion, et l'aura de l'execution. En
+     dessous de 1,2 s ca s'agite au lieu de respirer. */
+  --noeud-respire: 2s;
+
+  /* Le noeud au travail se souleve pour se detacher de ses voisins. 1 = a plat,
+     1.03 = discret, 1.08 = il sort franchement du plan. Au-dela, il chevauche
+     ses voisins et le graphe se defait. */
+  --noeud-zoom: 1.03;
+  /* La portee de l'aura autour de la boite au travail. 0 = aucune lueur,
+     26px = elle deborde nettement, 50px = la carte flotte. */
+  --noeud-aura: 26px;
+  /* Les deux mouvements brefs : pulsation du reveil, secousse de l'erreur.
+     Au-dela de 500 ms, ce n'est plus un accent, c'est une animation. */
+  --noeud-eclair: 300ms;
+  /* Le fondu vers l'etat termine. */
+  --noeud-succes: 1.2s;
+  /* Force du contour d'une tache finie. Neutre a dessein : le vert etait trop
+     present sur un pole entierement termine. 25% = a peine la, 60% = un cadre
+     franc, 100% = gris plein. */
+  --noeud-fini: 45%;
+
+  /* La taille du titre dans une case du graphe. Il vit ici et non dans le bloc
+     typographie parce qu'il ne suit pas `--texte-echelle` : on regle la
+     lisibilite du graphe sans toucher au reste de l'application. */
+  --noeud-titre: 15px;
+
+  /* Defilement des tirets sur une liaison qui transporte. */
+  --liaison-scintille: 1.2s;
+  /* Opacite d'une liaison au repos. Volontairement discrete : au repos elle
+     dit la structure, pas la circulation. 0.5 = elle revient au premier plan. */
+  --liaison-repos: 0.28;
+  /* Une liaison hors du chemin actif : effacee, jamais absente. C'est ce qui
+     permet de garder la structure lisible pendant qu'on suit un chemin. */
+  --liaison-estompee: 0.15;
 }
 
 /* ==========================================================================
@@ -491,4 +685,121 @@
 
 .antique ::-webkit-scrollbar-thumb {
   background-color: #e6ddcd;
+}
+
+/* ==========================================================================
+   Le graphe vivant : les images-cles
+   --------------------------------------------------------------------------
+   Elles vivent hors de `@layer` et en fin de fichier, a cote des themes : ce
+   sont des declarations globales, pas des classes de composant.
+
+   Toutes n'animent que `transform`, `opacity` et `box-shadow` - jamais une
+   propriete qui declenche un recalcul de mise en page. C'est ce qui permet de
+   tenir trente liaisons et quinze noeuds sans que le graphe rame.
+   ========================================================================== */
+
+/* Le reveil : une pulsation breve, une seule fois. */
+@keyframes noeud-reveil {
+  0% {
+    transform: scale(0.97);
+    opacity: 0.6;
+  }
+  60% {
+    transform: scale(1.015);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* La reflexion : le halo respire. Volontairement tres doux - il doit se
+   remarquer sans attirer, sinon quinze noeuds font un sapin de Noel. */
+@keyframes noeud-respire {
+  0%,
+  100% {
+    box-shadow: 0 4px 16px -8px var(--agent);
+  }
+  50% {
+    box-shadow: 0 4px 26px -6px var(--agent);
+  }
+}
+
+/* L'execution : l'aura enfle et retombe. Plus large et plus franche que le
+   halo de la reflexion - celui-la dit « il cherche », celle-ci dit « il
+   travaille en ce moment », et les deux doivent se distinguer d'un coup d'oeil
+   sans qu'on ait a comparer.
+
+   `transform` est repete dans chaque etape : une animation qui n'annonce pas
+   la transformation ecraserait le `scale` de la regle. */
+@keyframes noeud-aura {
+  0%,
+  100% {
+    transform: scale(var(--noeud-zoom));
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--agent) 35%, transparent),
+      0 6px calc(var(--noeud-aura) * 0.7) -4px var(--agent);
+  }
+  50% {
+    transform: scale(var(--noeud-zoom));
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--agent) 55%, transparent),
+      0 6px var(--noeud-aura) -2px var(--agent);
+  }
+}
+
+/* L'erreur : une secousse, et c'est tout. Faible amplitude - trois pixels
+   suffisent a se faire voir, dix donnent l'impression d'un bug. */
+@keyframes noeud-secousse {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+
+/* Les tirets defilent vers la cible : c'est ce qui donne le sens de
+   circulation sans ajouter une seule fleche. */
+@keyframes liaison-defile {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   La discipline, section 4.7 du plan.
+
+   Le systeme d'exploitation sait si l'utilisateur veut moins d'animation. Sans
+   ce bloc, le produit devient inutilisable pour une partie des gens - et ca
+   coute cinq lignes.
+
+   L'information ne se perd pas : elle repasse entierement par la couleur. Le
+   lisere tournant devient un anneau plein, les tirets se figent, les bordures
+   d'etat restent exactement les memes.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .noeud-agent,
+  .liaison {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Les deux etats qui vivaient d'un mouvement gardent leur signe : l'aura et
+     le halo se figent a mi-course, le soulevement reste. Rien ne se perd - on
+     lit toujours qui travaille et qui reflechit. */
+  .noeud-agent[data-etat='encours'] {
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--agent) 55%, transparent),
+      0 6px var(--noeud-aura) -2px var(--agent);
+  }
+
+  .noeud-agent[data-etat='reflexion'] {
+    box-shadow: 0 4px 22px -7px var(--agent);
+  }
 }

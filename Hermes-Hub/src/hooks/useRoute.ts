@@ -6,9 +6,13 @@ export interface Route {
   param: string | null
 }
 
+// Liste blanche : une vue absente d'ici est silencieusement renvoyee sur
+// l'accueil. Ajouter une page sans ajouter son nom ici donne exactement le
+// symptome le plus deroutant qui soit - l'URL change, et rien ne se passe.
 const VIEWS: View[] = [
   'home',
   'orchestration',
+  'studio',
   'projects',
   'project',
   'clean',

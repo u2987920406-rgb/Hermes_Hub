@@ -8,6 +8,7 @@ import { CleanView } from './pages/CleanView'
 import { ConfigView } from './pages/ConfigView'
 import { HomeView } from './pages/HomeView'
 import { OrchestrationView } from './pages/OrchestrationView'
+import { StudioView } from './pages/StudioView'
 import { ProjectDetail } from './pages/ProjectDetail'
 import { ProjectsView } from './pages/ProjectsView'
 import { TrashView } from './pages/TrashView'
@@ -73,7 +74,12 @@ export default function App() {
           />
         )
       case 'orchestration':
-        return <OrchestrationView onMenu={() => setMenuOpen(true)} />
+        return (
+          <OrchestrationView
+            onMenu={() => setMenuOpen(true)}
+            onStudio={(poleId) => go('studio', poleId)}
+          />
+        )
       case 'clean':
         return <CleanView onMenu={() => setMenuOpen(true)} />
       case 'vault':
@@ -96,6 +102,14 @@ export default function App() {
         </div>
       </div>
     )
+  }
+
+  // Le Studio prend tout l'ecran : il sort du cadre a barre laterale au lieu
+  // de s'y loger. C'est ce que dit le plan - le Hub est le centre de controle
+  // leger, le Studio est l'atelier, et un atelier ne se regarde pas par une
+  // fenetre.
+  if (route.view === 'studio') {
+    return <StudioView poleId={route.param ?? undefined} onQuitter={() => go('orchestration')} />
   }
 
   return (

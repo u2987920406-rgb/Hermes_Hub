@@ -31,7 +31,7 @@ import { Conversation } from '../components/Conversation'
 import { FenetreSimulation } from '../components/FenetreSimulation'
 import { Modal } from '../components/Modal'
 import { Organigramme } from '../components/Organigramme'
-import type { LienOrg, NoeudOrg } from '../components/Organigramme'
+import type { EtatNoeud, LienOrg, NoeudOrg } from '../components/Organigramme'
 import { PageHeader } from '../components/PageHeader'
 import { api, ecouterChat } from '../lib/api'
 import { ETATS_TACHE } from '../types'
@@ -49,11 +49,45 @@ import type {
 
 interface Props {
   onMenu: () => void
+  /** Ouvrir un pole dans le Studio : c'est la que le travail se fait, pas dans
+      une fenetre modale d'ou l'on ne peut rien saisir. */
+  onStudio: (poleId: string) => void
 }
 
 const FINI: EtatTache[] = ['done']
-const BLOQUE: EtatTache[] = ['blocked', 'review']
 const DORMANT: EtatTache[] = ['triage', 'todo', 'scheduled']
+
+/**
+ * L'etat du tableau traduit en etat visuel.
+ *
+ * C'est la vue de repos : ce que le tableau des taches sait dire quand on
+ * ouvre le pole. Les etats fugaces - reveil, reflexion - n'existent pas ici,
+ * ils n'arrivent que par le flux (voir `vivant`).
+ */
+function etatVisuel(etat: EtatTache): EtatNoeud | undefined {
+  if (FINI.includes(etat)) return 'succes'
+  if (etat === 'blocked') return 'erreur'
+  if (etat === 'review') return 'attente'
+  if (etat === 'running') return 'encours'
+  if (DORMANT.includes(etat)) return 'endormi'
+  // `ready` : elle attend son tour, et ca se dit en ne disant rien.
+  return undefined
+}
+
+/**
+ * Ce que le flux SSE dit d'une tache, et que le tableau ne sait pas.
+ *
+ * Le tableau connait quatre etats durables ; le pont en emet de bien plus
+ * fins, et ce sont eux qui rendent le graphe vivant : l'agent se reveille, il
+ * reflechit, il ecrit. Ces etats-la ne survivent pas a un rechargement, et
+ * c'est normal - ils decrivent un instant, pas une situation.
+ */
+const ETAT_DU_FLUX: Record<string, EtatNoeud> = {
+  'tour-debut': 'encours',
+  reflexion: 'reflexion',
+  texte: 'encours',
+  text: 'encours',
+}
 
 type Volet = 'historique' | 'conversation' | 'agents' | 'poles'
 
@@ -75,7 +109,7 @@ type Ouvert =
   | { genre: 'equipe-nommee'; id: string }
   | { genre: 'pole'; id: string }
 
-export function OrchestrationView({ onMenu }: Props) {
+export function OrchestrationView({ onMenu, onStudio }: Props) {
   const [data, setData] = useState<Orchestration | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [volet, setVolet] = useState<Volet>('conversation')
@@ -107,6 +141,15 @@ export function OrchestrationView({ onMenu }: Props) {
   const [accords, setAccords] = useState<(DemandeAutorisation & { agent: string; pole: string })[]>(
     [],
   )
+
+  /**
+   * Ce que le flux dit des taches en ce moment meme, par identifiant.
+   *
+   * Volontairement hors du chargement : ces etats ne se rechargent pas, ils
+   * arrivent. Un rechargement de page les perd, et c'est juste - ils decrivent
+   * un instant qui est deja passe.
+   */
+  const [vivant, setVivant] = useState<Map<string, EtatNoeud>>(new Map())
 
   /** La conversation a rouvrir : posee par l'historique, consommee par le
       volet Conversation. Null = le direct. */
@@ -179,7 +222,33 @@ export function OrchestrationView({ onMenu }: Props) {
         ])
       }
 
+      // C'est ici que le graphe devient vivant. Le pont marque chaque trame de
+      // la tache en cours (`pont.contexte`), donc ces evenements savent de quel
+      // noeud ils parlent - sans quoi on saurait qu'un agent reflechit, mais
+      // pas sur quoi.
+      const tache = (e as { tache?: string }).tache
+      const fugace = ETAT_DU_FLUX[e.type]
+      if (fugace && tache) {
+        // Une reflexion emet des dizaines de trames par seconde. Sans cette
+        // garde, chacune reconstruirait la table et rerendrait le graphe pour
+        // y reecrire la meme valeur.
+        setVivant((v) => (v.get(tache) === fugace ? v : new Map(v).set(tache, fugace)))
+        return
+      }
+
       if (e.type === 'tache-etat') {
+        setVivant((v) => {
+          // `running` = la tache vient d'etre saisie et l'agent s'ouvre. C'est
+          // le reveil - la seule source fiable pour cet etat, parce que les
+          // trames `reveil` de l'equipage ne portent pas de tache : elles
+          // parlent d'un agent, et un agent n'est pas un noeud du graphe.
+          if (e.etat === 'running') return new Map(v).set(e.tache, 'reveil')
+          // Sinon l'etat durable reprend la main : il vient du tableau, il fait foi.
+          if (!v.has(e.tache)) return v
+          const n = new Map(v)
+          n.delete(e.tache)
+          return n
+        })
         // Une tache qui quitte `running` emporte ses demandes en suspens :
         // elles ne s'adressent plus a personne.
         if (e.etat !== 'running') setAccords((a) => a.filter((d) => d.agent !== e.agent))
@@ -188,6 +257,8 @@ export function OrchestrationView({ onMenu }: Props) {
         return
       }
       if (e.type === 'chantier-debut' || e.type === 'chantier-fin' || e.type === 'chantier-panne') {
+        // Plus personne ne travaille : les etats d'instant n'ont plus d'objet.
+        if (e.type !== 'chantier-debut') setVivant(new Map())
         if (e.type !== 'chantier-debut') setAccords((a) => a.filter((d) => d.pole !== e.pole))
         void chargerChantiers()
         void charger()
@@ -303,6 +374,56 @@ export function OrchestrationView({ onMenu }: Props) {
           </button>
         }
       />
+
+      {/* Une porte fermee doit se voir de partout.
+          Ces demandes n'etaient affichees que dans la fenetre de simulation.
+          Consequence vue en conditions reelles : un pole lance depuis
+          l'organigramme s'arretait sur la premiere autorisation, sans un mot,
+          et restait fige indefiniment - vingt-sept minutes avant qu'on ne
+          comprenne pourquoi « rien ne bougeait ». Un agent qui attend une
+          reponse bloque toute la chaine derriere lui : c'est exactement ce
+          qu'on ne peut pas se permettre de rater. */}
+      {accords.length > 0 && (
+        <div
+          data-zone="accords-orchestration"
+          className="flex-shrink-0 border-b border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-500/40 dark:bg-amber-500/10"
+        >
+          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 dark:text-amber-300">
+            <AlertTriangle className="h-3.5 w-3.5 flex-none" />
+            {accords.length === 1
+              ? 'Un agent attend ta reponse - le pole est arrete tant qu-elle ne vient pas.'
+              : `${accords.length} agents attendent ta reponse - les poles sont arretes.`}
+          </p>
+          <div className="space-y-1.5">
+            {accords.map((d) => (
+              <div
+                key={`${d.agent}-${d.demande}`}
+                className="flex flex-wrap items-center gap-2 rounded-lg bg-white/70 px-2.5 py-1.5 dark:bg-navy-900/60"
+              >
+                <span className="text-[11px] font-semibold">{d.agent}</span>
+                {/* Le titre peut porter un script entier : on le borne, sinon
+                    une demande chasse toutes les autres hors de l'ecran. */}
+                <span className="min-w-0 flex-1 truncate text-[11px] muted" title={d.titre}>
+                  {d.titre}
+                </span>
+                {d.options.map((o) => (
+                  <button
+                    key={o.id}
+                    onClick={() => void repondreAccord(d.demande, d.agent, o.id)}
+                    className={
+                      o.genre?.startsWith('reject')
+                        ? 'btn-ghost flex-none px-2 py-1 text-[11px]'
+                        : 'btn-primary flex-none px-2 py-1 text-[11px]'
+                    }
+                  >
+                    {o.libelle}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <nav
@@ -463,7 +584,7 @@ export function OrchestrationView({ onMenu }: Props) {
                                 ? 'fini'
                                 : 'attente'
                           }
-                          onOuvrir={() => setOuvert({ genre: 'pole', id: p.id })}
+                          onOuvrir={() => onStudio(p.id)}
                         />
                       ))}
                     </div>
@@ -526,7 +647,7 @@ export function OrchestrationView({ onMenu }: Props) {
               {poleOuvert.corps}
             </p>
           )}
-          <Organigramme {...poleEnGraphe(poleOuvert, agents)} />
+          <Organigramme {...poleEnGraphe(poleOuvert, agents, vivant)} />
 
           {/* La simulation est la seule action offerte ici, et c'est voulu :
               de ce panneau on ne lance rien, on va d'abord voir ce que ca
@@ -816,8 +937,9 @@ function equipeEnGraphe(
     sousTitre: a.metier || 'Sans description : le decomposeur ne saura pas quoi lui confier.',
     couleur: a.couleur,
     icone: a.icone,
-    endormi: !a.eveille,
-    actif: a.eveille,
+    // Un agent eveille n'est pas un agent au travail : son pont est ouvert,
+    // c'est tout. L'organigramme d'equipe ne parle pas de taches.
+    etat: a.eveille ? 'eveille' : 'endormi',
     muet: !a.pretAServir,
     etiquette: a.taches > 0 ? `${a.taches} tache${a.taches > 1 ? 's' : ''}` : undefined,
   }))
@@ -839,6 +961,7 @@ function equipeEnGraphe(
 function poleEnGraphe(
   pole: Pole,
   agents: Agent[],
+  vivant: Map<string, EtatNoeud>,
 ): { noeuds: NoeudOrg[]; liens: LienOrg[]; vide: string; numeroter: true } {
   const parId = new Map(agents.map((a) => [a.id, a]))
 
@@ -853,10 +976,10 @@ function poleEnGraphe(
       sousTitre: a ? `${a.nom}${t.modele ? ` - ${t.modele}` : ''}` : t.agent || 'non assignee',
       couleur: a?.couleur || 'ardoise',
       icone: a?.icone || 'agent',
-      fini: FINI.includes(t.etat),
-      bloque: BLOQUE.includes(t.etat),
-      actif: t.etat === 'running',
-      endormi: DORMANT.includes(t.etat),
+      // `blocked` vient de `#bloquer` cote serveur : c'est un echec, donc du
+      // rouge. `review` est une attente, donc de l'ambre. L'ancien code leur
+      // donnait la meme bordure et effacait la difference.
+      etat: vivant.get(t.id) ?? etatVisuel(t.etat),
       etiquette: ETATS_TACHE[t.etat] || t.etat,
     }
   })

@@ -13,6 +13,28 @@ import { Check } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 
+/**
+ * Les etats d'un noeud, tels qu'ils partent dans `data-etat`.
+ *
+ * Six viennent du plan (section 4.2), deux s'y ajoutent parce qu'ils existent
+ * deja dans le Hub et qu'il aurait fallu detruire du sens pour rentrer dans le
+ * tableau :
+ *
+ *   - `eveille` : un agent dont le pont est ouvert. Present, pas au travail -
+ *     l'organigramme d'equipe ne parle pas de taches ;
+ *   - `attente` : une tache en revue. Ambre, immobile. A ne pas confondre avec
+ *     `erreur`, qui est rouge et vient d'un echec reel.
+ */
+export type EtatNoeud =
+  | 'endormi'
+  | 'eveille'
+  | 'reveil'
+  | 'reflexion'
+  | 'encours'
+  | 'attente'
+  | 'succes'
+  | 'erreur'
+
 export interface NoeudOrg {
   id: string
   titre: string
@@ -20,14 +42,15 @@ export interface NoeudOrg {
   /** Jeton de couleur : `ciel`, `violet`, `ambre`... */
   couleur: string
   icone: string
-  /** Assombri et desature : present, mais au repos. */
-  endormi?: boolean
-  /** Liseré vert et coche. */
-  fini?: boolean
-  /** Anneau dans la couleur de l'agent : il travaille en ce moment. */
-  actif?: boolean
-  /** Bordure ambre : il attend quelque chose. */
-  bloque?: boolean
+  /**
+   * L'etat, en UN seul attribut - il part tel quel dans `data-etat` et toute
+   * l'apparence en decoule dans `index.css`. C'etait quatre booleens
+   * reconstruits en cascade de classes ici meme ; la logique visuelle vit
+   * desormais dans la feuille de style, ou elle se relit d'un bloc.
+   *
+   * L'absence d'etat est legitime : une tache qui attend simplement son tour.
+   */
+  etat?: EtatNoeud
   /** Barre le noeud d'un avertissement : il ne repondra jamais. */
   muet?: boolean
   etiquette?: string
@@ -52,17 +75,20 @@ export interface LienOrg {
  * Ce sont les molettes a tourner si un pole deborde de son bloc : reduire `L`
  * agit plus vite que reduire les ecarts.
  */
+/** Les etats qui veulent dire « quelqu'un travaille la, en ce moment ». */
+const AU_TRAVAIL = new Set<string | undefined>(['reveil', 'encours', 'reflexion'])
+
 const REGLAGES = {
   /** Largeur d'une case. En dessous de 150, un nom sur deux lignes deborde. */
-  L: 184,
+  L: 224,
   /** Hauteur d'une case. Elle doit loger nom + metier + etiquette. */
-  H: 78,
+  H: 98,
   /** Entre deux cases d'un meme etage, horizontalement. */
-  ECART_X: 68,
+  ECART_X: 92,
   /** Entre deux cases d'un meme etage, verticalement. */
-  ECART_Y: 18,
+  ECART_Y: 28,
   /** Entre deux etages : assez pour que la fleche se voie. */
-  ECART_NIVEAU: 44,
+  ECART_NIVEAU: 76,
 } as const
 
 const { L, H, ECART_X, ECART_Y, ECART_NIVEAU } = REGLAGES
@@ -191,18 +217,40 @@ export function Organigramme({ noeuds, liens, vide, numeroter, sens = 'droite' }
     })
     hauteur = y - ECART_NIVEAU
   } else {
-    const hauteurMax = Math.max(...rangs.map((r) => colonnes.get(r)!.length))
-    largeur = rangs.length * L + (rangs.length - 1) * ECART_X
-    hauteur = hauteurMax * H + (hauteurMax - 1) * ECART_Y
+    /**
+     * La chaine de travail se replie, elle aussi - et pour la meme raison.
+     *
+     * Elle filait sur une seule ligne : huit taches en pleine taille font plus
+     * de deux mille pixels. Restaient deux mauvaises sorties - retrecir, et
+     * plus rien ne se lit ; ou defiler, et on perd la vue d'ensemble. Les deux
+     * reviennent a renoncer a ce pour quoi on dessine un graphe.
+     *
+     * On la replie donc comme un texte : de gauche a droite, puis a la ligne.
+     * L'ordre de lecture reste celui du temps, et c'est exactement ce que
+     * disent deja les numeros d'etape dans le coin des cases.
+     */
+    const utile = Math.max(L, largeurDispo || 900)
+    const parRangee = Math.max(1, Math.floor((utile + ECART_X) / (L + ECART_X)))
 
-    rangs.forEach((r, i) => {
-      const membres = colonnes.get(r)!
-      const total = membres.length * H + (membres.length - 1) * ECART_Y
-      membres.forEach((n, j) => {
-        pos.set(n.id, {
-          x: i * (L + ECART_X),
-          y: (hauteur - total) / 2 + j * (H + ECART_Y),
-        })
+    // Les taches dans l'ordre d'execution : par profondeur, puis dans l'ordre
+    // ou elles se presentent au sein d'un meme etage.
+    const suite = rangs.flatMap((r) => colonnes.get(r)!)
+    const parLigneReel = Math.min(parRangee, suite.length)
+    const rangees = Math.ceil(suite.length / parRangee)
+
+    largeur = parLigneReel * L + (parLigneReel - 1) * ECART_X
+    hauteur = rangees * H + (rangees - 1) * ECART_NIVEAU
+
+    suite.forEach((n, i) => {
+      const ligne = Math.floor(i / parRangee)
+      const colonne = i % parRangee
+      // La derniere rangee est rarement pleine : on la centre, sinon elle
+      // pend a gauche et le bloc parait casse.
+      const surCetteLigne = Math.min(parRangee, suite.length - ligne * parRangee)
+      const total = surCetteLigne * L + (surCetteLigne - 1) * ECART_X
+      pos.set(n.id, {
+        x: (largeur - total) / 2 + colonne * (L + ECART_X),
+        y: ligne * (H + ECART_NIVEAU),
       })
     })
   }
@@ -220,17 +268,51 @@ export function Organigramme({ noeuds, liens, vide, numeroter, sens = 'droite' }
       const y1 = vertical ? a.y + H : a.y + H / 2
       const x2 = vertical ? b.x + L / 2 : b.x
       const y2 = vertical ? b.y : b.y + H / 2
+      // Une liaison ne transporte que quand il y a vraiment quelque chose
+      // dessus : le parent a fini, l'enfant travaille sur ce qu'il vient de
+      // rendre. Faire scintiller toute liaison touchant un noeud actif
+      // allumerait la moitie du graphe et ne dirait plus rien.
+      const source = parId.get(l.de)!
+      const cible = parId.get(l.vers)!
+
+      // Section 4.5 : le chemin actif, c'est ce qui touche un noeud au travail
+      // - d'ou lui vient sa matiere, et ou partira son resultat. Plus large que
+      // le transit, a dessein : on veut voir la trajectoire, pas seulement le
+      // segment qui transporte a cet instant.
+      const chemin = AU_TRAVAIL.has(source.etat) || AU_TRAVAIL.has(cible.etat) ? 'oui' : undefined
+
+      const transit =
+        cible.etat === 'erreur'
+          ? 'erreur'
+          : source.etat === 'succes' && (cible.etat === 'encours' || cible.etat === 'reflexion')
+            ? 'oui'
+            : undefined
+
       return {
         cle: `${l.de}-${l.vers}-${i}`,
         d: courbe(x1, y1, x2, y2, vertical),
-        de: parId.get(l.de)!.couleur,
-        vers: parId.get(l.vers)!.couleur,
+        de: source.couleur,
+        vers: cible.couleur,
+        transit,
+        chemin,
         x1,
         y1,
         x2,
         y2,
       }
     })
+
+  // Le budget d'animation (section 4.7) : au-dela de huit liaisons qui
+  // scintillent en meme temps, la couleur suffit. Un graphe qui rame donne
+  // l'impression que le systeme rame, meme quand les agents travaillent bien.
+  const sobre = traces.filter((t) => t.transit === 'oui').length > 8 ? 'oui' : undefined
+
+  // Le focus ne s'allume que si quelqu'un travaille : sur un pole au repos,
+  // estomper les liaisons n'attirerait l'attention nulle part - ca ne ferait
+  // que rendre le graphe plus pale.
+  const actif = noeuds.find((n) => AU_TRAVAIL.has(n.etat))
+  const focus = actif ? 'oui' : undefined
+  const posActif = actif ? pos.get(actif.id) : undefined
 
   /**
    * Une chaine de travail ne se replie pas - son ordre est celui du temps -
@@ -239,16 +321,51 @@ export function Organigramme({ noeuds, liens, vide, numeroter, sens = 'droite' }
    * deviendraient illisibles et il vaut mieux rendre le defilement, qui est
    * alors le moindre mal.
    */
-  const echelle =
-    !vertical && largeurDispo > 0 && largeur > largeurDispo
-      ? Math.max(0.6, largeurDispo / largeur)
-      : 1
+  /**
+   * Plus aucune reduction : un noeud fait la meme taille partout.
+   *
+   * Avant, une chaine trop large etait mise a l'echelle jusqu'a 60 % pour
+   * tenir dans le cadre. Consequence : un pole de quatre taches s'affichait en
+   * grand et lisible, le meme pole a huit taches devenait illisible - deux
+   * graphes qui ne se ressemblaient plus, alors que c'est le meme objet.
+   *
+   * Elle se replie desormais sur plusieurs rangees. Un noeud fait la meme
+   * taille partout, quel que soit le nombre de taches.
+   */
+  const deborde = !vertical && largeurDispo > 0 && largeur > largeurDispo
+
+  /**
+   * Section 4.5, le recentrage : il ne reste qu'un filet de securite.
+   *
+   * Depuis que la chaine se replie, plus rien ne deborde horizontalement, donc
+   * ce code ne s'execute jamais dans un cas normal. Il est garde pour la
+   * fenetre vraiment trop etroite - un telephone en portrait - ou une seule
+   * case tient par rangee. Il sort immediatement s'il n'y a pas de quoi
+   * defiler, ce qui est le cas general.
+   */
+  const xActif = posActif ? posActif.x + L / 2 : null
+  useEffect(() => {
+    const el = cadre.current
+    if (!el || xActif === null) return
+    if (el.scrollWidth <= el.clientWidth + 1) return
+
+    const cible = Math.max(0, Math.min(xActif - el.clientWidth / 2, el.scrollWidth - el.clientWidth))
+    // Un recentrage de trois pixels est un tremblement, pas une aide.
+    if (Math.abs(el.scrollLeft - cible) < 24) return
+
+    const sobrement =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    el.scrollTo({ left: cible, behavior: sobrement ? 'auto' : 'smooth' })
+  }, [xActif])
 
   return (
     // Rien ne depasse : le bloc est calcule pour la place disponible, donc
     // aucune barre de defilement a manipuler pour voir qui est qui.
     <div
       data-zone="organigramme"
+      data-sobre={sobre}
+      data-focus={focus}
       ref={cadre}
       className={vertical ? 'flex justify-center pb-1' : 'pb-1'}
       // Les deux axes sont declares : masquer le seul axe horizontal ferait
@@ -257,11 +374,7 @@ export function Organigramme({ noeuds, liens, vide, numeroter, sens = 'droite' }
       style={
         vertical
           ? undefined
-          : {
-              height: hauteur * echelle,
-              overflowX: echelle > 0.6 ? 'hidden' : 'auto',
-              overflowY: 'hidden',
-            }
+          : { height: hauteur, overflowX: deborde ? 'auto' : 'hidden', overflowY: 'hidden' }
       }
     >
       <div
@@ -270,8 +383,6 @@ export function Organigramme({ noeuds, liens, vide, numeroter, sens = 'droite' }
           width: largeur,
           height: hauteur,
           minWidth: vertical ? undefined : largeur,
-          transform: echelle === 1 ? undefined : `scale(${echelle})`,
-          transformOrigin: 'top left',
         }}
       >
         <svg
@@ -318,13 +429,18 @@ export function Organigramme({ noeuds, liens, vide, numeroter, sens = 'droite' }
           {traces.map((t) => (
             <path
               key={t.cle}
+              // `data-transit` absent = au repos. `oui` = elle transporte, les
+              // tirets defilent. `erreur` = tirets figes : l'arret du mouvement
+              // dit l'echec avant que la couleur ne soit lue.
+              className="liaison"
+              data-transit={t.transit}
+              data-chemin={t.chemin}
               d={t.d}
               fill="none"
               strokeWidth={2.5}
               strokeLinecap="round"
               stroke={`url(#org-${t.cle})`}
               markerEnd={`url(#pointe-${t.cle})`}
-              opacity={0.85}
             />
           ))}
         </svg>
@@ -345,37 +461,26 @@ export function Organigramme({ noeuds, liens, vide, numeroter, sens = 'droite' }
 function CarteNoeud({ noeud, etape }: { noeud: NoeudOrg; etape?: number }) {
   const style = { '--agent': `var(--jeton-${noeud.couleur})` } as CSSProperties
 
-  // L'etat prime sur l'identite pour la bordure - un travail termine ou bloque
-  // doit se lire avant de savoir a qui il appartient. Partout ailleurs, c'est
-  // la couleur de l'agent qui tient le cadre, via `--agent-lisere-noeud`.
-  const bordure = noeud.fini
-    ? { borderColor: 'var(--succes)' }
-    : noeud.bloque
-      ? { borderColor: 'var(--alerte)' }
-      : undefined
-
+  // Plus une seule condition sur l'apparence ici : `data-etat` part tel quel et
+  // `index.css` decide. L'etat prime sur l'identite pour la bordure - un
+  // travail termine ou echoue doit se lire avant de savoir a qui il appartient
+  // - mais c'est la feuille de style qui l'exprime, par ordre de declaration.
   return (
     <div
       data-zone="noeud-organigramme"
-      style={{ ...style, ...bordure }}
+      data-etat={noeud.etat}
+      style={style}
       className={[
-        'relative flex h-full flex-col gap-1 overflow-hidden rounded-xl border-[1.5px]',
+        'noeud-agent relative flex h-full flex-col gap-1 rounded-xl border-[1.5px]',
         'bg-white px-2.5 py-2 dark:bg-navy-900',
-        bordure ? '' : 'lisere-agent-noeud',
-        noeud.endormi ? 'opacity-70 saturate-[.45]' : '',
       ].join(' ')}
     >
       {/* Aucun voile de couleur sous le contenu : quinze cartes teintees font
           un nuancier ou le texte se lit mal. Le fond reste celui du theme,
-          l'identite tient au liseré et au point. */}
-      {/* Il travaille : anneau et ombre portee dans sa propre couleur. */}
-      {noeud.actif && (
-        <span
-          className="pointer-events-none absolute -inset-px rounded-xl"
-          style={{ border: '2px solid var(--agent)', boxShadow: '0 5px 20px -8px var(--agent)' }}
-        />
-      )}
+          l'identite tient au liseré et au point.
 
+          L'anneau du travail en cours n'est plus dessine ici : c'est le
+          `::after` de `.noeud-agent[data-etat='encours']`, et il tourne. */}
       <div className="relative flex items-start gap-2">
         {/* Un point plutot qu'un carre a icone : la couleur porte l'identite,
             l'icone n'ajoutait qu'un pictogramme de plus a interpreter. */}
@@ -386,11 +491,13 @@ function CarteNoeud({ noeud, etape }: { noeud: NoeudOrg; etape?: number }) {
               {noeud.chapeau}
             </span>
           )}
-          <span className="texte-nom line-clamp-2 font-semibold">
-            {noeud.titre}
-          </span>
+          {/* Sa propre taille, pas `texte-nom` : le titre d'un noeud se lit a
+              distance, dans un graphe qu'on embrasse du regard, alors qu'un nom
+              d'agent se lit de pres dans une liste. Les partager obligeait a
+              grossir toute l'application pour rendre le graphe lisible. */}
+          <span className="titre-noeud line-clamp-2">{noeud.titre}</span>
         </span>
-        {noeud.fini ? (
+        {noeud.etat === 'succes' ? (
           <Check className="sens-succes teinte-sens h-3.5 w-3.5 flex-none" />
         ) : (
           etape !== undefined && (

@@ -25,6 +25,7 @@ import {
   relacherOrphelines,
 } from './execution.js'
 import { annulerValidation, simuler, valider } from './simulation.js'
+import { ecrireDisposition, lireDisposition, oublierDisposition } from './studio.js'
 import { clore, lire as lireConversation, lister as listerConversations, noter, supprimer as supprimerConversation } from './historique.js'
 import { ecrireBascule, lireBascule } from './modeles.js'
 import { projectFiles, vaultNote } from './templates.js'
@@ -1597,6 +1598,31 @@ async function handleApi(req, res, url) {
       }
       if (method === 'POST') return sendJson(res, 200, valider(pole, body.empreinte))
       if (method === 'DELETE') return sendJson(res, 200, annulerValidation(pole))
+    }
+
+    // La disposition du Studio : ou l'utilisateur a pose ses noeuds. Purement
+    // visuel - le tableau kanban reste seul maitre de ce qui existe.
+    if (rest[1] === 'disposition') {
+      const pole = String(url.searchParams.get('pole') || '')
+      if (method === 'GET') {
+        if (!pole) {
+          const err = new Error('Pole non precise')
+          err.status = 400
+          throw err
+        }
+        return sendJson(res, 200, lireDisposition(pole))
+      }
+      if (method === 'POST') {
+        const body = await readBody(req)
+        const cible = String(body.pole || pole)
+        if (!cible) {
+          const err = new Error('Pole non precise')
+          err.status = 400
+          throw err
+        }
+        return sendJson(res, 200, ecrireDisposition(cible, body.noeuds))
+      }
+      if (method === 'DELETE') return sendJson(res, 200, oublierDisposition(pole))
     }
 
     // L'execution. C'est le geste qui pousse a travers la porte - un autre que

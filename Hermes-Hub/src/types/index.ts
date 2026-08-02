@@ -113,6 +113,8 @@ export interface Stats {
 export type View =
   | 'home'
   | 'orchestration'
+  /** Plein ecran, hors barre laterale : l'atelier, pas une vue de plus. */
+  | 'studio'
   | 'projects'
   | 'project'
   | 'clean'
@@ -506,6 +508,10 @@ type EvenementBrut =
       /** Vrai quand le retour en `ready` vient d'un arret demande, pas d'un
           echec : la tache n'a rien de casse, elle a ete relachee. */
       arret?: boolean
+      /** Present sur un `running` qui en repete un autre : le tour a echoue et
+          va etre rejoue. Dit pourquoi, parce que sans ca l'attente ressemble a
+          une tache qui n'avance pas. */
+      reprise?: string
     }
 
 /**
