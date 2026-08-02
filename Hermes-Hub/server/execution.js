@@ -161,7 +161,9 @@ function livrablesManquants(tache, dossier) {
   const attendus = lireFichiers(texte)
   if (!attendus.length) return null
 
-  const surLeDisque = new Set()
+  // Le chemin complet, pas seulement le nom : il faut pouvoir lire le fichier
+  // pour savoir si c'est un livrable ou un constat d'echec.
+  const surLeDisque = new Map()
   const parcourir = (dir, profondeur) => {
     if (profondeur > 4) return
     let entrees
@@ -172,13 +174,82 @@ function livrablesManquants(tache, dossier) {
     }
     for (const e of entrees) {
       if (e.isDirectory()) parcourir(path.join(dir, e.name), profondeur + 1)
-      else surLeDisque.add(e.name.toLowerCase())
+      else if (!surLeDisque.has(e.name.toLowerCase())) {
+        surLeDisque.set(e.name.toLowerCase(), path.join(dir, e.name))
+      }
     }
   }
   parcourir(dossier, 0)
 
-  const trouves = attendus.filter((f) => surLeDisque.has(path.posix.basename(f.chemin).toLowerCase()))
-  return trouves.length ? null : attendus.map((f) => f.chemin)
+  const trouves = attendus
+    .map((f) => surLeDisque.get(path.posix.basename(f.chemin).toLowerCase()))
+    .filter(Boolean)
+
+  if (!trouves.length) return { chemins: attendus.map((f) => f.chemin), motif: 'absent' }
+
+  // Le fichier existe - mais dit-il autre chose que « je n'ai pas pu » ?
+  const creux = trouves.map((p) => livrableEnCreux(p))
+  if (creux.every(Boolean)) {
+    return { chemins: attendus.map((f) => f.chemin), motif: 'creux', aveu: creux.find(Boolean) }
+  }
+  return null
+}
+
+/**
+ * Un fichier qui avoue lui-meme n'etre pas le livrable.
+ *
+ * Vu le 03/08/2026 sur un vrai pole : Karim a bien ecrit `avis_recrutement.md`,
+ * et le fichier disait « **Statut :** Bloque - donnees manquantes. Je refuse de
+ * rediger un avis argumente sur la base de suppositions ». Sa tache est passee
+ * `done` : la preuve par le disque ne regardait que le NOM du fichier. En aval,
+ * le maquettiste aurait assemble un dossier bati sur un refus, et le mensonge
+ * serait reparti par `kanban context` exactement comme avant la preuve.
+ *
+ * L'honnetete de l'agent devient alors un piege : celui qui refuse proprement
+ * passe pour avoir reussi, tandis que celui qui n'ecrit rien est bloque. On
+ * inverse : ecrire son refus dans le bon fichier ne vaut pas mieux que ne rien
+ * ecrire, et les deux bloquent avec une raison lisible.
+ *
+ * Meme forme que `estPanneModele` dans `modeles.js`, pour la meme raison : un
+ * signe formel se lit dans un document de n'importe quelle longueur, un signe
+ * de prose ne vaut que si le document est court. Un plan de montage de 5 ko qui
+ * liste ses « inputs manquants » en passant EST un livrable - il a ete produit
+ * le meme jour, il ne doit pas tomber ici.
+ */
+const AVEUX_CERTAINS = [
+  // Un champ « Statut » qui vaut bloque/echec : c'est le document qui se declare.
+  [/^[*_\s>#-]*statut\s*[:*_\s]*[-–—]?\s*(bloqu|echec|échec|impossible|non\s+r[eé]alis)/im, 'le fichier se declare bloque'],
+  [/^\s*BLOCKED\s*:/im, 'le fichier se declare bloque'],
+  [/^[*_\s>#-]*(livrable|resultat|résultat)\s*[:*_\s]*[-–—]?\s*(aucun|neant|néant|non produit)/im, 'le fichier se declare vide'],
+]
+
+/** Retenus seulement sur un document court : dans un long, ce sont des reserves
+    de travail, pas un renoncement. */
+const AVEUX_PROBABLES = [
+  [/je\s+refuse\s+de\s+(rediger|rédiger|produire|ecrire|écrire)/i, 'l agent a refuse de produire'],
+  [/je\s+ne\s+peux\s+pas\s+(rediger|rédiger|produire|ecrire|écrire|fournir)/i, 'l agent s est declare incapable'],
+  [/aucune?\s+(donnee|donnée|statistique|information)[^.]{0,60}(transmis|fourni|disponible)/i, 'aucune matiere fournie'],
+]
+
+/** Au-dela, un document a de la substance meme s'il signale des manques. */
+const COURT = 2500
+
+function livrableEnCreux(chemin) {
+  let contenu
+  try {
+    contenu = fs.readFileSync(chemin, 'utf8')
+  } catch {
+    return null // illisible : ce n'est pas a nous d'en juger
+  }
+  // Un binaire produit (PDF, image) n'a pas d'aveu a lire.
+  if (/\.(pdf|png|jpe?g|gif|zip|wav|mp3|mp4)$/i.test(chemin)) return null
+
+  const tete = contenu.slice(0, 4000)
+  for (const [signe, raison] of AVEUX_CERTAINS) if (signe.test(tete)) return raison
+  if (contenu.length <= COURT) {
+    for (const [signe, raison] of AVEUX_PROBABLES) if (signe.test(tete)) return raison
+  }
+  return null
 }
 
 // -----------------------------------------------------------------------------
@@ -509,12 +580,15 @@ class Chantier {
       const resultat = String(pont.texteTour || '').trim().slice(0, RESULTAT_MAX)
 
       // La porte de sortie : on ne clot pas une tache qui devait produire un
-      // fichier et n'en a produit aucun. Bloquer plutot que clore, sinon le
-      // mensonge part aux taches filles par `kanban context`.
-      const manquants = livrablesManquants({ titre, corps }, this.dossier)
-      if (manquants) {
+      // fichier et n'en a produit aucun - ni une qui a bien ecrit le fichier,
+      // mais pour y avouer qu'elle n'a pas pu. Bloquer plutot que clore, sinon
+      // le mensonge part aux taches filles par `kanban context`.
+      const manque = livrablesManquants({ titre, corps }, this.dossier)
+      if (manque) {
         throw new Error(
-          `elle devait produire ${manquants.join(', ')} - aucun de ces fichiers n'existe dans ${this.dossier}`,
+          manque.motif === 'creux'
+            ? `elle a ecrit ${manque.chemins.join(', ')} mais ${manque.aveu} : il n'y a pas de livrable dans ${this.dossier}`
+            : `elle devait produire ${manque.chemins.join(', ')} - aucun de ces fichiers n'existe dans ${this.dossier}`,
         )
       }
 
