@@ -60,6 +60,7 @@ import { NoeudStudio } from '../components/NoeudStudio'
 import type { DonneesNoeud } from '../components/NoeudStudio'
 import { FenetreSimulation } from '../components/FenetreSimulation'
 import type { EtatNoeud } from '../components/Organigramme'
+import { sansAccord } from '../lib/accords'
 import { ApiError, api, ecouterChat } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
 import { ETATS_TACHE } from '../types'
@@ -289,7 +290,7 @@ function Atelier({ poleId, onQuitter }: Props) {
           agent: a?.id,
           accords: accords.filter((x) => x.agent === (a?.id || t.agent)),
           onRepondre: (demande, agent, option) => {
-            setAccords((liste) => liste.filter((x) => x.demande !== demande))
+            setAccords((liste) => sansAccord(liste, agent, demande))
             void api.chatAutoriser(agent, demande, option).catch(() => null)
           },
         }
@@ -719,7 +720,7 @@ function Atelier({ poleId, onQuitter }: Props) {
             chantier={chantier}
             accords={accords}
             onAccord={(demande, agent, option) => {
-              setAccords((a) => a.filter((d) => d.demande !== demande))
+              setAccords((a) => sansAccord(a, agent, demande))
               void api.chatAutoriser(agent, demande, option).catch(() => null)
             }}
             onLancer={() => void api.lancerPole(poleId!).catch(() => null)}

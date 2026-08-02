@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { cleAccord } from '../lib/accords'
 import { BancEssai } from './BancEssai'
 import type {
   Chantier,
@@ -146,7 +147,7 @@ export function FenetreSimulation({
           {/* En tete du defilement, et pas au fil des vagues : un agent arrete
               net attend, et ce qui attend doit se voir sans chercher. */}
           {(accords || []).map((d) => (
-            <Accord key={d.demande} demande={d} onRepondre={onAccord} />
+            <Accord key={cleAccord(d)} demande={d} onRepondre={onAccord} />
           ))}
           {chargement && <EnAttente />}
           {erreur && (

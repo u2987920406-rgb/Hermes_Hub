@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { cleAccord, sansAccord } from '../lib/accords'
 import { api } from '../lib/api'
 import { GENRES_OUTIL } from '../types'
 import type {
@@ -408,7 +409,7 @@ export function Conversation({
   }
 
   const repondre = async (d: DemandeAutorisation & { agent: string }, option: string) => {
-    setAutorisations((a) => a.filter((x) => x.demande !== d.demande))
+    setAutorisations((a) => sansAccord(a, d.agent, d.demande))
     await api.chatAutoriser(d.agent, d.demande, option).catch(() => null)
   }
 
@@ -509,7 +510,7 @@ export function Conversation({
 
           {autorisations.map((d) => (
             <Autorisation
-              key={d.demande}
+              key={cleAccord(d)}
               demande={d}
               agent={parId.get(d.agent)}
               onRepondre={repondre}

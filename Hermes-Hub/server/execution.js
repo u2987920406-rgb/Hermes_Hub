@@ -33,6 +33,7 @@
  * besoin d'etre calculees, elles tombent toutes seules de l'etat `ready`.
  */
 import fs from 'node:fs'
+import zlib from 'node:zlib'
 import path from 'node:path'
 import { Equipage } from './equipage.js'
 import { lireOrchestration } from './equipe.js'
@@ -234,15 +235,104 @@ const AVEUX_PROBABLES = [
 /** Au-dela, un document a de la substance meme s'il signale des manques. */
 const COURT = 2500
 
+/**
+ * Une page d'erreur du navigateur, imprimee en PDF.
+ *
+ * Le cas reel du 03/08/2026, et il a franchi TROIS garde-fous : le maquettiste
+ * a ecrit son `.html` dans le dossier de travail que le kanban lui prete, a
+ * lance Chrome dessus, et ce dossier avait disparu entre-temps - il est
+ * ephemere. Chrome n'a pas trouve le fichier, a **imprime sa page d'erreur**,
+ * et le PDF a ete copie dans le pole comme livrable.
+ *
+ * Ce qui l'a laisse passer : le fichier existe, il pese 24 923 octets - donc la
+ * consigne « verifie qu'il n'est pas vide » etait satisfaite - et la premiere
+ * version de `livrableEnCreux` ecartait les binaires, en supposant qu'un PDF ne
+ * pouvait pas mentir. Celui-la ment, et il le dit en toutes lettres : son texte
+ * est « Impossible d'acceder a votre fichier [...] ERR_FILE_NOT_FOUND ».
+ *
+ * `ERR_<MAJUSCULES>` est le signe le plus sur : c'est un code d'erreur reseau
+ * de Chrome, il n'a rien a faire dans un document remis a des dirigeants.
+ */
+const ERREURS_NAVIGATEUR = [
+  [/\bERR_[A-Z_]{3,}/, 'le PDF est une page d erreur du navigateur'],
+  [/Impossible d.?acc[eé]der [aà] votre fichier/i, 'le PDF est une page d erreur du navigateur'],
+  [/This (?:site|page) can.?t be reached/i, 'le PDF est une page d erreur du navigateur'],
+  [/Your file (?:was|couldn.?t be) (?:not )?found/i, 'le PDF est une page d erreur du navigateur'],
+]
+
+/**
+ * Le texte affiche d'un PDF, sans bibliotheque.
+ *
+ * On ne decompresse que les flux de CONTENU - ceux qui portent des operateurs
+ * de texte. Sans ce tri, on remonte les tables des polices embarquees, ce qui
+ * noie le texte reel sous des kilo-octets de binaire.
+ *
+ * Deux ecritures a lire : `(texte) Tj` en clair, et `<hex> Tj` ou les valeurs
+ * sont des identifiants de glyphes. Chrome sous-ensemble ses polices dans
+ * l'ordre du jeu de caracteres, ce qui donne un decalage constant de 29 par
+ * rapport au code ASCII - vrai pour les pages d'erreur, qui sont ce qu'on
+ * cherche ici. On ne pretend pas extraire un PDF quelconque : on cherche une
+ * signature, pas a faire un lecteur.
+ */
+function texteDuPdf(chemin) {
+  let buf
+  try {
+    buf = fs.readFileSync(chemin)
+  } catch {
+    return ''
+  }
+
+  let sortie = ''
+  let i = 0
+  while (sortie.length < 8000) {
+    const debut = buf.indexOf('stream', i)
+    if (debut < 0) break
+    let s = debut + 6
+    if (buf[s] === 13) s++
+    if (buf[s] === 10) s++
+    const fin = buf.indexOf('endstream', s)
+    if (fin < 0) break
+
+    let flux = null
+    try {
+      flux = zlib.inflateSync(buf.subarray(s, fin)).toString('latin1')
+    } catch {
+      /* flux non compresse, image, police : rien a lire */
+    }
+    if (flux && /\bBT\b/.test(flux) && /T[Jj]/.test(flux)) {
+      for (const m of flux.matchAll(/\(((?:[^()\\]|\\.)*)\)|<([0-9A-Fa-f]{4,})>/g)) {
+        if (m[1] !== undefined) sortie += m[1].replace(/\\([()\\])/g, '$1')
+        else {
+          const h = m[2]
+          for (let k = 0; k + 4 <= h.length; k += 4) {
+            sortie += String.fromCharCode(parseInt(h.slice(k, k + 4), 16) + 29)
+          }
+        }
+        sortie += ' '
+      }
+    }
+    i = fin + 9
+  }
+  return sortie
+}
+
+/** Les binaires qui n'ont pas de texte a offrir : on ne peut rien en dire. */
+const OPAQUES = /\.(png|jpe?g|gif|webp|zip|wav|mp3|mp4|xlsx?|docx?|pptx?)$/i
+
 function livrableEnCreux(chemin) {
+  if (/\.pdf$/i.test(chemin)) {
+    const texte = texteDuPdf(chemin)
+    for (const [signe, raison] of ERREURS_NAVIGATEUR) if (signe.test(texte)) return raison
+    return null
+  }
+  if (OPAQUES.test(chemin)) return null
+
   let contenu
   try {
     contenu = fs.readFileSync(chemin, 'utf8')
   } catch {
     return null // illisible : ce n'est pas a nous d'en juger
   }
-  // Un binaire produit (PDF, image) n'a pas d'aveu a lire.
-  if (/\.(pdf|png|jpe?g|gif|zip|wav|mp3|mp4)$/i.test(chemin)) return null
 
   const tete = contenu.slice(0, 4000)
   for (const [signe, raison] of AVEUX_CERTAINS) if (signe.test(tete)) return raison

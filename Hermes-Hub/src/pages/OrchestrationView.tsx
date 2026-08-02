@@ -33,6 +33,7 @@ import { Modal } from '../components/Modal'
 import { Organigramme } from '../components/Organigramme'
 import type { EtatNoeud, LienOrg, NoeudOrg } from '../components/Organigramme'
 import { PageHeader } from '../components/PageHeader'
+import { sansAccord } from '../lib/accords'
 import { api, ecouterChat } from '../lib/api'
 import { ETATS_TACHE } from '../types'
 import type {
@@ -209,17 +210,18 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
       // Les demandes d'accord de la conversation ne nous regardent pas : elles
       // ont leur place dans le fil, ou elles sont deja affichees.
       if (e.type === 'autorisation' && e.pole) {
-        return setAccords((a) => [
-          ...a,
-          {
-            demande: e.demande,
-            titre: e.titre,
-            detail: e.detail,
-            options: e.options,
-            agent: e.agent || 'default',
-            pole: e.pole as string,
-          },
-        ])
+        const neuf = {
+          demande: e.demande,
+          titre: e.titre,
+          detail: e.detail,
+          options: e.options,
+          agent: e.agent || 'default',
+          pole: e.pole as string,
+        }
+        // Sans ce dedoublonnage, une reprise de flux - reconnexion SSE, retour
+        // d'onglet - reposait une demande deja affichee, et on se retrouvait
+        // avec deux cartes identiques dont une seule repondait.
+        return setAccords((a) => [...sansAccord(a, neuf.agent, neuf.demande), neuf])
       }
 
       // C'est ici que le graphe devient vivant. Le pont marque chaque trame de
@@ -267,7 +269,7 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
   }, [chargerChantiers, charger])
 
   const repondreAccord = useCallback(async (demande: string, agent: string, option: string) => {
-    setAccords((a) => a.filter((d) => d.demande !== demande))
+    setAccords((a) => sansAccord(a, agent, demande))
     await api.chatAutoriser(agent, demande, option).catch(() => null)
   }, [])
 
