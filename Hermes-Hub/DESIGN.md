@@ -52,6 +52,7 @@ pour le nommer quand on veut demander une modification.
 | « X confie le travail a Y » | `trace-delegation` | — | idem |
 | La colonne qui defile | `fil-conversation` | — | largeur : `max-w-3xl` |
 | La barre du bas | `barre-saisie` | — | idem |
+| « Louise et Gabriel travaillent - 12 s » | `agents-au-travail` | `--agent-point-compact` | idem, composant `AuTravail` |
 | La rangee de pastilles d'agents | `rangee-agents` | `--agent-point-compact` | repliee par defaut, voir `deplie` |
 | Une pastille d'agent | `pastille-agent` | `--agent-point-compact` | idem |
 
@@ -116,6 +117,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | Zone | Fichier |
 |---|---|
 | `accords-orchestration` | `src/pages/OrchestrationView.tsx` |
+| `agents-au-travail` | `src/components/Conversation.tsx` |
 | `banc-essai` | `src/components/BancEssai.tsx` |
 | `barre-saisie` | `src/components/Conversation.tsx` |
 | `boite-demande` | `src/pages/OrchestrationView.tsx` |

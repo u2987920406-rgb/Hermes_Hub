@@ -87,7 +87,22 @@ export function Conversation({
   const bas = useRef<HTMLDivElement>(null)
   const champ = useRef<HTMLTextAreaElement>(null)
   const parId = new Map(agents.map((a) => [a.id, a]))
-  const enCours = tours.some((t) => t.role === 'agent' && !t.fini)
+
+  /**
+   * Qui travaille en ce moment - et pas seulement « quelqu'un travaille ».
+   *
+   * L'information existait deja dans le fil : un tour d'agent porte son nom et
+   * reste `fini: false` jusqu'a son `tour-fin`. Elle ne servait qu'a basculer le
+   * bouton d'envoi en bouton d'interruption, donc l'attente etait muette : on
+   * savait qu'il fallait patienter, jamais apres qui. Sur une delegation a deux
+   * agents, kuchu a attendu Louise et Gabriel sans que rien a l'ecran ne dise
+   * qu'ils etaient au travail.
+   */
+  const travaillent = tours
+    .filter((t) => t.role === 'agent' && !t.fini)
+    .map((t) => (t as Extract<Tour, { role: 'agent' }>).agent)
+    .filter((id, i, tous) => tous.indexOf(id) === i)
+  const enCours = travaillent.length > 0
 
   useEffect(() => {
     onEveilChange?.([...eveilles])
@@ -534,6 +549,8 @@ export function Conversation({
             </div>
           )}
 
+          {enCours && <AuTravail agents={travaillent} parId={parId} />}
+
           <div className="flex items-end gap-2">
             <textarea
               ref={champ}
@@ -877,6 +894,71 @@ function Autorisation({
  * souvenir de qui fait quoi - c'est-a-dire a aller chercher ailleurs ce que la
  * barre etait censee rendre.
  */
+/**
+ * Qui travaille, et depuis combien de temps.
+ *
+ * Une delegation reveille un processus, charge un modele et attend une reponse :
+ * c'est long, et rien ne bougeait a l'ecran pendant ce temps. Le bouton d'envoi
+ * devenait bien un bouton d'interruption, mais il ne disait ni qui, ni depuis
+ * quand - or « j'attends Louise depuis 12 s » et « il ne se passe rien » se
+ * ressemblent enormement quand on regarde un ecran fixe.
+ *
+ * Les secondes comptent au lieu d'annoncer une duree, pour la meme raison que
+ * le decompte du decoupage : la duree d'un tour depend du modele, du reveil a
+ * froid et de la longueur de la reponse. On ne peut pas la promettre, on peut
+ * montrer qu'elle avance.
+ *
+ * Le compteur repart quand la liste des agents change - sinon, Gabriel qui
+ * prend la suite de Louise heriterait du temps d'attente de Louise.
+ */
+function AuTravail({ agents, parId }: { agents: string[]; parId: Map<string, Agent> }) {
+  const cle = agents.join(',')
+  const [depuis, setDepuis] = useState(() => Date.now())
+  const [maintenant, setMaintenant] = useState(() => Date.now())
+
+  useEffect(() => {
+    const t = Date.now()
+    setDepuis(t)
+    setMaintenant(t)
+  }, [cle])
+
+  useEffect(() => {
+    const battement = setInterval(() => setMaintenant(Date.now()), 500)
+    return () => clearInterval(battement)
+  }, [])
+
+  const secondes = Math.floor((maintenant - depuis) / 1000)
+  const connus = agents.map((id) => parId.get(id))
+
+  return (
+    <div
+      data-zone="agents-au-travail"
+      className="flex items-center gap-2 px-1 text-[11px] muted"
+      role="status"
+      aria-live="polite"
+    >
+      <Loader2 className="h-3 w-3 flex-none animate-spin text-sky-500" />
+
+      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        {connus.map((a, i) => (
+          <span key={agents[i]} className="flex items-center gap-1">
+            {a && <span className="point-agent point-agent-compact" style={jetonDe(a)} />}
+            <span className="font-medium text-slate-600 dark:text-slate-300">
+              {a?.nom || agents[i]}
+            </span>
+            {i < connus.length - 2 ? <span>,</span> : i === connus.length - 2 ? <span>et</span> : null}
+          </span>
+        ))}
+        <span>{connus.length > 1 ? 'travaillent' : 'travaille'}</span>
+      </span>
+
+      {/* `tabular-nums` fige la largeur : sans lui, la ligne entiere tremble a
+          chaque seconde qui passe. */}
+      <span className="ml-auto flex-none tabular-nums">{secondes} s</span>
+    </div>
+  )
+}
+
 function PastilleAgent({
   agent,
   eveille,
