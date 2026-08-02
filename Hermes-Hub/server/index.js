@@ -1824,6 +1824,23 @@ function serveStatic(req, res, url) {
     return fs.createReadStream(ATELIER_FILE).pipe(res)
   }
 
+  // La feuille SOURCE, pour l'atelier seul.
+  //
+  // Celle que sert `dist/` est construite et minifiee : elle n'a plus ni
+  // commentaires ni numeros de ligne, donc on ne peut pas y renvoyer. Or c'est
+  // exactement ce qu'on veut rendre quand on clique un element - le fichier et
+  // la ligne ou sa regle est ecrite, pour aller la changer sans la chercher.
+  //
+  // Meme double verrou que l'atelier : le drapeau, et le fichier qui n'existe
+  // pas dans un paquet livre.
+  if (ATELIER && rel === '/atelier-source.css') {
+    const source = path.join(__dirname, '..', 'src', 'index.css')
+    if (fs.existsSync(source)) {
+      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache' })
+      return fs.createReadStream(source).pipe(res)
+    }
+  }
+
   let file
   try {
     file = safeJoin(DIST_DIR, '.' + rel)
