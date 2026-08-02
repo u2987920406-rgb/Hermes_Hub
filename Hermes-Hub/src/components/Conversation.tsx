@@ -19,6 +19,7 @@ import {
   Check,
   ChevronDown,
   CornerDownRight,
+  Filter,
   Loader2,
   Moon,
   Plus,
@@ -495,6 +496,20 @@ export function Conversation({
       >
         <div className="mx-auto max-w-3xl space-y-2">
           <div className="flex flex-wrap items-center gap-2">
+            {/**
+             * L'entonnoir n'est pas une decoration.
+             *
+             * Ce menu ne fait que filtrer la rangee de pastilles en dessous -
+             * mais pose juste au-dessus du champ de saisie, il se lisait comme
+             * le destinataire du message. « Tout le monde (16) » a fait croire
+             * qu'un « salut tout le monde » partait aux seize agents, alors
+             * qu'il allait a Hermes seul, qui repond au nom de l'equipe.
+             *
+             * Un mot ne suffisait pas a le desamorcer : c'est la position qui
+             * trompe. D'ou l'icone, qui dit « ceci trie » avant meme qu'on lise,
+             * et le libelle qui ne nomme plus un interlocuteur.
+             */}
+            <Filter className="h-3.5 w-3.5 flex-none muted" aria-hidden />
             <select
               value={equipeVue}
               onChange={(e) => {
@@ -502,9 +517,9 @@ export function Conversation({
                 setRecherche('')
               }}
               className="input h-8 w-auto py-0 pr-7 text-[11px]"
-              title="N afficher que les membres d une equipe"
+              title="Filtre la liste des agents affichee. Ne change pas a qui part ton message : sans mention, c est Hermes qui repond."
             >
-              <option value="">Tout le monde ({agents.length})</option>
+              <option value="">Afficher tous ({agents.length})</option>
               {equipes.map((e) => (
                 <option key={e.id} value={e.id}>
                   {e.nom} ({e.membres.length})
