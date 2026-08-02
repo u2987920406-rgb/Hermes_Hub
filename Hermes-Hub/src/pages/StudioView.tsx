@@ -44,15 +44,33 @@ import type {
   NodeChange,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { ArrowLeft, Eye, EyeOff, LayoutGrid, Play, Plus, Square, Trash2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  FlaskConical,
+  LayoutGrid,
+  Play,
+  Plus,
+  Square,
+  Trash2,
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { NoeudStudio } from '../components/NoeudStudio'
 import type { DonneesNoeud } from '../components/NoeudStudio'
+import { FenetreSimulation } from '../components/FenetreSimulation'
 import type { EtatNoeud } from '../components/Organigramme'
 import { ApiError, api, ecouterChat } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
 import { ETATS_TACHE } from '../types'
-import type { Agent, Chantier, DemandeAutorisation, EtatTache, Pole } from '../types'
+import type {
+  Agent,
+  Chantier,
+  DemandeAutorisation,
+  EtatTache,
+  Pole,
+  Simulation,
+} from '../types'
 
 /** Meme geometrie que l'organigramme : un noeud fait la meme taille partout. */
 const L = 224
@@ -121,6 +139,21 @@ function Atelier({ poleId, onQuitter }: Props) {
   const [choisi, setChoisi] = useState<string | null>(null)
   const [brouillon, setBrouillon] = useState<Brouillon | null>(null)
   const [occupe, setOccupe] = useState(false)
+
+  /**
+   * La simulation, ouverte depuis l'atelier.
+   *
+   * Elle vivait dans l'ecran Orchestration, atteinte par la vignette d'un pole
+   * - et depuis que la vignette mene ici, plus personne ne pouvait l'ouvrir.
+   * Sa place est de toute facon dans l'atelier : c'est ici qu'on remanie, donc
+   * ici qu'on veut eprouver avant de lancer.
+   */
+  const [simu, setSimu] = useState<Simulation | null>(null)
+  const [simuOuverte, setSimuOuverte] = useState(false)
+  const [simuOccupee, setSimuOccupee] = useState(false)
+  const [simuErreur, setSimuErreur] = useState<string | null>(null)
+  const [validation, setValidation] = useState(false)
+
   const { fitView, screenToFlowPosition } = useReactFlow()
   const notifier = useHubStore((s) => s.notify)
 
@@ -511,6 +544,22 @@ function Atelier({ poleId, onQuitter }: Props) {
     [poleId, agir],
   )
 
+  /** Lecture pure : quelques dizaines de millisecondes, aucun modele appele. */
+  const simuler = useCallback(async () => {
+    if (!poleId) return
+    setSimuOuverte(true)
+    setSimuErreur(null)
+    setSimuOccupee(true)
+    try {
+      setSimu(await api.simulation(poleId))
+    } catch (e) {
+      setSimu(null)
+      setSimuErreur(e instanceof Error ? e.message : String(e))
+    } finally {
+      setSimuOccupee(false)
+    }
+  }, [poleId])
+
   const tacheChoisie = pole?.taches.find((t) => t.id === choisi)
   const agentChoisi = agents.find((a) => a.id === (tacheChoisie?.agent || 'default'))
   /** Un pole au travail se regarde, il ne se remanie pas - le serveur refuse
@@ -556,6 +605,16 @@ function Atelier({ poleId, onQuitter }: Props) {
         <button onClick={() => void ranger()} className="btn-ghost gap-1.5 px-2 py-1.5 text-[11px]">
           <LayoutGrid className="h-3.5 w-3.5" />
           Ranger
+        </button>
+        {/* Eprouver avant de lancer, et voir le banc des essais precedents.
+            Gratuit : la simulation ne rejoue que ce qui est deja sur le disque. */}
+        <button
+          onClick={() => void simuler()}
+          className="btn-ghost gap-1.5 px-2 py-1.5 text-[11px]"
+          title="Rejouer ce graphe sans appeler aucun modele"
+        >
+          <FlaskConical className="h-3.5 w-3.5" />
+          Simuler
         </button>
         {chantier?.actif ? (
           <button
@@ -649,6 +708,37 @@ function Atelier({ poleId, onQuitter }: Props) {
               <Retirer titre={tacheChoisie.titre} occupe={occupe} onRetirer={() => retirer(tacheChoisie.id)} />
             )}
           </aside>
+        )}
+
+        {simuOuverte && (
+          <FenetreSimulation
+            simulation={simu}
+            chargement={simuOccupee}
+            erreur={simuErreur}
+            validation={validation}
+            chantier={chantier}
+            accords={accords}
+            onAccord={(demande, agent, option) => {
+              setAccords((a) => a.filter((d) => d.demande !== demande))
+              void api.chatAutoriser(agent, demande, option).catch(() => null)
+            }}
+            onLancer={() => void api.lancerPole(poleId!).catch(() => null)}
+            onArreter={() => void api.arreterPole(poleId!).catch(() => null)}
+            onValider={() => {
+              if (!poleId) return
+              void api.validerPole(poleId).then(() => setValidation(true)).catch(() => null)
+            }}
+            // Dans l'atelier, « Modifier » n'envoie nulle part : on y est deja.
+            // La fenetre se ferme, et la souris reprend la main sur le graphe.
+            onModifier={() => setSimuOuverte(false)}
+            onRafraichir={() => {
+              // Un retour au banc a ecrit sur le tableau : le graphe affiche
+              // derriere la fenetre ne decrit plus rien.
+              void simuler()
+              void charger()
+            }}
+            onFermer={() => setSimuOuverte(false)}
+          />
         )}
 
         {brouillon && (
