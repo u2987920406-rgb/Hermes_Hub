@@ -67,6 +67,8 @@ pour le nommer quand on veut demander une modification.
 | Le champ « Decris ce que tu veux » | `boite-demande` | — | idem |
 | Les autorisations en attente, en haut du pole | `accords-orchestration` | — | idem |
 | La fenetre de simulation | `fenetre-simulation` | — | `FenetreSimulation.tsx` |
+| Le banc d'essai, en bas de la simulation | `banc-essai` | — | `BancEssai.tsx` |
+| Une ligne du banc : un essai et sa mesure | `ligne-banc` | `--densite` | idem, c'est un `.rang` |
 
 ### Le Studio
 
@@ -113,6 +115,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | Zone | Fichier |
 |---|---|
 | `accords-orchestration` | `src/pages/OrchestrationView.tsx` |
+| `banc-essai` | `src/components/BancEssai.tsx` |
 | `barre-saisie` | `src/components/Conversation.tsx` |
 | `boite-demande` | `src/pages/OrchestrationView.tsx` |
 | `brouillon-tache` | `src/pages/StudioView.tsx` |
@@ -132,6 +135,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `fiche-agent` | `src/pages/OrchestrationView.tsx` |
 | `fil-conversation` | `src/components/Conversation.tsx` |
 | `formulaire-nouveau-projet` | `src/components/NewProjectModal.tsx` |
+| `ligne-banc` | `src/components/BancEssai.tsx` |
 | `ligne-historique` | `src/pages/OrchestrationView.tsx` |
 | `menu-lateral` | `src/components/Sidebar.tsx` |
 | `nav-orchestration` | `src/pages/OrchestrationView.tsx` |

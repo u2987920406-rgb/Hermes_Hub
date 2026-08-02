@@ -6,7 +6,10 @@ import type {
   Agent,
   AppConfig,
   Chantier,
+  Comparaison,
   Decomposition,
+  NoteRetour,
+  VersionBanc,
   Orchestration,
   Diagnostics,
   EvenementChat,
@@ -182,6 +185,36 @@ export const api = {
     request<Validation>('/orchestration/validation', {
       method: 'POST',
       body: body({ pole, empreinte }),
+    }),
+
+  // --- Le banc d'essai ---------------------------------------------------------
+  // Aucun de ces appels ne photographie : c'est `simulation` qui le fait, et
+  // elle rend le banc avec. Ceux-ci ne servent qu'a le relire, a marquer une
+  // etoile, ou a revenir.
+  banc: (pole: string) => request<VersionBanc[]>(`/orchestration/banc?pole=${enc(pole)}`),
+  favoriBanc: (pole: string, version: string, favori: boolean) =>
+    request<VersionBanc>('/orchestration/banc/favori', {
+      method: 'POST',
+      body: body({ pole, version, favori }),
+    }),
+  oublierVersion: (pole: string, version: string) =>
+    request<{ oubliee: string }>(
+      `/orchestration/banc?pole=${enc(pole)}&version=${enc(version)}`,
+      { method: 'DELETE' },
+    ),
+  comparaison: (pole: string, a: string, b: string) =>
+    request<Comparaison>(
+      `/orchestration/banc/comparaison?pole=${enc(pole)}&a=${enc(a)}&b=${enc(b)}`,
+    ),
+  // La note avant le geste : seul moyen de savoir ce qui ne reviendra que rebati.
+  prevoirRetour: (pole: string, version: string) =>
+    request<NoteRetour>(
+      `/orchestration/banc/retour?pole=${enc(pole)}&version=${enc(version)}`,
+    ),
+  revenirVersion: (pole: string, version: string) =>
+    request<{ gestes: number; rebaties: { titre: string }[] }>('/orchestration/banc/retour', {
+      method: 'POST',
+      body: body({ pole, version }),
     }),
 
   // --- Le graphe, remanie a la souris ------------------------------------------

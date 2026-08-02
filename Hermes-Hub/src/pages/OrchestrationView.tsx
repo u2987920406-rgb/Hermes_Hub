@@ -585,6 +585,7 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
                                 : 'attente'
                           }
                           onOuvrir={() => onStudio(p.id)}
+                          onSimuler={() => void simuler(p.id)}
                         />
                       ))}
                     </div>
@@ -684,6 +685,9 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
           onLancer={() => void lancer()}
           onArreter={() => void arreterPole()}
           onValider={() => void valider()}
+          // Un retour au banc ecrit sur le tableau : la simulation affichee ne
+          // decrit plus rien tant qu'elle n'a pas ete rejouee.
+          onRafraichir={() => simu && void simuler(simu.pole.id)}
           onModifier={() => {
             // « Modifier » renvoie a la conversation : c'est la qu'on reformule
             // une demande, pas dans un formulaire de plus.
@@ -1071,6 +1075,7 @@ function Vignette({
   avancement,
   etat,
   onOuvrir,
+  onSimuler,
 }: {
   titre: string
   detail: string
@@ -1078,17 +1083,22 @@ function Vignette({
   avancement?: { faites: number; total: number }
   etat?: 'encours' | 'fini' | 'attente'
   onOuvrir: () => void
+  /** Le second geste de la vignette : voir avant, plutot qu'ouvrir. */
+  onSimuler?: () => void
 }) {
   const style = { '--agent': `var(--jeton-ciel)` } as CSSProperties
   const part = avancement && avancement.total > 0 ? avancement.faites / avancement.total : 0
 
   return (
+    // `group` vit sur l'enveloppe, pas sur la carte : le bouton « Simuler » est
+    // son frere, et un group-hover pose sur la carte ne l'atteindrait jamais.
+    <div className="group relative">
     <button
       type="button"
       data-zone="vignette-pole"
       onClick={onOuvrir}
       style={style}
-      className="card lisere-agent-vignette group relative overflow-hidden p-0 text-left transition-shadow hover:shadow-md"
+      className="card lisere-agent-vignette relative w-full overflow-hidden p-0 text-left transition-shadow hover:shadow-md"
     >
       <span className="relative flex flex-col gap-2.5 p-3.5">
         <span className="flex items-start gap-2.5">
@@ -1117,6 +1127,21 @@ function Vignette({
         )}
       </span>
     </button>
+    {/* La simulation se demande depuis la vignette, sans passer par le Studio :
+        elle ne lance rien, elle montre ce que le graphe ferait. Un bouton dans
+        un bouton serait du HTML invalide, d'ou les deux freres. */}
+    {onSimuler && (
+      <button
+        type="button"
+        onClick={onSimuler}
+        title="Simuler ce pole sans rien lancer"
+        className="btn-ghost absolute bottom-2 right-2 gap-1 px-1.5 py-1 text-[10px] opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+      >
+        <Play className="h-3 w-3" />
+        Simuler
+      </button>
+    )}
+    </div>
   )
 }
 

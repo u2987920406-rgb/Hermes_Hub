@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { BancEssai } from './BancEssai'
 import type {
   Chantier,
   DemandeAutorisation,
@@ -58,6 +59,8 @@ interface Props {
   onLancer: () => void
   onArreter: () => void
   lancement?: boolean
+  /** Rejouee apres un retour au banc : le tableau a change sous la fenetre. */
+  onRafraichir: () => void
 }
 
 const MOTS_RISQUE: Record<Risque, string> = {
@@ -92,6 +95,7 @@ export function FenetreSimulation({
   onLancer,
   onArreter,
   lancement,
+  onRafraichir,
 }: Props) {
   const [compact, setCompact] = useState(false)
 
@@ -138,6 +142,15 @@ export function FenetreSimulation({
             </div>
           )}
           {simulation && !chargement && <Corps simulation={simulation} compact={compact} />}
+          {/* Le banc vient avec la simulation : c'est elle qui photographie. */}
+          {simulation && !chargement && (
+            <BancEssai
+              pole={simulation.pole.id}
+              banc={simulation.banc || []}
+              courante={simulation.version}
+              onRafraichir={onRafraichir}
+            />
+          )}
         </div>
 
         {simulation && !chargement && (

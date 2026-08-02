@@ -293,6 +293,51 @@ export interface Validation {
   empreinte: string | null
 }
 
+/**
+ * Un essai garde au banc : ce qu'etait le plan, et ce que la simulation en a
+ * mesure. Le plan lui-meme reste au serveur - une liste n'a pas besoin de le
+ * porter pour se lire.
+ */
+export interface VersionBanc {
+  id: string
+  /** Quand ce plan est apparu pour la premiere fois. Ne bouge jamais. */
+  prisLe: number
+  /** Quand on l'a revu - revenir a un essai puis resimuler le remet ici. */
+  revuLe: number
+  favori: boolean
+  nom: string | null
+  mesure: { vagues: number; reveilMs: number; risque: Risque; alertes: number }
+  taches: number
+}
+
+/** Ce qu'un retour ferait, annonce avant le geste. */
+export interface NoteRetour {
+  /** Celles qui ne reviendront que rebaties : nouveau numero, passe archive. */
+  aRebatir: { id: string; titre: string }[]
+  aRetirer: { id: string; titre: string }[]
+  reassignations: { id: string; titre: string; de: string | null; vers: string | null }[]
+  modeles: { id: string; titre: string; de: string | null; vers: string | null }[]
+  liensAPoser: { de: string; vers: string }[]
+  liensARetirer: { de: string; vers: string }[]
+  gestes: number
+}
+
+export interface Comparaison {
+  a: VersionBanc
+  b: VersionBanc
+  changements: number
+  /** Le signe compte : negatif, l-equipe se met en route plus vite. */
+  reveilDelta: number
+  ecart: {
+    ajoutees: { id: string; titre: string }[]
+    retirees: { id: string; titre: string }[]
+    agents: { id: string; titre: string; de: string | null; vers: string | null }[]
+    modeles: { id: string; titre: string; de: string | null; vers: string | null }[]
+    poses: { de: string; vers: string }[]
+    retires: { de: string; vers: string }[]
+  }
+}
+
 export interface Simulation {
   pole: { id: string; titre: string; corps: string }
   vagues: VagueSimulee[]
@@ -318,6 +363,10 @@ export interface Simulation {
   }[]
   risque: Risque
   alertes: { genre: string; tache?: string; texte: string }[]
+  /** Le banc d'essai du pole. Simuler photographie, donc il arrive avec. */
+  banc: VersionBanc[]
+  /** L'essai que cette simulation vient de prendre - ou de reconnaitre. */
+  version: string
   validation: Validation | null
 }
 
