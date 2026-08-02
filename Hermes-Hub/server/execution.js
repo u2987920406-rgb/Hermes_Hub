@@ -79,9 +79,30 @@ const RESULTAT_MAX = 8000
  */
 const TOUR_MAX = 30 * 60 * 1000
 
+/**
+ * Tentatives accordees au tour d'une tache, et attente entre deux.
+ *
+ * Le pont sait deja changer de modele quand il reconnait une coupure de
+ * fournisseur - mais seulement quand elle se nomme. Deux formes lui echappent :
+ * l'adaptateur ACP aplatit parfois une erreur de credits en « Internal error »,
+ * et une session qui n'arrive meme pas a s'ouvrir n'a aucun modele a commuter.
+ * Reessayer sans chercher a lire l'erreur est la seule reponse qui couvre les
+ * trois formes.
+ *
+ * Une seule reprise, parce que la deuxieme ne dirait rien de plus : si le
+ * fournisseur est encore absent apres une minute, ce n'est plus un hoquet.
+ * L'attente vise la coupure observee - Hermes ecarte un fournisseur fautif
+ * pendant soixante secondes (« marking nous unhealthy for 60s ») et reessayer
+ * tout de suite retomberait dedans.
+ */
+const ESSAIS_TOUR = 2
+const ATTENTE_REPRISE = 60 * 1000
+
 /** Une tache sans reponse ne doit pas transmettre un blanc a ses filles :
     elles liraient un silence sans savoir que c'en est un. */
 const RIEN_RENDU = "L'agent n'a rien repondu."
+
+const pause = (ms) => new Promise((f) => setTimeout(f, ms))
 
 // -----------------------------------------------------------------------------
 // La ligne de commande d'Hermes
@@ -468,15 +489,47 @@ class Chantier {
     const fiche = hermes(['context', id])
     const contexte = fiche.status === 0 ? fiche.stdout.trim() : `# Tache ${id} : ${titre}`
 
+    const message = `${consigne(this.dossier)}\n\n---\n\n${contexte}`
+
     let pont = null
     try {
-      pont = await this.equipage.reveiller(agent)
+      // La reprise n'entoure que le tour : ni la garde des livrables ni la
+      // cloture. Celles-la echouent sur un travail deja fait et mal fait -
+      // rejouer l'agent lui donnerait une seconde chance qu'il n'a pas
+      // meritee, et ferait payer deux fois le meme travail.
+      for (let essai = 1; essai <= ESSAIS_TOUR; essai++) {
+        try {
+          pont = await this.equipage.reveiller(agent)
 
-      // Le pont nu, pas `equipage.envoyer` : celui-ci injecte l'annuaire, puis
-      // relit la reponse pour y suivre les mentions. Sur un pole, cette
-      // relecture ouvrirait une seconde chaine de travail a cote du graphe.
-      pont.contexte = { tache: id }
-      await pont.envoyer(`${consigne(this.dossier)}\n\n---\n\n${contexte}`, { delai: TOUR_MAX })
+          // Le pont nu, pas `equipage.envoyer` : celui-ci injecte l'annuaire,
+          // puis relit la reponse pour y suivre les mentions. Sur un pole,
+          // cette relecture ouvrirait une seconde chaine de travail a cote du
+          // graphe.
+          pont.contexte = { tache: id }
+          await pont.envoyer(message, { delai: TOUR_MAX })
+          break
+        } catch (err) {
+          if (this.arrete || essai === ESSAIS_TOUR) throw err
+
+          this.diffuser({
+            type: 'tache-etat',
+            tache: id,
+            titre,
+            etat: 'running',
+            agent: agentId,
+            reprise: `${dernierMot(err.message) || err.message} - on retente dans ${ATTENTE_REPRISE / 1000} s`,
+          })
+
+          // Le pont qui vient de tomber ne sert plus a rien : sa session est
+          // morte, ou n'a jamais existe. On l'endort pour que la tentative
+          // suivante en ouvre un neuf.
+          this.equipage.endormir(agentId)
+          pont = null
+
+          await pause(ATTENTE_REPRISE)
+          if (this.arrete) return false
+        }
+      }
 
       const resultat = String(pont.texteTour || '').trim().slice(0, RESULTAT_MAX)
 

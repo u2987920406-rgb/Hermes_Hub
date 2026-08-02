@@ -37,6 +37,7 @@ const SIGNES_CERTAINS = [
   [/requires available credits/i, 'credits epuises'],
   [/account balance is too low/i, 'credits epuises'],
   [/insufficient[_ ]quota/i, 'quota epuise'],
+  [/insufficient (?:credits?|balance|funds)/i, 'credits epuises'],
 ]
 
 /**
@@ -47,6 +48,11 @@ const SIGNES_CERTAINS = [
  */
 const SIGNES_PROBABLES = [
   [/\bHTTP (?:401|403|404|408|429|500|502|503|529)\b/, 'le fournisseur a refuse l-appel'],
+  // Le code sans le mot « HTTP » : une exception le rend souvent nu. Volontai-
+  // rement plus etroit que la ligne au-dessus - 401 et 403 disent un probleme
+  // d'authentification, que changer de modele chez le meme fournisseur ne
+  // reglerait pas, et 404 se promene trop en prose pour etre lu comme un signe.
+  [/\b(?:status|code|error|returned)[ :]*(?:429|500|502|503|529)\b/i, 'le fournisseur a refuse l-appel'],
   [/rate[ _-]?limit/i, 'limite de debit atteinte'],
   [/\boverloaded\b/i, 'service surcharge'],
   [/\b(?:connection|connexion) (?:error|refused|reset|aborted)/i, 'connexion interrompue'],

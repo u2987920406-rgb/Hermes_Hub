@@ -418,14 +418,29 @@ export class PontAcp extends EventEmitter {
       for (;;) {
         this.texteTour = ''
 
-        const res = await this.appeler(
-          'session/prompt',
-          {
-            sessionId: session.sessionId,
-            prompt: [{ type: 'text', text: texte }],
-          },
-          delai,
-        )
+        let res
+        try {
+          res = await this.appeler(
+            'session/prompt',
+            {
+              sessionId: session.sessionId,
+              prompt: [{ type: 'text', text: texte }],
+            },
+            delai,
+          )
+        } catch (err) {
+          // Une coupure de fournisseur n'arrive pas toujours dans le texte de
+          // la reponse : elle peut remonter en exception, et le tour part alors
+          // en erreur sans que la bascule soit jamais consultee. On lui donne
+          // donc aussi le message d'erreur a lire.
+          //
+          // Quand le message ne dit rien d'exploitable - l'adaptateur ACP
+          // aplatit parfois une erreur de credits en « Internal error » - il
+          // n'y a rien a decider ici : on relance, et c'est a l'appelant de
+          // reessayer. `execution.js` le fait pour les taches d'un pole.
+          if ((await this.#basculerSiPanne(epuises, err.message)) === 'relancer') continue
+          throw err
+        }
 
         const suite = await this.#basculerSiPanne(epuises)
         if (suite === 'relancer') continue
@@ -446,13 +461,16 @@ export class PontAcp extends EventEmitter {
   }
 
   /**
-   * Lit la reponse qui vient d'arriver. Si le fournisseur a coupe et que la
-   * bascule est active, passe au modele gratuit suivant.
+   * Lit ce qui vient d'arriver - la reponse, ou le message d'une exception. Si
+   * le fournisseur a coupe et que la bascule est active, passe au modele
+   * gratuit suivant.
    *
+   * @param {string} [texte] a lire a la place de la reponse : le message d'une
+   *   erreur, quand la coupure a fait echouer l'appel au lieu de repondre.
    * @returns 'relancer' pour rejouer le meme message, 'garder' sinon.
    */
-  async #basculerSiPanne(epuises) {
-    const raison = estPanneModele(this.texteTour)
+  async #basculerSiPanne(epuises, texte) {
+    const raison = estPanneModele(texte ?? this.texteTour)
     if (!raison) return 'garder'
 
     if (!lireBascule()) {
