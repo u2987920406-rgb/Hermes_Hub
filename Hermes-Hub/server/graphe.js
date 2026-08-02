@@ -166,3 +166,28 @@ export function delier(de, vers) {
   if (r.status !== 0) throw refus(r, "Le lien n'a pas pu etre retire.")
   return { de, vers, lie: false }
 }
+
+/**
+ * Qui s'en occupe. `null` rend la tache a personne.
+ *
+ * Le mot `none` est celui de la CLI pour desassigner ; on le traduit ici plutot
+ * que de laisser chaque appelant s'en souvenir.
+ */
+export function assigner(id, agent) {
+  const r = hermes(['assign', id, agent || 'none'])
+  if (r.status !== 0) throw refus(r, "La tache n'a pas pu etre reassignee.")
+  return { id, agent: agent || null }
+}
+
+/**
+ * Le modele impose a une tache, par-dessus celui de son agent.
+ *
+ * `null` retire l'epingle : la tache repart sur le modele de son agent. La CLI
+ * previent que le changement ne prend effet qu'au prochain dispatch - une tache
+ * deja en cours garde donc le sien, et c'est bien ainsi.
+ */
+export function epingler(id, modele) {
+  const r = hermes(['set-model', id, modele || 'none'])
+  if (r.status !== 0) throw refus(r, "Le modele n'a pas pu etre change.")
+  return { id, modele: modele || null }
+}

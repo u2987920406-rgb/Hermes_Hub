@@ -211,6 +211,7 @@ function resume(v) {
   return {
     id: v.id,
     prisLe: v.prisLe,
+    revuLe: v.revuLe || v.prisLe,
     favori: !!v.favori,
     nom: v.nom,
     mesure: v.mesure,
@@ -221,9 +222,15 @@ function resume(v) {
 /**
  * La photo prise a chaque simulation.
  *
- * Simuler deux fois sans avoir rien touche ne fait pas deux versions : on
- * rafraichit la mesure de la derniere. Sans ca, relire une simulation pour la
- * montrer a quelqu'un remplirait le banc de jumelles.
+ * Un plan deja au banc n'y entre pas deux fois - et on cherche dans **tout** le
+ * banc, pas seulement le dernier essai. Revenir a une version puis resimuler
+ * ramene exactement le plan de cette version : la comparer au seul essai
+ * precedent en ferait un jumeau sous un autre nom, et le banc se remplirait de
+ * doublons que personne ne sait distinguer. C'est precisement ce qu'il existe
+ * pour eviter.
+ *
+ * La date de prise ne bouge pas pour autant : elle dit quand ce plan est
+ * apparu. `revuLe` dit quand on l'a revu.
  */
 export function enregistrer(poleId, pole, mesure) {
   const tout = toutes()
@@ -231,17 +238,19 @@ export function enregistrer(poleId, pole, mesure) {
   const plan = photographier(pole)
   const precedent = liste.length ? liste[liste.length - 1] : null
 
-  if (precedent && total(ecart(precedent.plan, plan)) === 0) {
-    precedent.mesure = mesure
-    precedent.prisLe = Date.now()
+  const connu = liste.find((v) => total(ecart(v.plan, plan)) === 0)
+  if (connu) {
+    connu.mesure = mesure
+    connu.revuLe = Date.now()
     tout[poleId] = liste
     ecrire(tout)
-    return resume(precedent)
+    return resume(connu)
   }
 
   const version = {
     id: `v${Date.now().toString(36)}`,
     prisLe: Date.now(),
+    revuLe: Date.now(),
     favori: false,
     nom: nommer(precedent ? precedent.plan : null, plan),
     mesure,

@@ -33,7 +33,8 @@ import {
   supprimerTache,
 } from './graphe.js'
 import { annulerValidation, simuler, valider } from './simulation.js'
-import { comparer, listerVersions, marquerFavori, oublierVersion } from './versions.js'
+import { comparer, listerVersions, lireVersion, marquerFavori, oublierVersion } from './versions.js'
+import { prevoirRetour, rejouer } from './retour.js'
 import { ecrireDisposition, lireDisposition, oublierDisposition } from './studio.js'
 import { clore, lire as lireConversation, lister as listerConversations, noter, supprimer as supprimerConversation } from './historique.js'
 import { ecrireBascule, lireBascule } from './modeles.js'
@@ -1638,6 +1639,30 @@ async function handleApi(req, res, url) {
 
       if (rest[2] === 'comparaison' && method === 'GET') {
         return sendJson(res, 200, comparer(exiger('pole'), exiger('a'), exiger('b')))
+      }
+
+      // Revenir a un essai. En GET on annonce la note sans rien toucher : c'est
+      // le seul moyen de savoir, avant de cliquer, quelles taches ne
+      // reviendront que rebaties.
+      if (rest[2] === 'retour') {
+        const poleId = exiger('pole')
+        const version = lireVersion(poleId, exiger('version'))
+        if (!version) {
+          const err = new Error('Cette version n-est plus au banc.')
+          err.status = 404
+          throw err
+        }
+        const pole = await poleRemaniable(poleId)
+
+        if (method === 'GET') return sendJson(res, 200, prevoirRetour(pole, version.plan))
+        if (method === 'POST') {
+          const rapport = rejouer(pole, version.plan)
+          // Le tableau ne ressemble plus a ce qui avait ete valide - et il ne
+          // ressemble pas non plus encore a une version du banc, tant qu'une
+          // simulation n'a pas photographie le resultat.
+          graphePerturbe(poleId)
+          return sendJson(res, 200, { version: version.id, nom: version.nom, ...rapport })
+        }
       }
       if (rest[2] === 'favori' && method === 'POST') {
         return sendJson(
