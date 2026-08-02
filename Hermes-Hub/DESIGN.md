@@ -53,6 +53,7 @@ pour le nommer quand on veut demander une modification.
 | La colonne qui defile | `fil-conversation` | — | largeur : `max-w-3xl` |
 | La barre du bas | `barre-saisie` | — | idem |
 | « Louise et Gabriel travaillent - 12 s » | `agents-au-travail` | `--agent-point-compact` | idem, composant `AuTravail` |
+| Le trait de fin : « 5 agents ont repondu - 24,1 s » | `fin-du-tour` | — | idem, composant `FinDuTour` |
 | La rangee de pastilles d'agents | `rangee-agents` | `--agent-point-compact` | repliee par defaut, voir `deplie` |
 | Une pastille d'agent | `pastille-agent` | `--agent-point-compact` | idem |
 
@@ -138,6 +139,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `fenetre-simulation` | `src/components/FenetreSimulation.tsx` |
 | `fiche-agent` | `src/pages/OrchestrationView.tsx` |
 | `fil-conversation` | `src/components/Conversation.tsx` |
+| `fin-du-tour` | `src/components/Conversation.tsx` |
 | `formulaire-nouveau-projet` | `src/components/NewProjectModal.tsx` |
 | `ligne-banc` | `src/components/BancEssai.tsx` |
 | `ligne-historique` | `src/pages/OrchestrationView.tsx` |

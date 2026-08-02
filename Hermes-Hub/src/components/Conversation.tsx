@@ -16,6 +16,7 @@
  */
 import {
   AlertTriangle,
+  Check,
   ChevronDown,
   CornerDownRight,
   Loader2,
@@ -103,6 +104,39 @@ export function Conversation({
     .map((t) => (t as Extract<Tour, { role: 'agent' }>).agent)
     .filter((id, i, tous) => tous.indexOf(id) === i)
   const enCours = travaillent.length > 0
+
+  /**
+   * La fin du tour, dite au lieu d'etre devinee.
+   *
+   * L'indicateur « qui travaille » disparait quand tout est fini - mais une
+   * disparition n'est pas un signal : on ne remarque pas ce qui s'arrete. Sur la
+   * reunion a dix, Bruno a repondu en dernier et kuchu est reste devant l'ecran
+   * a attendre un onzieme qui ne venait pas. Rien ne distinguait « c'est
+   * termine » de « le suivant reflechit encore ».
+   *
+   * On mesure donc du premier reveil au dernier `tour-fin`, et on pose une
+   * marque. Elle vaut pour ce qu'on a vu passer en direct : un fil relu n'a rien
+   * en cours (le Hub a pu etre ferme au milieu d'un tour), et inventer une duree
+   * a posteriori serait pire que se taire.
+   */
+  const [finDuTour, setFinDuTour] = useState<{ secondes: number; agents: number } | null>(null)
+  const debut = useRef<number | null>(null)
+  const vus = useRef(new Set<string>())
+  const cleTravail = travaillent.join(',')
+
+  useEffect(() => {
+    if (enCours) {
+      if (debut.current === null) {
+        debut.current = Date.now()
+        vus.current = new Set()
+      }
+      for (const id of cleTravail.split(',')) if (id) vus.current.add(id)
+      setFinDuTour(null)
+    } else if (debut.current !== null) {
+      setFinDuTour({ secondes: (Date.now() - debut.current) / 1000, agents: vus.current.size })
+      debut.current = null
+    }
+  }, [enCours, cleTravail])
 
   useEffect(() => {
     onEveilChange?.([...eveilles])
@@ -447,6 +481,8 @@ export function Conversation({
               <span>{erreur}</span>
             </div>
           )}
+
+          {finDuTour && !enCours && <FinDuTour {...finDuTour} />}
 
           <div ref={bas} />
         </div>
@@ -894,6 +930,31 @@ function Autorisation({
  * souvenir de qui fait quoi - c'est-a-dire a aller chercher ailleurs ce que la
  * barre etait censee rendre.
  */
+/**
+ * La barre de fin : plus personne ne parlera.
+ *
+ * Discrete par construction - un trait, une coche, un decompte. Elle ne felicite
+ * pas et ne demande rien : elle ferme. Ce qu'elle remplace, c'est l'attente d'un
+ * onzieme agent qui n'existait pas.
+ *
+ * Elle donne le nombre d'agents parce que c'est la question suivante : « tout le
+ * monde a repondu ? ». Sur une reunion a dix, le compte dans la marque evite de
+ * les recompter a la main dans le fil.
+ */
+function FinDuTour({ secondes, agents }: { secondes: number; agents: number }) {
+  return (
+    <div data-zone="fin-du-tour" className="flex items-center gap-3 pt-1" role="status">
+      <div className="h-px flex-1 bg-slate-200 dark:bg-navy-800" />
+      <span className="flex items-center gap-1.5 text-[10.5px] muted">
+        <Check className="h-3 w-3 teinte-sens sens-succes" />
+        {agents > 1 ? `${agents} agents ont repondu` : 'Reponse terminee'}
+        <span className="tabular-nums">- {secondes.toFixed(1).replace('.', ',')} s</span>
+      </span>
+      <div className="h-px flex-1 bg-slate-200 dark:bg-navy-800" />
+    </div>
+  )
+}
+
 /**
  * Qui travaille, et depuis combien de temps.
  *
