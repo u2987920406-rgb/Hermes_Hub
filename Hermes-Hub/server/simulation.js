@@ -17,6 +17,7 @@
  */
 import path from 'node:path'
 import { lireOrchestration } from './equipe.js'
+import { enregistrer, listerVersions } from './versions.js'
 import { HUB_DIR, readJson, writeJson } from './workspace.js'
 
 /**
@@ -309,9 +310,22 @@ export async function simuler(poleId) {
     return { rang: rang + 1, taches, cycle: vague.cycle, reveilCumule: horloge }
   })
 
+  // C'est simuler qui photographie - ici, et nulle part ailleurs. Un bouton
+  // « garder » demanderait d'y penser au bon moment, et on n'y pense jamais
+  // avant le remaniement qui ne vaut rien.
+  const version = enregistrer(pole.id, pole, {
+    vagues: vaguesRendues.length,
+    reveilMs: horloge,
+    risque: risqueGlobal,
+    alertes: alertes.length,
+  })
+
   return {
     pole: { id: pole.id, titre: pole.titre, corps: pole.corps },
     vagues: vaguesRendues,
+    // Le banc suit la simulation : l'ecran qui l'affiche a deja tout.
+    banc: listerVersions(pole.id),
+    version: version.id,
     // Le seul temps annonce, et il est nomme pour ce qu'il est : la mise en
     // route de l'equipe, pas la duree du travail.
     reveilTotal: horloge,

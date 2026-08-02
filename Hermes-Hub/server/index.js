@@ -33,6 +33,7 @@ import {
   supprimerTache,
 } from './graphe.js'
 import { annulerValidation, simuler, valider } from './simulation.js'
+import { comparer, listerVersions, marquerFavori, oublierVersion } from './versions.js'
 import { ecrireDisposition, lireDisposition, oublierDisposition } from './studio.js'
 import { clore, lire as lireConversation, lister as listerConversations, noter, supprimer as supprimerConversation } from './historique.js'
 import { ecrireBascule, lireBascule } from './modeles.js'
@@ -1617,6 +1618,40 @@ async function handleApi(req, res, url) {
       }
       if (method === 'POST') return sendJson(res, 200, valider(pole, body.empreinte))
       if (method === 'DELETE') return sendJson(res, 200, annulerValidation(pole))
+    }
+
+    // Le banc d'essai. Aucun de ces gestes ne touche au tableau : on lit des
+    // photos, on en marque une, on en oublie une. Revenir a l'une d'elles est
+    // un autre verbe, qui passe par `graphe.js` comme tout le reste.
+    if (rest[1] === 'banc') {
+      const lu = method === 'POST' ? await readBody(req) : {}
+      const arg = (cle) => String(lu[cle] || url.searchParams.get(cle) || '')
+      const exiger = (cle) => {
+        const v = arg(cle)
+        if (!v) {
+          const err = new Error(`Parametre manquant : ${cle}`)
+          err.status = 400
+          throw err
+        }
+        return v
+      }
+
+      if (rest[2] === 'comparaison' && method === 'GET') {
+        return sendJson(res, 200, comparer(exiger('pole'), exiger('a'), exiger('b')))
+      }
+      if (rest[2] === 'favori' && method === 'POST') {
+        return sendJson(
+          res,
+          200,
+          marquerFavori(exiger('pole'), exiger('version'), lu.favori !== false),
+        )
+      }
+      if (!rest[2] && method === 'GET') {
+        return sendJson(res, 200, listerVersions(exiger('pole')))
+      }
+      if (!rest[2] && method === 'DELETE') {
+        return sendJson(res, 200, oublierVersion(exiger('pole'), exiger('version')))
+      }
     }
 
     // La disposition du Studio : ou l'utilisateur a pose ses noeuds. Purement
