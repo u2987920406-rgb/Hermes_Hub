@@ -36,9 +36,24 @@ const PROFONDEUR_MAX = 2
  *
  * ELARGISSEMENT_MAX : ce qu'une seule delegation peut convoquer.
  * CONVOQUES_MAX     : le total pour un message, toutes profondeurs confondues.
+ *
+ * **Ils ne bornent que la delegation** - ce que les agents se renvoient entre
+ * eux. Ce que l'utilisateur mentionne lui-meme n'est jamais tronque : `envoyer`
+ * sert la liste entiere.
+ *
+ * Le total est passe de 6 a 10 le 02/08/2026, sur mesure : dix agents mentionnes
+ * d'un coup repondent en parallele en moins de 6 s, chacun dans son metier. Six
+ * etait une prudence posee avant d'avoir vu la machine encaisser, et elle avait
+ * un effet de bord bete - une reunion a dix laissait le compteur au-dessus du
+ * plafond, donc aucun des dix ne pouvait appeler un absent.
+ *
+ * ELARGISSEMENT_MAX reste a 3, et ce n'est pas la meme chose : ce n'est pas un
+ * plafond de charge, c'est **un detecteur**. Au-dela de trois mentions dans une
+ * seule reponse, un modele ne delegue pas, il recite l'annuaire. Le monter
+ * ferait revenir les quatorze agents en ligne.
  */
 const ELARGISSEMENT_MAX = 3
-const CONVOQUES_MAX = 6
+const CONVOQUES_MAX = 10
 
 /** Sans accents ni casse : on ecrit `@Redacteur` comme `@redacteur`. */
 function normaliser(texte) {
@@ -421,7 +436,6 @@ export class Equipage {
    */
   async #deleguer(pont, agent, { profondeur, tous, groupes, convoques }) {
     if (profondeur >= PROFONDEUR_MAX) return
-    if (convoques.size >= CONVOQUES_MAX) return
 
     const reponse = String(pont.texteTour || '')
     if (!reponse.includes('@')) return
@@ -446,13 +460,28 @@ export class Equipage {
     }
 
     const { destinataires } = resoudre(reponse, tous, groupes)
-    let suite = destinataires
+    const voulus = destinataires
       .filter((a) => a.id !== agent.id)
       .filter((a) => !convoques.has(a.id)) // deja appele : on ne l'appelle pas deux fois
       .slice(0, ELARGISSEMENT_MAX)
 
     // On ne depasse pas le total, quitte a tronquer la derniere delegation.
-    suite = suite.slice(0, Math.max(0, CONVOQUES_MAX - convoques.size))
+    const suite = voulus.slice(0, Math.max(0, CONVOQUES_MAX - convoques.size))
+
+    // Le plafond total se taisait : `return` sec, et l'appel disparaissait sans
+    // trace. Un agent qui en appelait un autre pour finir le travail voyait sa
+    // demande s'evaporer, et l'utilisateur attendait une reponse qui ne viendrait
+    // jamais. Un plafond qui ne se dit pas n'est pas un plafond, c'est un bug.
+    if (voulus.length > suite.length) {
+      this.diffuser({
+        type: 'plafond-atteint',
+        agent: agent.id,
+        nom: agent.nom,
+        refuses: voulus.slice(suite.length).map((a) => a.nom),
+        plafond: CONVOQUES_MAX,
+      })
+    }
+
     if (!suite.length) return
 
     const consigne = lu.reste || reponse

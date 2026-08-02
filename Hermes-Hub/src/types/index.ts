@@ -469,7 +469,21 @@ export interface TourDelegation {
   texte: string
 }
 
-export type Tour = TourMoi | TourAgent | TourDelegation
+/** Un appel refuse par un garde-fou : trop de mentions d'un coup, ou plafond de
+    convocation atteint. Se pose dans le fil au meme titre qu'une delegation -
+    c'est le meme evenement, celui ou quelqu'un devait etre reveille. */
+export interface TourRefus {
+  role: 'refus'
+  de: string
+  nom: string
+  /** `annuaire` : l'agent a recopie l'annuaire. `plafond` : trop de monde deja. */
+  motif: 'annuaire' | 'plafond'
+  citees?: number
+  refuses?: string[]
+  plafond?: number
+}
+
+export type Tour = TourMoi | TourAgent | TourDelegation | TourRefus
 
 export interface EtapePlan {
   libelle: string
@@ -512,6 +526,9 @@ type EvenementBrut =
   /** Trop de mentions d'un coup : l'agent recopiait l'annuaire au lieu de
       deleguer. On ne reveille personne et on le dit. */
   | { type: 'delegation-ignoree'; nom: string; citees: number }
+  /** Le total d'agents convoques par une chaine de delegations est atteint :
+      ceux-ci ne seront pas reveilles. Se dit, sinon la demande s'evapore. */
+  | { type: 'plafond-atteint'; nom: string; refuses: string[]; plafond: number }
   | { type: 'tour-debut' }
   | { type: 'texte'; texte: string }
   | { type: 'reflexion'; texte: string }

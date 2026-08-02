@@ -43,6 +43,7 @@ import type {
   Tour,
   TourAgent,
   TourDelegation,
+  TourRefus,
 } from '../types'
 
 interface Props {
@@ -261,6 +262,20 @@ export function Conversation({
         ])
         return
 
+      case 'delegation-ignoree':
+        setTours((t) => [
+          ...t,
+          { role: 'refus', de: agent, nom: e.nom, motif: 'annuaire', citees: e.citees },
+        ])
+        return
+
+      case 'plafond-atteint':
+        setTours((t) => [
+          ...t,
+          { role: 'refus', de: agent, nom: e.nom, motif: 'plafond', refuses: e.refuses, plafond: e.plafond },
+        ])
+        return
+
       case 'tour-debut':
         setTours((t) => [...t, { role: 'agent', agent, blocs: [], fini: false }])
         return
@@ -417,6 +432,25 @@ export function Conversation({
       qu'un filtre sans la liste qu'il trie n'a pas d'objet. */
   const rangeeVisible = Boolean(deplie || terme || equipeChoisie)
 
+  /**
+   * Combien d'agents ce message va-t-il reveiller ?
+   *
+   * Ce que tu mentionnes n'est jamais tronque - dix agents mentionnes, dix
+   * reveilles, mesure a moins de 6 s. Il n'y a donc pas de limite a poser, mais
+   * il y a quelque chose a dire : chaque mention demarre un processus et paie un
+   * appel modele. Au-dela d'une dizaine, ca merite d'etre vu avant d'appuyer,
+   * pas devine apres.
+   *
+   * L'avertissement ne bloque rien : c'est une prevention, pas un garde-fou. Un
+   * garde-fou sur ce que l'utilisateur demande explicitement serait de la
+   * defiance.
+   */
+  const mentionnes = agents.filter((a) => {
+    const n = aplatir(a.nom)
+    return n && aplatir(saisie).includes('@' + n)
+  }).length
+  const beaucoupDeMonde = mentionnes > 10
+
   // --- rendu -----------------------------------------------------------------
   const filOuvert = fils.find((f) => f.id === filVu) || null
 
@@ -466,6 +500,8 @@ export function Conversation({
               <BulleMoi key={i} tour={tour} agents={parId} />
             ) : tour.role === 'delegation' ? (
               <TraceDelegation key={i} tour={tour} agents={parId} />
+            ) : tour.role === 'refus' ? (
+              <TraceRefus key={i} tour={tour} agent={parId.get(tour.de)} />
             ) : (
               <BulleAgent key={i} tour={tour} agent={parId.get(tour.agent)} />
             ),
@@ -613,6 +649,17 @@ export function Conversation({
 
           {enCours && <AuTravail agents={travaillent} parId={parId} />}
 
+          {!enCours && beaucoupDeMonde && (
+            <div data-zone="avertissement-convocation" className="bandeau sens-alerte text-[11px]">
+              <AlertTriangle className="h-3.5 w-3.5 flex-none teinte-sens" />
+              <span>
+                Tu appelles <b>{mentionnes} agents</b>. Chacun demarre un processus et
+                paie un appel modele - c est plus long et ca consomme d autant. Rien ne
+                t en empeche : sans mention, Hermes repond seul au nom de l equipe.
+              </span>
+            </div>
+          )}
+
           <div className="flex items-end gap-2">
             <textarea
               ref={champ}
@@ -691,6 +738,18 @@ function construire(evenements: (EvenementChat & { a?: number })[]): Tour[] {
         tours = [
           ...tours,
           { role: 'delegation', de: agent, nom: e.nom, vers: e.vers, texte: e.texte },
+        ]
+        break
+      case 'delegation-ignoree':
+        tours = [
+          ...tours,
+          { role: 'refus', de: agent, nom: e.nom, motif: 'annuaire', citees: e.citees },
+        ]
+        break
+      case 'plafond-atteint':
+        tours = [
+          ...tours,
+          { role: 'refus', de: agent, nom: e.nom, motif: 'plafond', refuses: e.refuses, plafond: e.plafond },
         ]
         break
       case 'tour-debut':
@@ -956,6 +1015,47 @@ function Autorisation({
  * souvenir de qui fait quoi - c'est-a-dire a aller chercher ailleurs ce que la
  * barre etait censee rendre.
  */
+/**
+ * Un appel qu'un garde-fou a refuse.
+ *
+ * Ces deux refus existaient depuis toujours cote serveur et ne se voyaient nulle
+ * part : `delegation-ignoree` etait diffuse et meme type cote client, mais aucun
+ * composant ne l'affichait ; le plafond total, lui, faisait un `return` sec.
+ * Resultat, un agent demandait de l'aide, personne ne venait, et l'utilisateur
+ * attendait une reponse qui ne viendrait jamais.
+ *
+ * La trace se pose dans le fil au meme endroit qu'une delegation reussie -
+ * c'est le meme moment, celui ou quelqu'un devait etre reveille - mais en
+ * `sens-alerte` : rien n'est casse, quelque chose n'a simplement pas eu lieu.
+ */
+function TraceRefus({ tour, agent }: { tour: TourRefus; agent?: Agent }) {
+  return (
+    <div
+      data-zone="trace-refus"
+      className="bandeau sens-alerte ml-6 text-[11px]"
+      style={agent ? jetonDe(agent) : undefined}
+    >
+      <AlertTriangle className="h-3.5 w-3.5 flex-none teinte-sens" />
+      <span>
+        {tour.motif === 'annuaire' ? (
+          <>
+            <b>{tour.nom}</b> a cite {tour.citees} agents d un coup : c est
+            l annuaire recopie, pas une delegation. Personne n a ete reveille -
+            redemande-lui de choisir, ou appelle-les toi-meme avec @nom.
+          </>
+        ) : (
+          <>
+            <b>{tour.nom}</b> voulait appeler {(tour.refuses || []).join(', ')},
+            mais la limite de {tour.plafond} agents pour un message est atteinte.
+            Ils n ont pas ete reveilles - relance-les dans un nouveau message si
+            tu en as besoin.
+          </>
+        )}
+      </span>
+    </div>
+  )
+}
+
 /**
  * La barre de fin : plus personne ne parlera.
  *

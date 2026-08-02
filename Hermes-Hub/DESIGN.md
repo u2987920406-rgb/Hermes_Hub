@@ -50,6 +50,8 @@ pour le nommer quand on veut demander une modification.
 | Une bulle d'agent qui parle | `bulle-agent` | `--agent-point`, `--agent-halo`, `--bulle-retrait` | `Conversation.tsx` |
 | Ta propre bulle, a droite | `bulle-moi` | `--bulle-rayon`, `--bulle-largeur` | idem |
 | « X confie le travail a Y » | `trace-delegation` | — | idem |
+| « X voulait appeler Y, la limite est atteinte » | `trace-refus` | — | idem, composant `TraceRefus` |
+| « Tu appelles 12 agents » avant d'envoyer | `avertissement-convocation` | — | idem, seuil en dur : `mentionnes > 10` |
 | La colonne qui defile | `fil-conversation` | — | largeur : `max-w-3xl` |
 | La barre du bas | `barre-saisie` | — | idem |
 | « Louise et Gabriel travaillent - 12 s » | `agents-au-travail` | `--agent-point-compact` | idem, composant `AuTravail` |
@@ -119,6 +121,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 |---|---|
 | `accords-orchestration` | `src/pages/OrchestrationView.tsx` |
 | `agents-au-travail` | `src/components/Conversation.tsx` |
+| `avertissement-convocation` | `src/components/Conversation.tsx` |
 | `banc-essai` | `src/components/BancEssai.tsx` |
 | `barre-saisie` | `src/components/Conversation.tsx` |
 | `boite-demande` | `src/pages/OrchestrationView.tsx` |
@@ -154,6 +157,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `rangee-agents` | `src/components/Conversation.tsx` |
 | `studio` | `src/pages/StudioView.tsx` |
 | `trace-delegation` | `src/components/Conversation.tsx` |
+| `trace-refus` | `src/components/Conversation.tsx` |
 | `vignette-equipe` | `src/pages/OrchestrationView.tsx` |
 | `vignette-pole` | `src/pages/OrchestrationView.tsx` |
 <!-- ZONES:FIN -->
