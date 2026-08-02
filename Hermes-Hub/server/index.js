@@ -27,14 +27,17 @@ import {
 } from './execution.js'
 import {
   ajouterTache,
+  assigner,
   delier,
   dernierJson,
+  epingler,
   relier,
   supprimerTache,
 } from './graphe.js'
 import { annulerValidation, simuler, valider } from './simulation.js'
 import { comparer, listerVersions, lireVersion, marquerFavori, oublierVersion } from './versions.js'
 import { prevoirRetour, rejouer } from './retour.js'
+import { executer, preparer } from './masse.js'
 import { ecrireDisposition, lireDisposition, oublierDisposition } from './studio.js'
 import { clore, lire as lireConversation, lister as listerConversations, noter, supprimer as supprimerConversation } from './historique.js'
 import { ecrireBascule, lireBascule } from './modeles.js'
@@ -1774,6 +1777,66 @@ async function handleApi(req, res, url) {
         const fait = supprimerTache(id)
         graphePerturbe(pole.id)
         return sendJson(res, 200, fait)
+      }
+    }
+
+    // Les reglages d'une tache : qui s'en occupe, et sur quel modele. La souris
+    // les pose une par une depuis le panneau ; la parole en pose dix d'un coup
+    // par la route voisine.
+    if (rest[1] === 'tache' && method === 'PATCH') {
+      const body = await readBody(req)
+      const pole = await poleRemaniable(String(body.pole || ''))
+      const id = String(body.id || '')
+      exigerMembre(pole, id, 'La tache')
+
+      const fait = {}
+      if ('agent' in body) Object.assign(fait, assigner(id, body.agent ? String(body.agent) : null))
+      if ('modele' in body) {
+        Object.assign(fait, epingler(id, body.modele ? String(body.modele) : null))
+      }
+      if (!Object.keys(fait).length) {
+        const err = new Error('Rien a changer : precise un agent ou un modele.')
+        err.status = 400
+        throw err
+      }
+
+      graphePerturbe(pole.id)
+      return sendJson(res, 200, fait)
+    }
+
+    // La commande en masse : ce que la souris ne sait pas faire.
+    //
+    // En GET on ne fait rien - on annonce. C'est le garde-fou principal de la
+    // parole : le cerveau qui a resolu le critere est un 4B, et une erreur de
+    // cible ne dit plus une betise, elle touche dix taches. La liste des titres
+    // et les refus deja nommes passent donc toujours avant l'ecriture.
+    if (rest[1] === 'taches') {
+      const lu = method === 'GET' ? {} : await readBody(req)
+      const arg = (cle) => (method === 'GET' ? url.searchParams.get(cle) : lu[cle])
+
+      const pole = await poleRemaniable(String(arg('pole') || ''))
+      const verbe = String(arg('verbe') || '')
+      const brut = arg('cibles')
+      const cibles = (Array.isArray(brut) ? brut : String(brut || '').split(','))
+        .map((x) => String(x).trim())
+        .filter(Boolean)
+
+      if (!cibles.length) {
+        const err = new Error('Aucune cible : une commande de masse sans cible ne veut rien dire.')
+        err.status = 400
+        throw err
+      }
+
+      const valeur = arg('valeur') ? String(arg('valeur')) : null
+      const plan = preparer(pole, { verbe, cibles, valeur })
+
+      if (method === 'GET') return sendJson(res, 200, plan)
+      if (method === 'POST') {
+        const rapport = executer(pole, plan)
+        // Un seul retrait de validation pour toute la commande : dix appels
+        // n'ont pas fait dix plans differents, ils en ont fait un.
+        if (rapport.gestes) graphePerturbe(pole.id)
+        return sendJson(res, 200, rapport)
       }
     }
 
