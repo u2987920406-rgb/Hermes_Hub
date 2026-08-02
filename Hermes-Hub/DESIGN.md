@@ -67,6 +67,7 @@ pour le nommer quand on veut demander une modification.
 | Le champ « Decris ce que tu veux » | `boite-demande` | — | idem |
 | Les autorisations en attente, en haut du pole | `accords-orchestration` | — | idem |
 | La fenetre de simulation | `fenetre-simulation` | — | `FenetreSimulation.tsx` |
+| Le decompte pendant qu-Hermes decoupe | `decompte-decoupage` | — | idem, `PLAFOND_DECOUPAGE_S` |
 | Le banc d'essai, en bas de la simulation | `banc-essai` | — | `BancEssai.tsx` |
 | Une ligne du banc : un essai et sa mesure | `ligne-banc` | `--densite` | idem, c'est un `.rang` |
 
@@ -122,6 +123,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `bulle-agent` | `src/components/Conversation.tsx` |
 | `bulle-moi` | `src/components/Conversation.tsx` |
 | `carte-projet` | `src/components/ProjectCard.tsx` |
+| `decompte-decoupage` | `src/components/FenetreSimulation.tsx` |
 | `ecran-accueil` | `src/pages/HomeView.tsx` |
 | `ecran-clean` | `src/pages/CleanView.tsx` |
 | `ecran-coffre` | `src/pages/VaultView.tsx` |

@@ -1328,25 +1328,83 @@ function ouvrirFlux(req, res) {
 // La decomposition
 // -----------------------------------------------------------------------------
 /**
+ * Le plafond du decoupage, en millisecondes. Au-dela, on tue le processus.
+ *
+ * Ce chiffre est duplique une fois cote interface (`PLAFOND_DECOUPAGE_S` dans
+ * `FenetreSimulation.tsx`), parce que le decompte doit annoncer la coupure
+ * avant qu'elle arrive - donc avant tout aller-retour. Les deux se tiennent la
+ * main par ces deux commentaires ; changer l'un sans l'autre ferait mentir le
+ * decompte de la pire facon, en promettant du temps qui n'existe plus.
+ */
+const DELAI_DECOUPAGE = 180000
+
+/**
+ * Lancer `hermes` sans figer le Hub.
+ *
+ * `spawnSync` ne bloque pas la requete, il bloque **le processus Node entier** :
+ * pendant tout le decoupage, plus aucun flux SSE ne part, plus aucune autre
+ * requete n'est servie, et un agent au travail dans un autre pole ne peut plus
+ * faire remonter quoi que ce soit. Tant que le decoupage tenait vingt secondes,
+ * ca passait pour de la lenteur. La mesure du 02/08/2026 a montre des essais a
+ * 270 secondes : quatre minutes et demie de Hub mort, y compris le decompte
+ * qu'on veut afficher par-dessus.
+ *
+ * `tue` distingue les deux fins qui se ressemblent : un code de sortie non nul
+ * parce que le decomposeur a echoue, et un code non nul parce que **nous**
+ * l'avons tue au plafond. La deuxieme merite d'etre nommee - c'est exactement
+ * la panne muette relevee a la mesure.
+ */
+function hermesLent(args, delai) {
+  return new Promise((resolve) => {
+    const enfant = spawn('hermes', args, { windowsHide: true })
+    let sortie = ''
+    let tue = false
+
+    // Le decoupage rend un JSON de quelques kilo-octets. Le plafond n'est pas
+    // une optimisation : il empeche une sortie qui s'emballe de manger la
+    // memoire du Hub, la ou `maxBuffer` le faisait pour `spawnSync`.
+    enfant.stdout.setEncoding('utf8')
+    enfant.stdout.on('data', (bout) => {
+      if (sortie.length < 4 * 1024 * 1024) sortie += bout
+    })
+    enfant.stderr.resume()
+
+    const minuterie = setTimeout(() => {
+      tue = true
+      enfant.kill()
+    }, delai)
+
+    const finir = (code) => {
+      clearTimeout(minuterie)
+      resolve({ sortie, code, tue })
+    }
+    enfant.on('close', finir)
+    // `hermes` absent du PATH n'emet jamais `close` : sans ceci, la promesse
+    // ne se resout pas et l'onglet compte jusqu'a l'infini.
+    enfant.on('error', () => finir(null))
+  })
+}
+
+/**
  * Une demande en francais devient un graphe de taches assignables.
  *
  * Le titre est la premiere ligne, coupee : c'est ce qui nommera le pole dans
  * l'interface. Le corps garde la demande entiere, parce que c'est lui que le
  * decomposeur lit pour repartir le travail.
  *
- * Mesure du 31/07/2026 : environ 23 secondes et un seul appel modele. D'ou le
- * delai large - et l'indicateur d'attente cote interface, sans lequel vingt
- * secondes de silence passent pour une panne.
+ * Combien de temps ? La reponse honnete est : on ne sait pas. Quatre essais du
+ * 02/08/2026 sur la meme phrase, avec le meme cerveau, ont donne 19,7 s, 26,4 s,
+ * 95,8 s et 270 s. L'interface n'annonce donc plus une duree - elle compte, et
+ * elle montre ou est le plafond.
  */
-function decomposer(texte) {
+async function decomposer(texte) {
   const titre = texte.split(/\r?\n/)[0].slice(0, 120).trim() || texte.slice(0, 120)
 
-  const cree = spawnSync(
-    'hermes',
+  const cree = await hermesLent(
     ['kanban', 'create', titre, '--body', texte, '--triage', '--json'],
-    { windowsHide: true, timeout: 30000, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 },
+    30000,
   )
-  const tache = dernierJson(cree.stdout)
+  const tache = dernierJson(cree.sortie)
   const id = tache?.task_id || tache?.id
   if (!id) {
     const err = new Error(
@@ -1356,22 +1414,38 @@ function decomposer(texte) {
     throw err
   }
 
-  const dec = spawnSync('hermes', ['kanban', 'decompose', id, '--json'], {
-    windowsHide: true,
-    timeout: 180000,
-    encoding: 'utf8',
-    maxBuffer: 4 * 1024 * 1024,
-  })
-  const plan = dernierJson(dec.stdout)
+  const dec = await hermesLent(['kanban', 'decompose', id, '--json'], DELAI_DECOUPAGE)
+  const plan = dernierJson(dec.sortie)
 
-  // Un decomposeur qui ne decoupe pas n'est pas une panne : une demande simple
-  // reste une seule tache. On le dit, plutot que de rendre un pole vide.
+  const decoupe = plan?.ok === true && Array.isArray(plan.child_ids) && plan.child_ids.length > 0
+
+  // Les trois facons de ne pas obtenir de graphe, et ce qu'on en dit.
+  //
+  // Elles rendaient toutes les trois un mot : « aucun decoupage », « la
+  // decomposition a echoue ». Un mot n'aide personne, et surtout il cachait que
+  // **la demande existe quand meme** sur le tableau - l'utilisateur croyait
+  // avoir perdu sa phrase et la retapait. Chacune porte donc sa cause ET sa
+  // suite, parce que la suite est la meme et qu'elle n'etait ecrite nulle part :
+  // la tache attend dans le Studio, ou elle se decoupe a la main.
+  const suite = 'La demande est sur le tableau : ouvre-la dans le Studio pour la decouper a la main.'
+  let raison = ''
+  if (decoupe) raison = plan.reason || ''
+  else if (dec.tue) {
+    raison = `Le decoupage a depasse ${Math.round(DELAI_DECOUPAGE / 1000)} secondes et a ete arrete. ${suite} Ou relance : le meme cerveau ne met pas le meme temps deux fois.`
+  } else if (dec.code !== 0) {
+    raison = `Le decoupage a echoue. ${suite}`
+  } else {
+    raison = `Hermes n'a pas decoupe cette demande - pour lui elle tient en une seule tache. ${suite}`
+  }
+
   return {
     pole: id,
     titre,
-    decoupe: plan?.ok === true && Array.isArray(plan.child_ids) && plan.child_ids.length > 0,
+    decoupe,
     enfants: plan?.child_ids || [],
-    raison: plan?.reason || (dec.status === 0 ? 'aucun decoupage' : 'la decomposition a echoue'),
+    raison,
+    /** Nomme la coupure pour que l'interface la traite autrement qu'un refus. */
+    depasse: dec.tue,
   }
 }
 
@@ -1596,7 +1670,7 @@ async function handleApi(req, res, url) {
         err.status = 400
         throw err
       }
-      return sendJson(res, 200, decomposer(texte))
+      return sendJson(res, 200, await decomposer(texte))
     }
 
     // La simulation locale : aucun processus lance, aucun modele appele.

@@ -245,6 +245,9 @@ export interface Decomposition {
   decoupe: boolean
   enfants: string[]
   raison: string
+  /** Vrai quand le Hub a arrete le decoupage au plafond. A distinguer d'un
+      refus : la demande existe, elle n'a simplement pas ete decoupee. */
+  depasse?: boolean
 }
 
 export type Risque = 'vert' | 'orange' | 'rouge'

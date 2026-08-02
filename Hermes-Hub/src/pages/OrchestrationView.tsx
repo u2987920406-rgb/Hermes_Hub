@@ -299,6 +299,19 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
     setSimuOccupee(true)
     try {
       const plan = await api.demande(texte)
+
+      // Un decoupage qui echoue laisse une tache seule sur le tableau - et une
+      // tache sans enfant n'est pas un pole. Simuler la rendait donc « Pole
+      // introuvable », ce qui remplacait la vraie raison par une phrase qui
+      // n'apprend rien. On s'arrete ici : la demande existe, elle attend dans le
+      // Studio, et c'est ce qu'on dit.
+      if (!plan.decoupe) {
+        setSimuErreur(plan.raison)
+        setDemande('')
+        void charger()
+        return
+      }
+
       setSimu(await api.simulation(plan.pole))
       setDemande('')
       void charger()

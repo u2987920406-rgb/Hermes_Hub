@@ -173,10 +173,12 @@ export const api = {
   orchestration: () => request<Orchestration>('/orchestration'),
 
   // --- La demande, la simulation, la porte -------------------------------------
-  // `demande` est le seul appel modele de la phase : environ trente secondes,
-  // le temps qu'Hermes decoupe la phrase en taches liees. Tout ce qui suit est
-  // local - la simulation ne rejoue que ce qui est deja sur le disque, et
-  // valider n'execute rien.
+  // `demande` est le seul appel modele de la phase, et le seul appel long de
+  // tout le Hub. Sa duree n'est pas annoncable : quatre essais du 02/08/2026 sur
+  // la meme phrase ont donne 19,7 s, 26,4 s, 95,8 s et 270 s. Le serveur coupe a
+  // 180 s. D'ou le decompte plutot qu'une estimation, dans `FenetreSimulation`.
+  // Tout ce qui suit est local - la simulation ne rejoue que ce qui est deja sur
+  // le disque, et valider n'execute rien.
   demande: (texte: string) =>
     request<Decomposition>('/orchestration/demande', { method: 'POST', body: body({ texte }) }),
   simulation: (pole: string) =>

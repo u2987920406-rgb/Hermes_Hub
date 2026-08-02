@@ -43,8 +43,8 @@ import type {
 
 interface Props {
   simulation: Simulation | null
-  /** Vrai pendant la decomposition : vingt secondes de silence passent pour
-      une panne si rien ne le dit. */
+  /** Vrai pendant la decomposition. Une attente muette passe pour une panne, et
+      celle-ci va de vingt secondes a trois minutes - d'ou le decompte. */
   chargement?: boolean
   erreur?: string | null
   onValider: () => void
@@ -99,6 +99,12 @@ export function FenetreSimulation({
 }: Props) {
   const [compact, setCompact] = useState(false)
 
+  // Un echec de decoupage n'a que deux lignes a montrer. La fenetre gardait
+  // quand meme ses 75 % de hauteur, soit 450 px de blanc sous le bandeau : elle
+  // se met alors a la taille de ce qu'elle a a dire. Elle reste redimensionnable
+  // a la souris - c'est une taille de depart, pas une contrainte.
+  const seulementErreur = !!erreur && !simulation && !chargement
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onFermer()
@@ -118,17 +124,25 @@ export function FenetreSimulation({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ width: '75vw', height: '75vh', minWidth: '20rem', minHeight: '16rem' }}
+        style={
+          seulementErreur
+            ? { width: 'min(42rem, 90vw)', minWidth: '20rem' }
+            : { width: '75vw', height: '75vh', minWidth: '20rem', minHeight: '16rem' }
+        }
         className="card flex max-h-full max-w-full resize flex-col overflow-hidden p-0 shadow-2xl"
       >
         <Entete
           simulation={simulation}
+          chargement={chargement}
+          erreur={erreur}
           compact={compact}
           onCompact={() => setCompact((v) => !v)}
           onFermer={onFermer}
         />
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+        <div
+          className={`overflow-y-auto px-4 py-3 ${seulementErreur ? '' : 'min-h-0 flex-1'}`}
+        >
           {/* En tete du defilement, et pas au fil des vagues : un agent arrete
               net attend, et ce qui attend doit se voir sans chercher. */}
           {(accords || []).map((d) => (
@@ -173,15 +187,26 @@ export function FenetreSimulation({
 // -----------------------------------------------------------------------------
 function Entete({
   simulation,
+  chargement,
+  erreur,
   compact,
   onCompact,
   onFermer,
 }: {
   simulation: Simulation | null
+  chargement?: boolean
+  erreur?: string | null
   compact: boolean
   onCompact: () => void
   onFermer: () => void
 }) {
+  // L'en-tete disait « Preparation du plan... » sous le bandeau qui annonce que
+  // la preparation a echoue - vu a l'ecran, jamais a la compilation. Trois
+  // etats, trois phrases : ce qu'on prepare, ce qu'on a prepare, ce qui a rate.
+  const echec = !!erreur && !simulation && !chargement
+  const sousTitre = simulation?.pole.titre
+    || (chargement ? 'Preparation du plan...' : echec ? 'Le plan n a pas pu etre prepare' : 'Preparation du plan...')
+
   return (
     <div className="flex flex-none items-start gap-3 border-b border-slate-200 px-4 py-3 dark:border-navy-800">
       <div className="min-w-0 flex-1">
@@ -192,11 +217,15 @@ function Entete({
               {simulation.risque} - {MOTS_RISQUE[simulation.risque]}
             </span>
           )}
-          <span className="puce sens-info">aucun modele appele</span>
+          {/* « Aucun modele appele » vaut pour la simulation, qui relit le
+              disque. Pendant le decoupage un modele travaille justement - c'est
+              tout le propos du decompte en dessous - et sur un echec de
+              decoupage, un modele a bien ete appele : il a refuse de decouper.
+              La puce se tait dans les deux cas, au lieu de promettre le
+              contraire de ce qui vient de se passer. */}
+          {!chargement && !echec && <span className="puce sens-info">aucun modele appele</span>}
         </div>
-        <p className="mt-0.5 truncate text-xs muted">
-          {simulation?.pole.titre || 'Preparation du plan...'}
-        </p>
+        <p className="mt-0.5 truncate text-xs muted">{sousTitre}</p>
       </div>
 
       <button
@@ -214,21 +243,122 @@ function Entete({
 }
 
 /**
- * La decomposition prend une trentaine de secondes et c'est le seul appel
- * modele de la phase. Sans ce panneau, l'attente ressemble a une panne - et un
- * utilisateur qui croit a une panne relance, ce qui la double.
+ * Le plafond du serveur, en secondes.
+ *
+ * Duplique depuis `DELAI_DECOUPAGE` dans `server/index.js` - le decompte doit
+ * annoncer la coupure AVANT qu'elle arrive, donc avant tout aller-retour. Les
+ * deux commentaires se tiennent la main : changer l'un sans l'autre ferait
+ * mentir le decompte de la pire facon, en promettant du temps qui n'existe
+ * plus.
+ */
+const PLAFOND_DECOUPAGE_S = 180
+
+/**
+ * La zone ordinaire de la jauge : ou tombent la plupart des essais.
+ *
+ * Recalibree le 02/08/2026 au soir, et l'ancien calibrage merite d'etre raconte
+ * parce qu'il explique pourquoi cette constante existe. Elle valait `[20, 96]`,
+ * tiree de quatre essais a 19,7 s, 26,4 s, 95,8 s et 270 s - un ecart de 1 a 14
+ * sur la meme phrase. Le coupable n'etait pas le modele mais la reflexion
+ * cachee : l'orchestrateur tournait a `reasoning_effort: medium`. Pose a `none`,
+ * quatre essais rendent 21, 19, 20 et 27 s. L'ecart tombe a 1,4.
+ *
+ * D'ou ces bornes-ci, larges d'une dizaine de secondes au lieu de quatre-vingts.
+ * Depasser la borne haute n'est toujours pas une panne - c'est le quatrieme
+ * essai - mais ca veut maintenant dire quelque chose, ce qu'une zone couvrant
+ * la moitie de la jauge ne pouvait plus faire.
+ */
+const ORDINAIRE_S = [19, 30]
+
+/**
+ * Le decompte d'une commande longue.
+ *
+ * L'ancien panneau annoncait « une trentaine de secondes ». La mesure l'a
+ * dementi : la meme demande, sur le meme cerveau, a pris 19,7 s puis 270 s.
+ * Une duree annoncee qu'on depasse est pire que pas de duree du tout - a la
+ * quarantieme seconde, l'utilisateur sait qu'on lui a menti, et il relance,
+ * ce qui double l'attente.
+ *
+ * On n'annonce donc plus rien : **on compte**. Le chiffre monte, la jauge
+ * avance vers un plafond nomme, et la zone ordinaire dit ou tombent la plupart
+ * des essais sans promettre que celui-ci en fera partie.
+ *
+ * Le decompte est tenu par le navigateur, pas par le serveur. Ce n'est pas une
+ * economie de trafic : c'est que l'onglet est la seule piece dont on soit sur
+ * qu'elle ne soit pas occupee. Un decompte servi par la machine qui travaille
+ * s'arreterait exactement quand on a besoin de lui.
  */
 function EnAttente() {
+  const [depuis] = useState(() => Date.now())
+  const [maintenant, setMaintenant] = useState(depuis)
+
+  useEffect(() => {
+    const battement = setInterval(() => setMaintenant(Date.now()), 200)
+    return () => clearInterval(battement)
+  }, [])
+
+  const ecoule = (maintenant - depuis) / 1000
+  const part = Math.min(ecoule / PLAFOND_DECOUPAGE_S, 1)
+
+  // La zone ordinaire est bornee par le plafond, et ce n'est pas une precaution
+  // theorique : en abaissant le plafond a 12 s pour eprouver la coupure, la
+  // borne « 20 s » s'est affichee a droite du repere de coupe, hors de la
+  // jauge. Deux constantes qui se contredisent doivent se contredire en silence
+  // plutot qu'a l'ecran.
+  const bas = Math.min(ORDINAIRE_S[0], PLAFOND_DECOUPAGE_S)
+  const haut = Math.min(ORDINAIRE_S[1], PLAFOND_DECOUPAGE_S)
+  const auDela = ecoule > haut
+
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center">
+    <div
+      data-zone="decompte-decoupage"
+      className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center"
+    >
       <Loader2 className="h-6 w-6 animate-spin text-sky-500" />
       <p className="text-sm font-medium">Hermes decoupe ta demande</p>
+
+      {/* `tabular-nums` seul suffit a figer la largeur des chiffres : la chasse
+          fixe, elle, ecarte aussi l'espace avant l'unite et fait tache. */}
+      <p className="text-3xl font-semibold tabular-nums">{horloge(ecoule)}</p>
+
+      {/* La jauge dit trois choses d'un coup : ou on en est, ou tombent les
+          essais ordinaires, et ou le serveur coupera. */}
+      <div className="w-full max-w-sm">
+        <div className="relative h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-navy-800">
+          <div
+            className="absolute inset-y-0 bg-slate-300/70 dark:bg-navy-700"
+            style={{
+              left: `${(bas / PLAFOND_DECOUPAGE_S) * 100}%`,
+              width: `${((haut - bas) / PLAFOND_DECOUPAGE_S) * 100}%`,
+            }}
+          />
+          <div
+            className="absolute inset-y-0 left-0 rounded-full bg-sky-500 transition-[width] duration-200 ease-linear"
+            style={{ width: `${part * 100}%` }}
+          />
+        </div>
+        <div className="mt-1 flex justify-between text-[10px] tabular-nums muted">
+          <span>{bas} s</span>
+          <span>la plupart des essais</span>
+          <span>coupe a {PLAFOND_DECOUPAGE_S} s</span>
+        </div>
+      </div>
+
       <p className="max-w-sm text-xs muted">
-        Une trentaine de secondes. C est le seul moment ou un modele travaille : ensuite tout
-        est lu sur le disque, et rien ne s execute avant ton accord.
+        {auDela
+          ? `Plus long que d habitude, et ce n est pas une panne : le meme cerveau ne met jamais exactement le meme temps. Au-dela de ${PLAFOND_DECOUPAGE_S} s le Hub arrete, et la demande reste sur le tableau a decouper a la main.`
+          : 'C est le seul moment ou un modele travaille : ensuite tout est lu sur le disque, et rien ne s execute avant ton accord.'}
       </p>
     </div>
   )
+}
+
+/** `12,4 s` en dessous de la minute, `2 min 05` au-dessus - on ne lit pas
+    « 125,3 s » d'un coup d'oeil. */
+function horloge(s: number) {
+  if (s < 60) return `${s.toFixed(1).replace('.', ',')} s`
+  const m = Math.floor(s / 60)
+  return `${m} min ${String(Math.floor(s % 60)).padStart(2, '0')}`
 }
 
 function Corps({ simulation, compact }: { simulation: Simulation; compact: boolean }) {
