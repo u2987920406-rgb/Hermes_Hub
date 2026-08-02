@@ -413,6 +413,10 @@ export function Conversation({
       ? agents.filter((a) => equipeChoisie.membres.includes(a.id))
       : agents
 
+  /** La rangee de pastilles est-elle a l'ecran ? Le menu d'equipes suit, parce
+      qu'un filtre sans la liste qu'il trie n'a pas d'objet. */
+  const rangeeVisible = Boolean(deplie || terme || equipeChoisie)
+
   // --- rendu -----------------------------------------------------------------
   const filOuvert = fils.find((f) => f.id === filVu) || null
 
@@ -497,35 +501,42 @@ export function Conversation({
         <div className="mx-auto max-w-3xl space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             {/**
-             * L'entonnoir n'est pas une decoration.
+             * Le menu d'equipes ne parait qu'avec la rangee qu'il filtre.
              *
-             * Ce menu ne fait que filtrer la rangee de pastilles en dessous -
-             * mais pose juste au-dessus du champ de saisie, il se lisait comme
-             * le destinataire du message. « Tout le monde (16) » a fait croire
-             * qu'un « salut tout le monde » partait aux seize agents, alors
-             * qu'il allait a Hermes seul, qui repond au nom de l'equipe.
+             * Pose en permanence juste au-dessus du champ de saisie, il se
+             * lisait comme le destinataire du message : « Tout le monde (16) » a
+             * fait croire qu'un « salut tout le monde » partait aux seize
+             * agents, alors qu'il allait a Hermes seul, qui repond au nom de
+             * l'equipe. Renommer et poser un entonnoir attenuait le malentendu
+             * sans le supprimer - **c'est la position qui trompe**, et un filtre
+             * affiche sans la liste qu'il trie n'a de toute facon pas d'objet.
              *
-             * Un mot ne suffisait pas a le desamorcer : c'est la position qui
-             * trompe. D'ou l'icone, qui dit « ceci trie » avant meme qu'on lise,
-             * et le libelle qui ne nomme plus un interlocuteur.
+             * La loupe, elle, reste toujours la : elle ne s'est jamais fait
+             * passer pour un interlocuteur, et taper un nom ouvre la rangee tout
+             * seul. C'est le geste courant - on ecrit a Hermes, on mentionne un
+             * ou deux directeurs - alors qu'on trie par equipe rarement.
              */}
-            <Filter className="h-3.5 w-3.5 flex-none muted" aria-hidden />
-            <select
-              value={equipeVue}
-              onChange={(e) => {
-                setEquipeVue(e.target.value)
-                setRecherche('')
-              }}
-              className="input h-8 w-auto py-0 pr-7 text-[11px]"
-              title="Filtre la liste des agents affichee. Ne change pas a qui part ton message : sans mention, c est Hermes qui repond."
-            >
-              <option value="">Afficher tous ({agents.length})</option>
-              {equipes.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.nom} ({e.membres.length})
-                </option>
-              ))}
-            </select>
+            {rangeeVisible && (
+              <>
+                <Filter className="h-3.5 w-3.5 flex-none muted" aria-hidden />
+                <select
+                  value={equipeVue}
+                  onChange={(e) => {
+                    setEquipeVue(e.target.value)
+                    setRecherche('')
+                  }}
+                  className="input h-8 w-auto py-0 pr-7 text-[11px]"
+                  title="Filtre la liste des agents affichee. Ne change pas a qui part ton message : sans mention, c est Hermes qui repond."
+                >
+                  <option value="">Afficher tous ({agents.length})</option>
+                  {equipes.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.nom} ({e.membres.length})
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
 
             {equipeChoisie && !terme && (
               <button
@@ -581,7 +592,7 @@ export function Conversation({
            * quand une recherche ou une equipe reduit la liste a quelque chose
            * qui tient sur une ligne.
            */}
-          {(deplie || terme || equipeChoisie) && (
+          {rangeeVisible && (
             <div data-zone="rangee-agents" className="flex flex-wrap items-center gap-1.5">
               {visibles.map((a) => (
                 <PastilleAgent
