@@ -22,7 +22,23 @@ import os from 'node:os'
 import path from 'node:path'
 import { HUB_DIR, readJson, writeJson } from './workspace.js'
 
-const HERMES_HOME = path.join(process.env.LOCALAPPDATA || os.homedir(), 'hermes')
+/**
+ * Le home d'Hermes - la meme reponse que celle du CLI, et ce n'etait pas le cas.
+ *
+ * `HERMES_HOME` d'abord, parce que c'est ce que `hermes` lui-meme honore.
+ * Verifie le 03/08/2026 : avec `LOCALAPPDATA` detourne mais `HERMES_HOME`
+ * absent, `hermes profile list` rendait les profils du poste reel pendant que
+ * le Hub affichait ceux du dossier detourne. Les deux ecrans disaient une
+ * equipe differente, et le decomposeur routait vers des agents que l'interface
+ * ne montrait pas.
+ *
+ * Sur une installation normale les deux chemins tombent au meme endroit et
+ * rien ne se voit. C'est bien pourquoi il fallait le corriger avant : une
+ * divergence qui ne se manifeste qu'en essai finit par se manifester chez un
+ * client, sans personne pour la comprendre.
+ */
+const HERMES_HOME =
+  process.env.HERMES_HOME || path.join(process.env.LOCALAPPDATA || os.homedir(), 'hermes')
 const PROFILES_DIR = path.join(HERMES_HOME, 'profiles')
 const KANBAN_DB = process.env.HERMES_KANBAN_DB || path.join(HERMES_HOME, 'kanban.db')
 
@@ -64,8 +80,35 @@ const CONNUS = {
     metier: 'Orchestration',
   },
   trieur: { nom: 'Trieur', role: 'worker', couleur: 'ciel', icone: 'entonnoir' },
-  redacteur: { nom: 'Redacteur', role: 'worker', couleur: 'violet', icone: 'plume' },
   clean: { nom: 'Clean', role: 'bac-a-sable', couleur: 'ardoise', icone: 'etincelle' },
+
+  // Les trois roles poses par l'installateur - la seule equipe qu'un poste
+  // neuf possede. Sans eux, le premier ecran d'Orchestration ne montre
+  // qu'Hermes : verifie le 03/08/2026 sur un home vierge, un agent, aucune
+  // equipe, aucun pole.
+  //
+  // La lettre d'abord, le prenom entre parentheses ensuite. Une lettre seule
+  // rendrait le graphe illisible - trois boites qu'on ne distingue que par
+  // leur couleur - et un prenom seul ferait croire a un personnage livre avec
+  // le produit. Les deux ensemble disent ce qu'il faut : ceci est un
+  // emplacement, et il se renomme.
+  //
+  // MAIS l'identifiant, lui, reste un metier - et cette dissociation est le
+  // resultat d'une mesure. Le 03/08/2026, meme demande decomposee deux fois :
+  // avec des profils nommes `redacteur` et `maquettiste`, les deux taches sont
+  // parties au bon specialiste ; avec `a`, `b` et `c`, une seule sur deux, le
+  // plan est tombe de trois taches a deux, et `b` n'a jamais servi. C'est
+  // l'identifiant que le decomposeur choisit, et une lettre ne lui dit rien.
+  // La description aide, elle ne remplace pas un nom qui a un sens.
+  //
+  // Donc : identifiant parlant pour la machine, nom neutre pour l'oeil.
+  //
+  // On ne fige QUE le nom. La couleur se distribue avec les autres, le metier
+  // et le role se lisent dans la description - c'est elle qui travaille, pas
+  // cette table.
+  analyste: { nom: 'A (Alphonse)' },
+  redacteur: { nom: 'B (Beatrice)', couleur: 'violet', icone: 'plume' },
+  metteur: { nom: 'C (Camille)' },
 }
 
 /** Sans accents : les descriptions sont ecrites tantot avec, tantot sans. */

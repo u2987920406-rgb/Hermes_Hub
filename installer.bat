@@ -13,7 +13,16 @@ setlocal EnableDelayedExpansion
 
 REM Version unique de la livraison : reprise dans les fichiers generes, pour
 REM savoir de quelle generation vient le profil d'un poste.
-set "HERMES_VERSION=1.0.2"
+REM
+REM ELLE SUIT LA BRANCHE, et il a fallu s'en apercevoir : ce fichier annoncait
+REM « INSTALLER v1.0.2 » sur la branche v2, alors qu'il pose le Hub depuis
+REM `dist/` et `server/` de la branche courante - donc la V2. Un client aurait
+REM lu 1.0.2 a l'ecran, recu la 2.0.0-beta.1, et personne au support n'aurait
+REM su ce qu'il avait vraiment sur son poste.
+REM
+REM Elle doit rester d'accord avec `version.json`, qui est la source lue par le
+REM Hub installe pour proposer ses mises a jour.
+set "HERMES_VERSION=2.0.0-beta.1"
 
 echo.
 echo  ============================================
@@ -398,6 +407,47 @@ hermes config set model.provider "ollama" -p clean >nul 2>&1
 hermes config set model.default "qwen2.5:0.5b" -p clean >nul 2>&1
 
 echo   OK - Hermes Clean Agent + profil clean crees.
+
+REM == Etape 10 bis: l'equipe de depart ==
+REM
+REM Sans elle, le Hub s'ouvre sur un seul agent - Hermes - et le menu
+REM Orchestration est vide. Verifie le 03/08/2026 sur un home vierge : un
+REM agent, aucune equipe, aucun pole, et chaque tache decomposee retombe sur
+REM l'orchestrateur faute de specialiste a qui la donner.
+REM
+REM Trois roles, et ce sont ceux de tous les poles qu'on a fait tourner :
+REM lire la matiere, ecrire le livrable, mettre en forme. Aucun metier
+REM particulier, aucun personnage - des emplacements que le client renomme.
+REM
+REM --clone-from default : ils heritent du .env de l'installation, donc de LA
+REM CLE DU CLIENT. Un profil sans credential ne repond jamais, et c'est
+REM exactement ce que la simulation signale par « n a aucune credential ».
+REM
+REM La description n'est pas une politesse : c'est le SEUL texte que le
+REM decomposeur de kanban lit pour router une tache. Sa premiere phrase donne
+REM aussi le metier affiche dans le Hub - d'ou la forme « Metier. Puis ce
+REM qu'il fait. » Et aucun verbe de commandement dedans : « coordonne »,
+REM « arbitre » ou « supervise » feraient passer l'agent pour un chef dans
+REM l'organigramme.
+REM
+REM L'IDENTIFIANT est un metier, le nom affiche est une lettre. Mesure du
+REM 03/08/2026, meme demande decomposee deux fois : avec `redacteur` et
+REM `maquettiste`, les deux taches sont parties au bon specialiste ; avec `a`,
+REM `b` et `c`, une seule sur deux, et le plan est tombe de trois taches a
+REM deux. C'est l'identifiant que le decomposeur choisit, et une lettre ne lui
+REM dit rien. Le Hub, lui, les affiche « A (Alphonse) », « B (Beatrice) »,
+REM « C (Camille) » - voir CONNUS dans server/equipe.js.
+echo.
+echo [10 bis] Equipe de depart...
+
+hermes profile create analyste --clone-from default --description "Analyse. Lit les documents et les donnees fournis, en tire les chiffres, les faits et les ecarts verifiables. Produit la matiere chiffree dont les autres se serviront, sans rediger le livrable final." >nul 2>&1
+
+hermes profile create redacteur --clone-from default --description "Redaction. Ecrit le texte du livrable a partir de l analyse fournie : notes, rapports, comptes rendus, courriers. Travaille la clarte et la structure, et ne met pas en page." >nul 2>&1
+
+hermes profile create metteur --clone-from default --description "Mise en page. Assemble le document final a remettre : page HTML autonome puis PDF, tableaux et sections lisibles. Part de ce que les autres ont ecrit et n en change pas le fond." >nul 2>&1
+
+echo   OK - trois roles crees : A (Alphonse), B (Beatrice), C (Camille).
+echo        Renomme-les avec "hermes profile rename".
 
 REM == Etape 11: SOUL.md + scripts + memoire ==
 echo.
