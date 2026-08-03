@@ -55,9 +55,85 @@ export function lireFichiers(corps) {
     const brut = m[1].replace(/\\/g, '/')
     // Un nom de fichier sans dossier reste ambigu ; on le garde quand meme,
     // c'est a l'utilisateur de juger, mais on ne l'invente pas de chemin.
-    if (!vus.has(brut)) vus.set(brut, { chemin: brut, dossier: path.posix.dirname(brut) })
+    if (!vus.has(brut)) {
+      vus.set(brut, {
+        chemin: brut,
+        dossier: path.posix.dirname(brut),
+        source: estSource(String(corps), m.index || 0),
+      })
+    }
   }
   return [...vus.values()]
+}
+
+/**
+ * Ce que la tache va lire, par opposition a ce qu'elle va ecrire.
+ *
+ * Les deux se ressemblent - ce sont des noms de fichiers dans une phrase - et
+ * les confondre a un cout mesure. Le 03/08/2026, une demande donnait ses
+ * donnees d'entree par un chemin absolu : « les donnees sont dans le fichier
+ * donnees_match.md : lisez-le d abord. Produisez analyse_performances.md ». Le
+ * controle de livrables a reclame les DEUX a la sortie, et le message d'echec
+ * annoncait que la tache « devait produire » le fichier qu'on lui avait donne
+ * a lire. Sans consequence ce jour-la - un seul livrable trouve suffit - mais
+ * un garde-fou qui se trompe de cible finira par bloquer une tache qui a fait
+ * son travail.
+ *
+ * On lit les quelques mots qui PRECEDENT le nom : « dans le fichier X », « a
+ * partir de X », « lis X » designent une source. Un verbe de production plus
+ * proche l'emporte, parce qu'une phrase peut enchainer les deux - « a partir
+ * des notes, produis rapport.md ».
+ */
+/**
+ * « dans » tout seul ne compte pas, et c'est un cas eprouve : « ecris le .html
+ * dans le meme dossier, puis dossier.pdf » designe un emplacement, pas une
+ * source. On n'accepte donc que ses formes qualifiees - « dans le fichier »,
+ * « sont dans », « se trouve dans ».
+ */
+const AMONT_LECTURE =
+  /\b(?:dans (?:le|ce) fichier|(?:sont|est|se trouven?t?|figuren?t?) dans|a partir d[eu]s?|depuis|sources?|fournies? dans|li[rs]e?z?|lecture de|consulte[rz]?|ouvre[rz]?|joint[e]?s?)\b/gi
+
+const AMONT_ECRITURE =
+  /\b(?:produi[rst][a-z]*|ecri[rst][a-z]*|cree[rz]?|creation|genere[rz]?|generation|exporte[rz]?|enregistre[rz]?|sauvegarde[rz]?|redige[rz]?|compile[rz]?|assemble[rz]?|sortie|livrable)\b/gi
+
+/**
+ * La fenetre remontee devant le nom de fichier.
+ *
+ * Large, parce qu'un chemin absolu Windows s'intercale entre l'indice et le nom
+ * qu'il qualifie : `dans le fichier C:\Users\kuchu\Dev_app_Claude\Dev _Hemes
+ * _Hub\...\donnees.md` met plus de cinquante caracteres entre les deux. Une
+ * fenetre courte ne voyait donc rien, et rangeait la source parmi les livrables
+ * - le bug du 03/08/2026.
+ */
+const FENETRE = 140
+
+/** Position du dernier indice d'un jeu, ou -1. */
+function dernierIndice(amont, motif) {
+  motif.lastIndex = 0
+  let pos = -1
+  for (const m of amont.matchAll(motif)) pos = m.index || 0
+  return pos
+}
+
+/**
+ * Lire ou ecrire ? **C'est l'indice le plus proche du nom qui tranche.**
+ *
+ * Une phrase enchaine volontiers les deux - « a partir de notes.md, redige
+ * rapport.md » - et chercher la simple presence d'un indice classerait les deux
+ * fichiers pareil. La distance, elle, donne la bonne reponse dans les deux sens.
+ */
+function estSource(texte, position) {
+  const amont = texte.slice(Math.max(0, position - FENETRE), position)
+  const lecture = dernierIndice(amont, AMONT_LECTURE)
+  const ecriture = dernierIndice(amont, AMONT_ECRITURE)
+  if (lecture < 0) return false
+  return lecture > ecriture
+}
+
+/** Ce que la tache doit PRODUIRE - la seule liste qu'un controle de livrable
+    ait le droit d'exiger sur le disque. */
+export function lireLivrables(corps) {
+  return lireFichiers(corps).filter((f) => !f.source)
 }
 
 /**
@@ -228,10 +304,15 @@ export async function simuler(poleId) {
       for (const f of siens) {
         const cle = f.chemin
         const deja = fichiers.get(cle)
+        // La capacite dit que la tache ecrit QUELQUE chose, pas qu'elle ecrit
+        // CE fichier-la : une tache qui lit des donnees pour produire un rapport
+        // porte les deux, et sa source s'affichait « ECRITURE ». On croise donc
+        // avec ce que la phrase dit de ce nom precis.
+        const action = ecrit && !f.source ? 'ecriture' : 'lecture'
         // Un fichier lu par une tache et ecrit par une autre est un fichier
         // ecrit : c'est le cas le plus engageant qui doit s'afficher.
-        if (!deja || (ecrit && deja.action === 'lecture')) {
-          fichiers.set(cle, { ...f, action: ecrit ? 'ecriture' : 'lecture', tache: t.id })
+        if (!deja || (action === 'ecriture' && deja.action === 'lecture')) {
+          fichiers.set(cle, { ...f, action, tache: t.id })
         }
       }
 

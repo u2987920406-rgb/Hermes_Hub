@@ -38,7 +38,7 @@ import path from 'node:path'
 import { Equipage } from './equipage.js'
 import { lireOrchestration } from './equipe.js'
 import { dernierMot, hermes } from './graphe.js'
-import { lireCapacites, lireFichiers, lireValidation } from './simulation.js'
+import { lireCapacites, lireLivrables, lireValidation } from './simulation.js'
 import { HUB_DIR, WORKSPACE, readJson, sanitizeName, writeJson } from './workspace.js'
 
 /**
@@ -159,7 +159,7 @@ function livrablesManquants(tache, dossier) {
   )
   if (!ecrit) return null
 
-  const attendus = lireFichiers(texte)
+  const attendus = lireLivrables(texte)
   if (!attendus.length) return null
 
   // Le chemin complet, pas seulement le nom : il faut pouvoir lire le fichier
