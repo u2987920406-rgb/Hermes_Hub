@@ -1,0 +1,4 @@
+{
+  "excluded_session_ids": [],
+  "reason": "Une session deja couverte par un journal thematique se met ici : le script ne la resumera pas deux fois."
+}

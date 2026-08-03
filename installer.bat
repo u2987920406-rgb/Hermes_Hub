@@ -284,6 +284,41 @@ echo [9/13] Creation du coffre memoire...
 
 call :write_templates "%WORKSPACE%\Vault"
 
+REM -- La memoire durable : l'archive qui survit a state.db
+REM
+REM La memoire native d'Hermes capture tout, automatiquement, et c'est sa
+REM force ; mais elle est fragile. Un reset vide `state.db`, sa recherche est
+REM lexicale - « ia oublie » ne trouve pas « memoire » - et charger une session
+REM entiere brule le contexte. A un an, le rappel n'est pas garanti.
+REM
+REM L'archive posee ici est la seconde couche, sur le disque, qui survit a la
+REM purge. Mesure d'un test a l'aveugle soumis a un modele tiers le 02/08/2026,
+REM natif contre archive : rappel a un an 3/20 contre 17, survie a un reset
+REM 1/20 contre 18, reformulation 4/20 contre 15. Le natif reprend l'avantage
+REM sur la session en cours (17 contre 13) - les deux couches sont
+REM complementaires, aucune ne remplace l'autre.
+REM
+REM ON POSE LE MECANISME, JAMAIS DU CONTENU. Les journaux, les resumes et les
+REM ancres de session appartiennent au poste qui les produit : `done.json` part
+REM vide, `exclusions.json` aussi, et le template attend son premier sujet. Un
+REM installateur qui livrerait les souvenirs d'un autre poste ne serait pas un
+REM produit.
+REM
+REM Les scripts calculent leur racine comme le dossier PARENT du leur, et y
+REM cherchent `Vault/`, `Projets/` et `Resumes-Sessions/`. Ils vont donc dans
+REM `%WORKSPACE%\scripts` et nulle part ailleurs - les ranger plus profond les
+REM casserait sans le dire.
+if exist "%INSTALLER_DIR%memoire-kit" (
+    xcopy "%INSTALLER_DIR%memoire-kit\*" "%WORKSPACE%\" /E /Y /Q >nul 2>&1
+    if errorlevel 1 (
+        echo   Attention: la memoire durable n'a pas pu etre posee.
+    ) else (
+        echo   OK - memoire durable : scripts, template de journal, specs.
+    )
+) else (
+    echo   Attention: dossier memoire-kit introuvable, memoire durable ignoree.
+)
+
 REM -- README du coffre
 (
 echo # Coffre memoire de %PRENOM% - Cerveau long terme
@@ -769,6 +804,28 @@ echo - Au demarrage d'un projet: demander si j'ai deja un plan
 echo   - si oui, le peaufiner ensemble
 echo   - si non, me guider par questions
 echo - Valider le plan avec moi avant d'ecrire plan.md
+echo.
+echo ## MEMOIRE DURABLE
+echo.
+echo _La couche d'indice que la memoire native n'a pas : une ligne par grand
+echo sujet, pointant vers son journal. Jamais le contenu ici - seulement
+echo l'indice, car ce bloc est charge a chaque demarrage._
+echo.
+echo - state.db est FRAGILE : un reset le vide. L'archive disque - journaux
+echo   thematiques et Resumes-Sessions/ - lui survit. C'est elle le garant.
+echo - Pour retrouver un sujet ancien : lire ce bloc, puis grep des TAGS dans
+echo   l'INDEX du journal ^(jamais le fichier entier^), puis ouvrir le seul bloc
+echo   vise. Repli : scripts/resume-sessions.py si state.db est encore la.
+echo - Un nouveau grand sujet : copier memoire/TEMPLATE-JOURNAL-THEMATIQUE.md
+echo   en Journal-^<Sujet^>.md, et ajouter ICI une ligne - une seule.
+echo - Anti-doublon : une session deja couverte par un journal va dans
+echo   Resumes-Sessions/exclusions.json, sinon elle sera resumee deux fois.
+echo - Pont Vault, a la demande : python scripts/nourrir-vault.py --projet
+echo   "^<nom^>". Voir PARAMETRES-DECLENCHEUR.md pour le mode automatique, qui
+echo   n'est PAS actif par defaut.
+echo.
+echo _MEMOIRE THEMATIQUE - une ligne par sujet, a remplir au fil du temps :_
+echo.
 ) > "!HERMES_HOME!\memories\MEMORY.md"
 REM Copie de reference : c'est elle que le bouton "Version d'origine" du Hub
 REM restaure. Le Hub ne connait ainsi aucun texte par defaut.
