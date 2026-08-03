@@ -57,6 +57,13 @@ pastille manque, c'est que le Hub n'a pas ete lance par ce script.
   quand la seance s'arrete mal - c'est-a-dire pile quand on en a besoin.
 - **Ne pas lancer `maj-hub.bat` sans accord** : il remplace le Hub installe
   dans `Documents\Hermes-raf`.
+- **Les decisions durables vont dans `ADM.md`**, a la racine du depot.
+  Cumulatif, on n'y reecrit pas : une decision qui change d'avis se barre et la
+  nouvelle se pose en dessous. Le message de commit porte le raisonnement du
+  jour ; `ADM.md` porte ce qu'il faut savoir sans avoir a le chercher. Ce depot
+  n'a ni `BRIEF.md`, ni `done.md`, ni `REPRISE.md` - leurs equivalents sont
+  `README.md`, `git log`, et la ligne `Ensuite :`. C'est explique en tete
+  d'`ADM.md`.
 
 ## Construire
 
