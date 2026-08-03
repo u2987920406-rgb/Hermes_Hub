@@ -649,7 +649,7 @@ Branche `v2`, canal beta, controle automatique CI, bac a sable isole, bascule
 automatique de modele verifiee en conditions reelles - interrupteur ouvert comme
 ferme.
 
-### Phase 1 - L'equipe existe pour de vrai
+### Phase 1 - L'equipe existe pour de vrai *(fait)*
 
 Menu **Orchestration** cree dans la barre laterale, avec son tableau de bord et
 son panneau deroulant des equipes. Chaque equipe depliee montre son organigramme :
@@ -658,7 +658,7 @@ prenom, couleur, icone, competences, etat, et si l'agent est capable de repondre
 *Livrable* : tu ouvres le Hub, tu deplies une equipe, tu vois son organigramme.
 *Preuve* : tu crees un profil en ligne de commande, il apparait sans redemarrage.
 
-### Phase 2 - Le chat a mentions
+### Phase 2 - Le chat a mentions *(fait)*
 
 `@Hermes`, `@Leo`, `@pole Veille`. Seuls les agents mentionnes se reveillent.
 Liste laterale avec statut endormi/actif et les reglages legers modifiables.
@@ -667,7 +667,7 @@ Liste laterale avec statut endormi/actif et les reglages legers modifiables.
 *Preuve* : un seul processus `hermes --profile redacteur`, et il disparait a la
 fin.
 
-### Phase 3 - La simulation locale et la porte
+### Phase 3 - La simulation locale et la porte *(fait)*
 
 Le format JSON commun est fige. `hermes kanban decompose` transforme la demande
 en graphe assignable - **mesure faite, 22,7 s et un seul appel** (section 1) - et
@@ -682,7 +682,7 @@ affiche sa simulation avant que rien ne bouge.
 **Phase pivot**, mais courte : le difficile est deja fait par Hermes. Prevoir un
 indicateur d'attente - vingt secondes sans signal paraissent une panne.
 
-### Phase 4 - Le graphe vivant (Studio)
+### Phase 4 - Le graphe vivant (Studio) *(a moitie)*
 
 Route `#/studio` plein ecran, React Flow, **selon le langage visuel de la
 section 4** - jetons de couleur, cinq etats de noeud, liaisons a degrade
@@ -693,7 +693,40 @@ Composition manuelle d'equipe (mode 1).
 *Preuve* : une tache qui passe en `running` allume son noeud en moins d'une
 seconde.
 
-### Phase 5 - Risque et compteurs
+**Ce qui est fait** : le canevas, les cinq etats, le flux SSE, et davantage que
+prevu - on batit le graphe a la souris (tirer une prise ajoute une tache ou pose
+une dependance, `Suppr` retire un lien), et le banc d'essai photographie chaque
+simulation.
+
+**Ce qui ne l'est pas, et pourquoi la phase reste ouverte.** Le Studio sait
+construire un graphe et le regarder tourner. Le parcours autour n'est pas
+boucle :
+
+- **une tache bloquee est une impasse.** Constate le 03/08/2026 sur un vrai
+  pole : il a fallu `hermes kanban unblock` en ligne de commande pour repartir.
+  Or bloquer est precisement ce que font toutes les gardes - livrable absent,
+  livrable creux, PDF d'erreur - et chaque garde ajoutee rend l'impasse plus
+  frequente. C'est le manque le plus grave, parce qu'il arrete l'utilisateur
+  net ;
+- **la simulation a change de place sans que le parcours suive.** Elle vivait
+  dans Orchestration ; depuis que la vignette d'un pole mene au Studio, elle
+  n'est plus atteignable que de la. Ce n'est pas forcement faux, mais ca n'a
+  jamais ete rejoue de bout en bout ;
+- **la porte de validation vit dans la fenetre de simulation**, donc « valider »
+  se trouve a un endroit qu'on n'ouvre pas forcement avant de vouloir lancer ;
+- **on ne cree pas d'agent.** Le client compose un graphe, pas l'equipe qui
+  l'execute. C'est renvoye a la phase 8, mais ca se paie ici.
+
+Et le fond du probleme : **le parcours de la section 5 n'a jamais ete joue en
+entier a la souris.** Le 03/08/2026, simuler puis valider puis lancer a ete fait
+en appelant les routes HTTP directement. Personne n'a verifie que le chemin tient
+au clic, du premier ecran jusqu'au livrable.
+
+*Ce qui reste a prouver* : jouer ce parcours en entier, en notant chaque endroit
+ou l'on se retrouve coince. C'est la methode qui a paye cette semaine - lancer
+pour de vrai a trouve ce qu'aucun test unitaire n'aurait vu.
+
+### Phase 5 - Risque et compteurs *(fait)*
 
 Vert / Orange / Rouge par competence, agent et pole, branches sur les
 autorisations ACP. Vert passe seul, Orange demande, Rouge exige ton accord.
@@ -702,7 +735,7 @@ Compteurs d'appels, de duree, de bascules. Notifications contextuelles.
 *Livrable* : une competence Rouge ne peut pas s'executer sans toi.
 *Preuve* : on tente de la lancer, elle attend.
 
-### Phase 6 - La memoire qui apprend
+### Phase 6 - La memoire qui apprend *(pas commencee)*
 
 Bouton "Valider et mettre en memoire". Fiche de competence en markdown +
 frontmatter dans le Coffre. Branchement de `hermes curator` et
@@ -712,7 +745,7 @@ propose une competence prouvee quand la demande s'y prete.
 *Livrable* : une competence prouvee devient reutilisable et visible dans Obsidian.
 *Preuve* : elle est proposee d'elle-meme a la demande suivante du meme genre.
 
-### Phase 7 - La planification guidee
+### Phase 7 - La planification guidee *(pas commencee)*
 
 "Tous les [jour] a [heure]" ecrivant dans `hermes cron` - **pas dans une horloge
 du Hub**, qui ne tourne que quand tu l'ouvres. Zone "Automatisations en cours" a
@@ -721,7 +754,7 @@ gauche de l'accueil.
 *Livrable* : un pole tourne a l'heure dite, Hub ferme.
 *Preuve* : tu le retrouves fait le lendemain matin.
 
-### Phase 8 - Studio complet
+### Phase 8 - Studio complet *(a peine entamee)*
 
 Creation et edition fine d'agents et de poles, sous-graphes, propositions
 multi-poles, monitoring detaille.
