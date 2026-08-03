@@ -814,6 +814,39 @@ et un journal potentiel. A decider avec kuchu, pas seul.
 n'est pas un probleme de code mais de lecture : quelqu'un qui cherche un reglage
 doit le trouver, pas le parcourir.
 
+**9.4 - Composer une equipe depuis le Hub.** Demande par kuchu le 03/08/2026,
+et il a precise que **c'est une requete qu'il fera souvent** : « cree-moi une
+equipe de specialistes du Japon ».
+
+Le trou est mesure, pas suppose. Hermes a d'abord repondu « je n'ai pas d'outil
+pour creer des agents » - faux - puis a lance cinq `hermes profile create
+--clone` dans un terminal. Resultat correct : cinq profils avec description,
+`SOUL.md`, et le `USER.md` rempli herite de `default`. Mais le chemin etait
+improvise, et kuchu a du autoriser **sept commandes rouges une par une**.
+
+Or `creerAgent` existe deja dans `server/agents.js` : nom valide, description
+obligatoire - la seule chose qui route une tache - et les intouchables proteges.
+Hermes ne l'utilise pas parce qu'il ne peut pas l'atteindre.
+
+*Le patron existe deja, il suffit de l'appliquer a l'equipe au lieu du plan :*
+
+| Pour les taches (fait) | Pour les agents (9.4) |
+|---|---|
+| tu decris ce que tu veux | idem |
+| Hermes decompose en graphe | Hermes propose une roster |
+| tu valides dans la simulation | tu valides la liste |
+| le Hub execute | le Hub cree via `creerAgent` |
+
+La partie difficile est deja acquise : la roster proposee le 03/08 etait bonne -
+cinq specialistes, perimetres nets, sans chevauchement. **Ce qui manque, c'est la
+porte.** Une validation au lieu de sept autorisations, aucune commande terminal,
+descriptions garanties.
+
+*A trancher en meme temps* : la consigne « ne conclus pas depuis ta liste
+d'outils » (~37 jetons dans `MEMORY.md`, un clic pour la propager). Elle rend
+prudent mais ne remplace pas la porte - voir `ADM.md`, « Une consigne ne remplace
+pas un chemin qui manque ».
+
 *Ce qui n'entre PAS dans cette phase* : les sous-graphes et les propositions
 multi-poles restent a la phase 8. On ne melange pas ce qui construit et ce qui
 regle.

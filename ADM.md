@@ -151,6 +151,28 @@ Le service d'automatisation est installé d'office — mais **annoncé**, avec l
 commande pour le retirer. Un service qui démarre seul et dont personne n'a parlé
 fait passer un produit pour intrusif.
 
+### Une consigne ne remplace pas un chemin qui manque *(03/08/2026)*
+Hermès a écrit « je n'ai pas d'outil pour créer des agents », puis a lancé cinq
+`hermes profile create --clone` avec succès. Il n'a pas menti : il a répondu
+depuis sa liste d'outils MCP sans regarder qu'il avait un terminal.
+
+La correction réflexe est une règle de plus dans `MEMORY.md`. Elle est bon
+marché — une ligne, ~37 jetons — et **elle ne suffira pas** : « compose-moi une
+équipe » n'a aucune porte dans le Hub, alors `creerAgent` existe côté serveur
+avec nom validé et description obligatoire. Hermès improvise parce qu'il ne peut
+pas l'atteindre, et l'utilisateur paie sept autorisations rouges pour un geste
+que le Hub sait faire proprement.
+
+**Quand un agent invente un chemin, regarder d'abord si le bon manquait.** La
+consigne rend prudent ; seule la porte rend inutile d'improviser.
+
+Formulation retenue pour la consigne, et sa portée compte : *« ne conclus pas
+depuis ta liste d'outils : avant d'annoncer que tu n'as pas de quoi faire une
+chose, regarde ce dont tu disposes vraiment. »* Le piège évité est « avant de
+dire que tu ne peux pas, essaie » — qui autoriserait à **tenter** l'action, y
+compris effacer ou envoyer. On vérifie ce qu'on a, on ne tente pas ce qu'on veut
+faire.
+
 ---
 
 ## Les pièges appris à la dure
@@ -176,3 +198,21 @@ une borne de fraîcheur, trouvée en lançant un vrai pôle.
 Éprouver la validation des noms via `creerAgent` a posé un vrai profil sur la
 machine, qu'il a fallu effacer à la main. Les validations sont exportées et
 testées seules — aucun test ne va jusqu'à l'appel.
+
+### Une lecture qui réussit ne prouve rien d'une action qui écrit *(03/08/2026)*
+La route qui LIT le livrable d'un pôle a été éprouvée sur les vraies données —
+dix fichiers rendus, tout juste. J'en ai conclu que le bouton « Ouvrir le
+dossier » marchait. Il ne pouvait pas : un `await` manquait dans la route
+voisine, `.poles` valait `undefined`, et `.find` jetait à chaque clic. Le bon
+code était écrit trois minutes plus tôt, dix-huit lignes plus bas.
+
+**Prouver que la donnée existe n'est pas prouver que le geste aboutit.** Chaque
+chemin de code se parcourt jusqu'au bout, y compris celui qui n'a pas l'air de
+mériter un essai.
+
+### Un `.catch(() => null)` transforme une panne en « le bouton ne marche pas »
+Trente avaleurs d'erreur silencieux dans dix fichiers, onze pour le seul Studio.
+Le serveur refusait, il ne se passait RIEN — ni action, ni message, ni trace.
+Il n'y a qu'une lecture possible pour qui regarde l'écran, et c'est celle qui a
+été faite. Corrigé le soir même ; **le correctif a attrapé le bug de son auteur
+dans l'heure** — l'`await` manquant ci-dessus se serait perdu en silence.
