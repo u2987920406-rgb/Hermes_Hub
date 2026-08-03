@@ -100,6 +100,8 @@ ni alerte. Un accueil ne porte pas de rubrique vide.
 | L'encart et la bulle, dans Configuration > Memoire | `profils-memoire` | — | `ProfilsMemoire.tsx`, tableau `LECON` |
 | Une ligne de la bulle : un profil et son poids | `ligne-profil` | `--densite` | idem |
 | Les sept questions, quand `USER.md` est choisi | `questions-user` | — | `QuestionsUser.tsx`, tableau `CHAMPS` |
+| L'onglet Sauvegarde de la Configuration | `sauvegardes` | — | `Sauvegardes.tsx` |
+| Une sauvegarde dans la liste | `ligne-sauvegarde` | `--densite` | idem — l'ambre signale une archive **incomplete** |
 
 Deux drapeaux, et leur separation EST le dispositif : la case « ne plus
 afficher » eteint `fenetreVue`, donc la fenetre. Seul un profil choisi pose
@@ -185,6 +187,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `ligne-historique` | `src/pages/OrchestrationView.tsx` |
 | `ligne-outil` | `src/components/OutilsEquipe.tsx` |
 | `ligne-profil` | `src/components/ProfilsMemoire.tsx` |
+| `ligne-sauvegarde` | `src/components/Sauvegardes.tsx` |
 | `menu-lateral` | `src/components/Sidebar.tsx` |
 | `nav-orchestration` | `src/pages/OrchestrationView.tsx` |
 | `noeud-organigramme` | `src/components/Organigramme.tsx` |
@@ -201,6 +204,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `profils-memoire` | `src/components/ProfilsMemoire.tsx` |
 | `questions-user` | `src/components/QuestionsUser.tsx` |
 | `rangee-agents` | `src/components/Conversation.tsx` |
+| `sauvegardes` | `src/components/Sauvegardes.tsx` |
 | `studio` | `src/pages/StudioView.tsx` |
 | `trace-delegation` | `src/components/Conversation.tsx` |
 | `trace-refus` | `src/components/Conversation.tsx` |

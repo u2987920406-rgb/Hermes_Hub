@@ -39,6 +39,12 @@ import { lireCompteurs, oublierCompteurs } from './compteurs.js'
 import { creerAgent, decrireAgent, renommerAgent, retirerAgent } from './agents.js'
 import { brancherOutil, debrancherOutil, listerOutils, repartirOutil } from './outils.js'
 import {
+  listerSauvegardes,
+  restaurer,
+  sauvegarder,
+  supprimerSauvegarde,
+} from './sauvegarde.js'
+import {
   appliquerProfil,
   enregistrerProfil,
   lireAccueil,
@@ -1677,6 +1683,22 @@ async function handleApi(req, res, url) {
   // L'accueil du premier lancement : ce que le poste retient de la premiere
   // visite. Cote serveur et pas dans le navigateur - la fenetre reviendrait
   // sinon chez quelqu'un qui a change de navigateur ou vide ses donnees.
+  // Sauvegarder et restaurer.
+  //
+  // Deux archives : `hermes backup` ne couvre que le home, le Coffre et les
+  // Projets vivent dans l'espace de travail. Les appels sont longs par nature -
+  // on compresse des donnees - et l'interface doit l'annoncer.
+  if (rest[0] === 'sauvegardes') {
+    if (!rest[1] && method === 'GET') return sendJson(res, 200, listerSauvegardes())
+    if (!rest[1] && method === 'POST') return sendJson(res, 201, sauvegarder())
+    if (rest[1] && rest[2] === 'restaurer' && method === 'POST') {
+      return sendJson(res, 200, restaurer(decodeURIComponent(rest[1])))
+    }
+    if (rest[1] && method === 'DELETE') {
+      return sendJson(res, 200, supprimerSauvegarde(decodeURIComponent(rest[1])))
+    }
+  }
+
   if (rest[0] === 'accueil') {
     if (method === 'GET') return sendJson(res, 200, lireAccueil())
     if (method === 'POST') return sendJson(res, 200, noterAccueil(await readBody(req)))

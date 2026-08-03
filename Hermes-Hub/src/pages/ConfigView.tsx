@@ -1,6 +1,7 @@
 import {
   Activity,
   AlertTriangle,
+  Archive,
   BrainCircuit,
   CheckCircle2,
   Download,
@@ -22,6 +23,7 @@ import { ConfirmDialog } from '../components/Modal'
 import { PageHeader } from '../components/PageHeader'
 import { ProfilsMemoire } from '../components/ProfilsMemoire'
 import { QuestionsUser } from '../components/QuestionsUser'
+import { Sauvegardes } from '../components/Sauvegardes'
 import { api } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
 import type { AppConfig, Diagnostics, MemoryFile, Theme } from '../types'
@@ -60,6 +62,7 @@ type Onglet =
   | 'terminal'
   | 'apparence'
   | 'diagnostic'
+  | 'sauvegarde'
   | 'emplacements'
   | 'apropos'
 
@@ -69,6 +72,9 @@ const SECTIONS: { id: Onglet; label: string; icon: typeof Settings }[] = [
   { id: 'terminal', label: 'Terminal Hermes', icon: TerminalIcon },
   { id: 'apparence', label: 'Apparence', icon: Palette },
   { id: 'diagnostic', label: 'Diagnostic', icon: Activity },
+  // Juste apres Diagnostic, et pas en dernier : c'est la qu'on arrive quand
+  // quelque chose ne va pas, et c'est la qu'on doit trouver de quoi revenir.
+  { id: 'sauvegarde', label: 'Sauvegarde', icon: Archive },
   { id: 'emplacements', label: 'Emplacements', icon: FolderOpen },
   { id: 'apropos', label: 'A propos', icon: Info },
 ]
@@ -564,6 +570,8 @@ export function ConfigView({ onMenu, versQuiJeSuis = false }: Props) {
             )}
           </section>
           )}
+
+          {onglet === 'sauvegarde' && <Sauvegardes />}
 
           {onglet === 'apparence' && (
           <section className="card p-5">

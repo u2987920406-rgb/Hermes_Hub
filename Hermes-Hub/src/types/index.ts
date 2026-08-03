@@ -409,6 +409,43 @@ export interface Compteurs {
  * sauvegardee avec le reste - pas dans une base propre au Hub.
  */
 /**
+ * Une sauvegarde, et ce qu'elle contient vraiment.
+ *
+ * `complete` est le champ qui travaille. `hermes backup` ne couvre que le home
+ * d'Hermes ; le Coffre et les Projets vivent ailleurs et font la seconde
+ * archive. Une sauvegarde amputee doit se voir AVANT qu'on en ait besoin - le
+ * jour ou l'on restaure, il est trop tard pour s'en apercevoir.
+ */
+export interface Sauvegarde {
+  nom: string
+  octets: number
+  home: boolean
+  travail: boolean
+  complete: boolean
+}
+
+export interface EtatSauvegardes {
+  dossier: string
+  sauvegardes: Sauvegarde[]
+}
+
+export interface PoseSauvegarde {
+  nom: string
+  dossier: string
+  home: { ok: boolean; octets?: number; message?: string }
+  travail: { ok: boolean; octets?: number; message?: string }
+  complete: boolean
+}
+
+export interface Restauration {
+  nom: string
+  /** La sauvegarde prise AVANT d'ecraser : de quoi revenir si on s'est trompe. */
+  filet: string
+  resultats: { quoi: string; ok: boolean; message: string | null }[]
+  ok: boolean
+}
+
+/**
  * Un profil de memoire, livre ou enregistre.
  *
  * `jetons` est une estimation, et elle est affichee : ces fichiers sont relus a

@@ -14,6 +14,9 @@ import type {
   EtatAutomatisations,
   EtatOutils,
   EtatProfils,
+  EtatSauvegardes,
+  PoseSauvegarde,
+  Restauration,
   PoseOutil,
   Profil,
   ProfilTexte,
@@ -221,6 +224,16 @@ export const api = {
     request<{ id: string; retire: boolean }>(`/orchestration/agent/${enc(id)}`, {
       method: 'DELETE',
     }),
+
+  // --- Sauvegarder et restaurer ------------------------------------------------
+  // Long par nature : on compresse des donnees. Restaurer l'est deux fois, parce
+  // qu'on prend d'abord un filet. L'appelant doit occuper l'ecran.
+  sauvegardes: () => request<EtatSauvegardes>('/sauvegardes'),
+  sauvegarder: () => request<PoseSauvegarde>('/sauvegardes', { method: 'POST' }),
+  restaurer: (nom: string) =>
+    request<Restauration>(`/sauvegardes/${enc(nom)}/restaurer`, { method: 'POST' }),
+  supprimerSauvegarde: (nom: string) =>
+    request<{ nom: string }>(`/sauvegardes/${enc(nom)}`, { method: 'DELETE' }),
 
   // --- Les profils de memoire --------------------------------------------------
   // Le profil par defaut n'est PAS dans cette liste : il est le fichier
