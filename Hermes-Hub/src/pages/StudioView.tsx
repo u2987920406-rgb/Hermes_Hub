@@ -67,6 +67,7 @@ import { ETATS_TACHE } from '../types'
 import type {
   Agent,
   Chantier,
+  Compteurs,
   DemandeAutorisation,
   EtatTache,
   Pole,
@@ -136,6 +137,7 @@ function Atelier({ poleId, onQuitter }: Props) {
   const [vivant, setVivant] = useState<Map<string, EtatNoeud>>(new Map())
   const [accords, setAccords] = useState<(DemandeAutorisation & { agent: string })[]>([])
   const [chantier, setChantier] = useState<Chantier | null>(null)
+  const [compteurs, setCompteurs] = useState<Compteurs | null>(null)
   const [voirPrevus, setVoirPrevus] = useState(false)
   const [choisi, setChoisi] = useState<string | null>(null)
   const [brouillon, setBrouillon] = useState<Brouillon | null>(null)
@@ -168,14 +170,19 @@ function Atelier({ poleId, onQuitter }: Props) {
 
   const charger = useCallback(async () => {
     if (!poleId) return
-    const [orch, d, ch] = await Promise.all([
+    const [orch, d, ch, cp] = await Promise.all([
       api.orchestration(),
       fetch(`/api/orchestration/disposition?pole=${encodeURIComponent(poleId)}`)
         .then((r) => r.json())
         .catch(() => ({ noeuds: {} })),
       api.chantiers().catch(() => null),
+      // Les chiffres du dernier passage. Un pole qui n'a jamais tourne en rend
+      // de vides, et les noeuds n'affichent alors rien - c'est voulu : il n'y a
+      // rien a dire tant que rien n'a eu lieu.
+      api.compteurs(poleId).catch(() => null),
     ])
     dispo.current = d.noeuds || {}
+    setCompteurs(cp)
     setAgents(orch.agents)
     const p = orch.poles.find((x) => x.id === poleId) || null
     setPole(p)
@@ -222,7 +229,12 @@ function Atelier({ poleId, onQuitter }: Props) {
           setVivant((v) => (v.get(tache) === fugace ? v : new Map(v).set(tache, fugace)))
           return
         }
-        if (e.type === 'autorisation' || e.type === 'tache-etat' || e.type === 'chantier-fin') {
+        if (
+          e.type === 'autorisation' ||
+          e.type === 'tache-etat' ||
+          e.type === 'tache-compte' ||
+          e.type === 'chantier-fin'
+        ) {
           if (e.type === 'tache-etat') {
             setVivant((v) => {
               if (e.etat === 'running') return new Map(v).set(e.tache, 'reveil')
@@ -263,6 +275,7 @@ function Atelier({ poleId, onQuitter }: Props) {
   useEffect(() => {
     if (!pole) return
     const parAgent = new Map(agents.map((a) => [a.id, a]))
+    const parCompte = new Map((compteurs?.taches || []).map((c) => [c.tache, c]))
     const parRang = new Map<number, string[]>()
     for (const t of pole.taches) {
       const r = rangs.get(t.id) ?? 0
@@ -288,6 +301,7 @@ function Atelier({ poleId, onQuitter }: Props) {
           chapeau: t.id === pole.id ? 'la demande' : undefined,
           etiquette: ETATS_TACHE[t.etat] || t.etat,
           agent: a?.id,
+          compte: parCompte.get(t.id),
           accords: accords.filter((x) => x.agent === (a?.id || t.agent)),
           onRepondre: (demande, agent, option) => {
             setAccords((liste) => sansAccord(liste, agent, demande))
@@ -302,7 +316,7 @@ function Atelier({ poleId, onQuitter }: Props) {
         }
       }),
     )
-  }, [pole, agents, rangs, vivant, accords])
+  }, [pole, agents, rangs, vivant, accords, compteurs])
 
   /**
    * Les liaisons.
@@ -582,6 +596,18 @@ function Atelier({ poleId, onQuitter }: Props) {
               : pole
                 ? ' - tire une prise pour relier ou pour ajouter, Suppr retire un lien'
                 : ''}
+            {/* Le cumul, pas la duree du pole : une vague travaille de front, et
+                la somme des taches depasse l'horloge. On dit donc « de travail »
+                plutot qu'un total qu'aucune montre n'a mesure. */}
+            {compteurs && compteurs.taches.length > 0 && (
+              <span className="tabular-nums">
+                {' - '}
+                {Math.round(compteurs.cumul / 1000)} s de travail sur{' '}
+                {compteurs.taches.length} tache
+                {compteurs.taches.length > 1 ? 's' : ''}
+                {compteurs.bascules > 0 && `, ${compteurs.bascules} bascule${compteurs.bascules > 1 ? 's' : ''}`}
+              </span>
+            )}
           </p>
         </div>
 

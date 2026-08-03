@@ -34,6 +34,8 @@ import {
   relier,
   supprimerTache,
 } from './graphe.js'
+import { lireCompteurs, oublierCompteurs } from './compteurs.js'
+import { ecrireReglage, lireReglage } from './laissez-passer.js'
 import { annulerValidation, simuler, valider } from './simulation.js'
 import { comparer, listerVersions, lireVersion, marquerFavori, oublierVersion } from './versions.js'
 import { prevoirRetour, rejouer } from './retour.js'
@@ -1684,6 +1686,23 @@ async function handleApi(req, res, url) {
       return sendJson(res, 200, await simuler(pole))
     }
 
+    // Ce que le pole a reellement coute la derniere fois qu'il a tourne.
+    //
+    // Route separee de la simulation, et c'est deliberé : la simulation
+    // annonce, les compteurs constatent. Les melanger dans une seule reponse
+    // ferait lire une prevision et une mesure sur la meme ligne, et c'est
+    // exactement la confusion qu'on veut eviter devant un plan.
+    if (rest[1] === 'compteurs') {
+      const pole = url.searchParams.get('pole')
+      if (!pole) {
+        const err = new Error('Pole non precise')
+        err.status = 400
+        throw err
+      }
+      if (method === 'GET') return sendJson(res, 200, lireCompteurs(pole))
+      if (method === 'DELETE') return sendJson(res, 200, oublierCompteurs(pole))
+    }
+
     // La porte. Elle s'ouvre, elle ne pousse personne a travers : valider
     // n'execute rien, c'est un autre geste qui lancera le travail.
     if (rest[1] === 'validation') {
@@ -2106,6 +2125,21 @@ async function handleApi(req, res, url) {
         // ouvertes, sinon deux onglets afficheraient des etats contraires.
         diffuser({ type: 'bascule-reglage', actif })
         return sendJson(res, 200, { actif })
+      }
+    }
+
+    // Le laissez-passer : ce qui lit passe seul, le reste te demande.
+    //
+    // Interrupteur plutot que reglage fin, et c'est deliberé : le jour ou le
+    // classement se trompe, on veut revenir a « tout demander » d'un geste, pas
+    // choisir quel genre on retire.
+    if (rest[1] === 'laissez-passer') {
+      if (method === 'GET') return sendJson(res, 200, lireReglage())
+      if (method === 'POST') {
+        const body = await readBody(req)
+        const etat = ecrireReglage(body.actif === true)
+        diffuser({ type: 'laissez-passer-reglage', ...etat })
+        return sendJson(res, 200, etat)
       }
     }
   }

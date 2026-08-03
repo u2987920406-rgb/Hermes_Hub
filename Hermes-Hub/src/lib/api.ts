@@ -7,6 +7,7 @@ import type {
   AppConfig,
   Chantier,
   Comparaison,
+  Compteurs,
   Decomposition,
   NoteRetour,
   VersionBanc,
@@ -188,6 +189,11 @@ export const api = {
       method: 'POST',
       body: body({ pole, empreinte }),
     }),
+
+  // Ce que le pole a coute la derniere fois. Appel separe de `simulation` :
+  // l'une annonce, l'autre constate, et on ne les affiche pas au meme endroit.
+  compteurs: (pole: string) =>
+    request<Compteurs>(`/orchestration/compteurs?pole=${enc(pole)}`),
 
   // --- Le banc d'essai ---------------------------------------------------------
   // Aucun de ces appels ne photographie : c'est `simulation` qui le fait, et

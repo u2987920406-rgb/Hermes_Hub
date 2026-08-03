@@ -16,7 +16,7 @@ import { Handle, Position } from '@xyflow/react'
 import type { NodeProps } from '@xyflow/react'
 import { Check, X } from 'lucide-react'
 import type { CSSProperties } from 'react'
-import type { DemandeAutorisation } from '../types'
+import type { CompteTache, DemandeAutorisation } from '../types'
 import type { EtatNoeud } from './Organigramme'
 
 export interface DonneesNoeud extends Record<string, unknown> {
@@ -31,6 +31,26 @@ export interface DonneesNoeud extends Record<string, unknown> {
   accords?: (DemandeAutorisation & { agent: string })[]
   onRepondre?: (demande: string, agent: string, option: string) => void
   agent?: string
+  /** Ce que la tache a coute la derniere fois - absent tant qu'elle n'a pas
+      tourne. Une prevision n'a rien a faire ici : ce coin du noeud ne dit que
+      du mesure. */
+  compte?: CompteTache
+}
+
+/**
+ * La duree, dite comme on la dit a voix haute.
+ *
+ * Sous la minute on garde la seconde - c'est la que se lisent les ecarts entre
+ * deux essais. Au-dela elle ne veut plus rien dire : personne ne compare deux
+ * poles a trois secondes pres, et « 4 min » se lit d'un coup d'oeil la ou
+ * « 247 s » demande un calcul.
+ */
+function duree(ms: number) {
+  if (ms < 1000) return '<1 s'
+  const s = Math.round(ms / 1000)
+  if (s < 60) return `${s} s`
+  const min = Math.floor(s / 60)
+  return s % 60 >= 30 ? `${min + 1} min` : `${min} min`
 }
 
 export function NoeudStudio({ data, selected }: NodeProps) {
@@ -87,16 +107,41 @@ export function NoeudStudio({ data, selected }: NodeProps) {
 
         {d.sousTitre && <p className="texte-metier relative truncate muted">{d.sousTitre}</p>}
 
-        {d.etiquette && (
-          <span
-            className="relative mt-auto w-fit rounded px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide"
-            style={{
-              backgroundColor: 'color-mix(in srgb, var(--agent) 16%, transparent)',
-              color: 'var(--agent)',
-            }}
-          >
-            {d.etiquette}
-          </span>
+        {(d.etiquette || d.compte) && (
+          <div className="relative mt-auto flex items-center gap-1.5">
+            {d.etiquette && (
+              <span
+                className="w-fit rounded px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide"
+                style={{
+                  backgroundColor: 'color-mix(in srgb, var(--agent) 16%, transparent)',
+                  color: 'var(--agent)',
+                }}
+              >
+                {d.etiquette}
+              </span>
+            )}
+
+            {/* Les chiffres du dernier passage.
+                La duree toujours ; les appels seulement au-dela de un, les
+                bascules seulement au-dela de zero. Un noeud qui afficherait
+                « 1 appel, 0 bascule » sur chaque tache normale ferait un bruit
+                de fond ou l'anomalie ne se verrait plus - or c'est elle qu'on
+                cherche. Ce qui reste ecrit est donc toujours une exception. */}
+            {d.compte && (
+              <span
+                className="ml-auto flex-none tabular-nums text-[9px] font-medium muted"
+                title={[
+                  `${d.compte.appels} appel${d.compte.appels > 1 ? 's' : ''}`,
+                  `${d.compte.bascules} bascule${d.compte.bascules > 1 ? 's' : ''}`,
+                  d.compte.etat === 'blocked' ? 'bloquee' : 'faite',
+                ].join(' - ')}
+              >
+                {duree(d.compte.ms)}
+                {d.compte.appels > 1 && ` - ${d.compte.appels} appels`}
+                {d.compte.bascules > 0 && ` - ${d.compte.bascules}⇄`}
+              </span>
+            )}
+          </div>
         )}
       </div>
 
@@ -106,8 +151,23 @@ export function NoeudStudio({ data, selected }: NodeProps) {
           a l'endroit ou elle se pose, et deux boutons suffisent a y repondre. */}
       {accords.length > 0 && (
         <div className="absolute -bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-amber-300 bg-white px-1.5 py-0.5 shadow-md dark:border-amber-500/50 dark:bg-navy-900">
-          <span className="px-0.5 text-[9px] font-bold text-amber-700 dark:text-amber-300">
-            {accords.length > 1 ? `${accords.length} demandes` : 'autorise ?'}
+          {/* Le rouge se distingue de l'orange avant meme d'etre lu : ecrire,
+              effacer et lancer une commande ne se repondent pas du meme geste
+              que sortir sur le web. Ce qui aurait pu passer seul n'arrive
+              jamais ici - le vert a deja ete accorde. */}
+          <span
+            className={[
+              'px-0.5 text-[9px] font-bold',
+              accords[0].risque === 'rouge'
+                ? 'text-red-700 dark:text-red-300'
+                : 'text-amber-700 dark:text-amber-300',
+            ].join(' ')}
+          >
+            {accords.length > 1
+              ? `${accords.length} demandes`
+              : accords[0].risque === 'rouge'
+                ? 'ton accord ?'
+                : 'autorise ?'}
           </span>
           <button
             title={accords[0].titre}

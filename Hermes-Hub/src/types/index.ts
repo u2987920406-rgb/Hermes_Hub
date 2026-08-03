@@ -373,6 +373,35 @@ export interface Simulation {
   validation: Validation | null
 }
 
+/**
+ * Ce que le pole a coute la derniere fois qu'il a tourne.
+ *
+ * A ne pas confondre avec `reveilTotal` de la simulation : celui-la est une
+ * prevision de mise en route, ceux-ci sont des mesures de travail fait.
+ */
+export interface CompteTache {
+  tache: string
+  titre: string
+  agent: string
+  /** Du claim a la cloture, en ms. */
+  ms: number
+  /** Tours envoyes. Plus de un signifie qu'une panne a ete rattrapee. */
+  appels: number
+  bascules: number
+  etat: 'done' | 'blocked'
+  finiLe: number
+}
+
+export interface Compteurs {
+  taches: CompteTache[]
+  agents: { agent: string; taches: number; ms: number; appels: number; bascules: number }[]
+  /** Temps d'agent depense - PAS la duree du pole : une vague travaille de
+      front, et la somme depasserait l'horloge. */
+  cumul: number
+  appels: number
+  bascules: number
+}
+
 // -----------------------------------------------------------------------------
 // L'execution
 // -----------------------------------------------------------------------------
@@ -496,6 +525,13 @@ export interface DemandeAutorisation {
   titre: string
   detail: string
   options: { id: string; libelle: string; genre: string }[]
+  /** Le genre ACP de l'appel - `read`, `edit`, `execute`... C'est l'action
+      reellement demandee, pas ce que la formulation de la tache laissait
+      prevoir. */
+  genre?: string
+  /** Ce que ce genre vaut. Absent quand le laissez-passer est coupe : rien
+      n'ayant ete classe, on n'affiche pas un jugement qu'on n'a pas porte. */
+  risque?: Risque | null
 }
 
 /**
@@ -539,6 +575,18 @@ type EvenementBrut =
   | { type: 'mode'; mode: string }
   | { type: 'modele'; modele: string }
   | ({ type: 'autorisation' } & DemandeAutorisation)
+  /** Une demande a laquelle le Hub a repondu seul parce qu'elle ne faisait que
+      lire. Emise pour que ca se voie : un accord silencieux ferait croire que
+      l'agent n'a rien demande, et le jour ou le classement se trompe personne
+      ne saurait ou regarder. */
+  | {
+      type: 'autorisation-auto'
+      demande: string
+      titre: string
+      genre: string
+      risque: Risque
+      option: string
+    }
   | { type: 'tour-fin'; raison: string; message?: string }
   | { type: 'panne'; message: string }
   /** Le fournisseur a coupe : on repart sur `vers` et on rejoue le message. */
@@ -551,6 +599,7 @@ type EvenementBrut =
   | { type: 'bascule-echec'; raison: string; vers: string; message: string }
   /** L'interrupteur a bouge dans une autre fenetre. */
   | { type: 'bascule-reglage'; actif: boolean }
+  | { type: 'laissez-passer-reglage'; actif: boolean }
   /** Un pole vient d'etre lance : ses agents vont travailler dans `dossier`. */
   | { type: 'chantier-debut'; titre: string; dossier: string }
   /** Plus rien de pret sur ce pole. `restantes` a zero veut dire qu'il est
@@ -582,6 +631,11 @@ type EvenementBrut =
           une tache qui n'avance pas. */
       reprise?: string
     }
+  /** Ce que la tache a coute, emis juste apres son dernier `tache-etat`.
+      Evenement distinct plutot qu'un champ de plus : il n'existe qu'une fois la
+      tache finie, et le greffer sur `tache-etat` obligerait chaque `running` a
+      porter des chiffres vides. */
+  | ({ type: 'tache-compte' } & CompteTache)
 
 /**
  * Le nom de l'emetteur voyage sur chaque trame : `agent` est l'identifiant du

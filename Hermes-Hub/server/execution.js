@@ -38,6 +38,7 @@ import path from 'node:path'
 import { Equipage } from './equipage.js'
 import { lireOrchestration } from './equipe.js'
 import { dernierMot, hermes } from './graphe.js'
+import { noterTache } from './compteurs.js'
 import { lireCapacites, lireLivrables, lireValidation } from './simulation.js'
 import { HUB_DIR, WORKSPACE, readJson, sanitizeName, writeJson } from './workspace.js'
 
@@ -166,8 +167,28 @@ function livrablesAttendus(tache) {
   return lireLivrables(`${tache.titre || ''}\n${tache.corps || ''}`)
 }
 
-/** nom de fichier en minuscules -> chemin complet, en profondeur. */
-function indexer(dossier, profondeurMax = 4) {
+/**
+ * nom de fichier en minuscules -> chemin complet, en profondeur.
+ *
+ * `depuis` ecarte ce qui est plus vieux que le tour, et cette borne n'est pas
+ * un raffinement : sans elle, un livrable du run precedent se fait passer pour
+ * celui d'aujourd'hui.
+ *
+ * Vu le 03/08/2026 a 04:04, sur le premier essai reel du repechage. Le
+ * maquettiste avait ecrit son PDF a la racine du workspace, comme la veille -
+ * mais un fichier du meme nom trainait deja dans le pole, mis la a la main deux
+ * heures plus tot. Le nom etait donc pris : rien n'a paru manquant, rien n'a
+ * ete repeche, et la garde a valide la tache sur un fichier qu'elle n'avait pas
+ * produit. Les deux PDF differaient. Le travail du jour est reste a la racine,
+ * et la tache est passee `done` en s'appuyant sur celui de la veille - le
+ * mensonge exact que toute cette mecanique existe pour empecher.
+ *
+ * Un livrable plus vieux que le claim n'est pas le livrable de ce tour. La
+ * consequence assumee : une tache qui n'aurait pas reecrit un fichier deja
+ * present est desormais bloquee. C'est le contrat de la garde - une tache qui
+ * annonce qu'elle ecrit doit ecrire.
+ */
+function indexer(dossier, depuis = 0, profondeurMax = 4) {
   const trouves = new Map()
   const parcourir = (dir, profondeur) => {
     if (profondeur > profondeurMax) return
@@ -178,10 +199,20 @@ function indexer(dossier, profondeurMax = 4) {
       return
     }
     for (const e of entrees) {
-      if (e.isDirectory()) parcourir(path.join(dir, e.name), profondeur + 1)
-      else if (!trouves.has(e.name.toLowerCase())) {
-        trouves.set(e.name.toLowerCase(), path.join(dir, e.name))
+      if (e.isDirectory()) {
+        parcourir(path.join(dir, e.name), profondeur + 1)
+        continue
       }
+      if (trouves.has(e.name.toLowerCase())) continue
+      const complet = path.join(dir, e.name)
+      if (depuis) {
+        try {
+          if (fs.statSync(complet).mtimeMs < depuis) continue
+        } catch {
+          continue
+        }
+      }
+      trouves.set(e.name.toLowerCase(), complet)
     }
   }
   parcourir(dossier, 0)
@@ -214,15 +245,21 @@ function indexer(dossier, profondeurMax = 4) {
  *     qui portait le meme nom depuis la veille - un deplacement qu'il n'a pas
  *     demande, et qu'il ne verrait pas passer.
  *
+ * La meme borne vaut des deux cotes : on ne cherche pas seulement un fichier
+ * frais a la racine, on ne considere comme deja rentre qu'un fichier frais dans
+ * le pole. Voir `indexer` - le premier essai reel s'est perdu exactement la.
+ *
  * On ne juge pas ici de ce qu'on ramene : un livrable creux repeche sera lu
  * par `livrablesManquants` juste apres, et bloquera avec sa vraie raison -
  * « il avoue » plutot que « il n'existe pas ».
  */
-function repecher(tache, dossier, depuis) {
+export function repecher(tache, dossier, depuis) {
   const attendus = livrablesAttendus(tache)
   if (!attendus.length) return []
 
-  const dansLePole = indexer(dossier)
+  // Le pole lu a la meme borne que la racine : un homonyme d'un run precedent
+  // ne doit pas faire croire que le livrable du jour est deja rentre.
+  const dansLePole = indexer(dossier, depuis)
   const manquants = attendus
     .map((f) => path.posix.basename(f.chemin).toLowerCase())
     .filter((nom) => !dansLePole.has(nom))
@@ -261,13 +298,22 @@ function repecher(tache, dossier, depuis) {
   return repeches
 }
 
-function livrablesManquants(tache, dossier) {
+/**
+ * Exportee pour ses tests, et pas seulement par commodite : c'est elle qui
+ * decide qu'une tache a menti. Une regle qui bloque du travail doit pouvoir
+ * etre interrogee directement, sans monter un chantier entier autour.
+ */
+export function livrablesManquants(tache, dossier, depuis = 0) {
   const attendus = livrablesAttendus(tache)
   if (!attendus.length) return null
 
   // Le chemin complet, pas seulement le nom : il faut pouvoir lire le fichier
   // pour savoir si c'est un livrable ou un constat d'echec.
-  const surLeDisque = indexer(dossier)
+  //
+  // `depuis` ferme le trou par lequel une tache est passee `done` sans rien
+  // produire : le fichier existait, mais il datait du run d'avant. Un nom seul
+  // ne prouve rien - il faut qu'il ait ete ecrit pendant ce tour-ci.
+  const surLeDisque = indexer(dossier, depuis)
 
   const trouves = attendus
     .map((f) => surLeDisque.get(path.posix.basename(f.chemin).toLowerCase()))
@@ -593,7 +639,20 @@ class Chantier {
     this.faites = []
     this.echouees = []
 
-    this.diffuser = (e) => diffuser({ ...e, pole: this.poleId })
+    /** id de tache -> bascules de modele vues pendant son tour. */
+    this.bascules = new Map()
+
+    // Les bascules se comptent au passage, et c'est le seul endroit ou elles
+    // sont attribuables : le pont estampille chacun de ses evenements avec son
+    // agent ET la tache en cours (`pont.contexte`). Compter plus haut, dans le
+    // `diffuser` du serveur, melangerait les taches d'une meme vague ; compter
+    // plus bas, dans le pont, lui ferait connaitre le tableau.
+    this.diffuser = (e) => {
+      if (e.type === 'bascule' && e.tache) {
+        this.bascules.set(e.tache, (this.bascules.get(e.tache) || 0) + 1)
+      }
+      diffuser({ ...e, pole: this.poleId })
+    }
     this.equipage = new Equipage({ cwd: this.dossier, diffuser: this.diffuser })
   }
 
@@ -728,6 +787,9 @@ class Chantier {
     const message = `${consigne(this.dossier)}\n\n---\n\n${contexte}`
 
     let pont = null
+    /** Ce qu'on aura a raconter une fois le tour fini. */
+    let appels = 0
+    let issue = null
     try {
       // La reprise n'entoure que le tour : ni la garde des livrables ni la
       // cloture. Celles-la echouent sur un travail deja fait et mal fait -
@@ -735,6 +797,7 @@ class Chantier {
       // meritee, et ferait payer deux fois le meme travail.
       for (let essai = 1; essai <= ESSAIS_TOUR; essai++) {
         try {
+          appels = essai
           pont = await this.equipage.reveiller(agent)
 
           // Le pont nu, pas `equipage.envoyer` : celui-ci injecte l'annuaire,
@@ -786,7 +849,7 @@ class Chantier {
         })
       }
 
-      const manque = livrablesManquants({ titre, corps }, this.dossier)
+      const manque = livrablesManquants({ titre, corps }, this.dossier, debutTour)
       if (manque) {
         throw new Error(
           manque.motif === 'creux'
@@ -801,6 +864,7 @@ class Chantier {
       }
 
       this.faites.push(id)
+      issue = 'done'
       this.diffuser({ type: 'tache-etat', tache: id, titre, etat: 'done', agent: agentId, resultat })
     } catch (err) {
       // Un arret demande passe forcement par ici : couper le pont fait echouer
@@ -815,10 +879,29 @@ class Chantier {
       // boucle. Le genre `transient` dit a Hermes que ce n'est pas la tache qui
       // est mauvaise, c'est cette tentative-la.
       this.#bloquer(id, titre, agentId, err.message)
+      issue = 'blocked'
     } finally {
       if (pont) pont.contexte = null
       this.enCours.delete(id)
       oublierBail(id)
+
+      // Un pole coupe a la main ne laisse pas de chiffres : `issue` reste nul,
+      // et une tache relachee sans avoir echoue n'a rien a raconter. On compte
+      // ce qui est arrive, pas ce qu'on a interrompu.
+      if (issue) {
+        const compte = noterTache({
+          pole: this.poleId,
+          tache: id,
+          titre,
+          agent: agentId,
+          ms: Date.now() - debutTour,
+          appels,
+          bascules: this.bascules.get(id) || 0,
+          etat: issue,
+        })
+        this.bascules.delete(id)
+        this.diffuser({ type: 'tache-compte', tache: id, ...compte })
+      }
     }
     return true
   }

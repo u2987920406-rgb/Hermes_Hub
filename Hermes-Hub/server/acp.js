@@ -15,6 +15,7 @@ import { EventEmitter } from 'node:events'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { arbitrer } from './laissez-passer.js'
 import { estPanneModele, lireBascule, prochainGratuit } from './modeles.js'
 
 /**
@@ -283,20 +284,41 @@ export class PontAcp extends EventEmitter {
 
   #demanderAutorisation(msg) {
     const p = msg.params || {}
-    const options = (p.options || []).map((o) => ({
+    const toutes = (p.options || []).map((o) => ({
       id: o.optionId,
       libelle: o.name || o.optionId,
       genre: o.kind || 'allow_once',
     }))
 
     // Sans option proposee, rien a arbitrer : on laisse Hermes decider seul.
-    if (!options.length) return this.#repondre(msg.id, { outcome: { outcome: 'cancelled' } })
+    if (!toutes.length) return this.#repondre(msg.id, { outcome: { outcome: 'cancelled' } })
+
+    const { risque, genre, auto, options } = arbitrer(p.toolCall, toutes)
+    const titre = p.toolCall?.title || 'Hermes demande une autorisation'
+
+    // Ce qui lit passe seul - et le dit. Un accord rendu en silence ferait
+    // croire que l'agent n'a rien demande, et le jour ou le classement se
+    // trompe personne ne saurait ou regarder. L'evenement porte donc la meme
+    // information qu'une carte a laquelle on aurait repondu.
+    if (auto) {
+      this.emettre({
+        type: 'autorisation-auto',
+        demande: String(msg.id),
+        titre,
+        genre,
+        risque,
+        option: auto.id,
+      })
+      return this.#repondre(msg.id, { outcome: { outcome: 'selected', optionId: auto.id } })
+    }
 
     const cle = String(msg.id)
     const evenement = {
       type: 'autorisation',
       demande: cle,
-      titre: p.toolCall?.title || 'Hermes demande une autorisation',
+      titre,
+      genre,
+      risque,
       detail: extraireContenu(p.toolCall?.content),
       options,
     }
