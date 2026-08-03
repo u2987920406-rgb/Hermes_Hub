@@ -13,9 +13,9 @@
  * coute environ deux secondes, et il en faudrait un par tache pour obtenir les
  * dependances. La lecture SQLite rend tout le graphe d'un coup.
  *
- * Les profils sont ancres au dossier utilisateur et non au home actif : un bac
- * a sable qui deplace HERMES_KANBAN_DB garde donc la meme equipe, ce qui est
- * voulu - on developpe avec ses vrais agents sur un faux tableau.
+ * Un bac a sable qui ne deplace que HERMES_KANBAN_DB garde la meme equipe, ce
+ * qui est voulu - on developpe avec ses vrais agents sur un faux tableau. Pour
+ * changer aussi d'equipe, il faut deplacer HERMES_HOME, comme pour le CLI.
  */
 import fs from 'node:fs'
 import os from 'node:os'
@@ -101,14 +101,19 @@ const CONNUS = {
   // l'identifiant que le decomposeur choisit, et une lettre ne lui dit rien.
   // La description aide, elle ne remplace pas un nom qui a un sens.
   //
-  // Donc : identifiant parlant pour la machine, nom neutre pour l'oeil.
+  // Donc : identifiant parlant pour la machine, nom neutre pour l'oeil - et la
+  // lettre DANS l'identifiant. Sans elle, `redacteur` tout court entrait en
+  // collision avec un profil du meme nom deja present sur un poste : le sien
+  // se serait affiche « B (Beatrice) », et `hermes profile create redacteur`
+  // aurait echoue en silence a l'installation. Un identifiant qu'on pose chez
+  // les autres doit etre a nous.
   //
   // On ne fige QUE le nom. La couleur se distribue avec les autres, le metier
   // et le role se lisent dans la description - c'est elle qui travaille, pas
   // cette table.
-  analyste: { nom: 'A (Alphonse)' },
-  redacteur: { nom: 'B (Beatrice)', couleur: 'violet', icone: 'plume' },
-  metteur: { nom: 'C (Camille)' },
+  'a-analyste': { nom: 'A (Alphonse)' },
+  'b-redacteur': { nom: 'B (Beatrice)', couleur: 'violet', icone: 'plume' },
+  'c-metteur': { nom: 'C (Camille)' },
 }
 
 /** Sans accents : les descriptions sont ecrites tantot avec, tantot sans. */

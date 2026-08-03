@@ -397,6 +397,9 @@ if exist "%INSTALLER_DIR%verif\verifier-installation.py" (
     if exist "%INSTALLER_DIR%VERIFIER-INSTALLATION.md" (
         copy /y "%INSTALLER_DIR%VERIFIER-INSTALLATION.md" "%WORKSPACE%\Depannage\" >nul 2>&1
     )
+    if exist "%INSTALLER_DIR%TESTER-LES-FONCTIONS.md" (
+        copy /y "%INSTALLER_DIR%TESTER-LES-FONCTIONS.md" "%WORKSPACE%\Depannage\" >nul 2>&1
+    )
     set "DEP_OK=1"
 )
 (
@@ -486,11 +489,11 @@ REM « C (Camille) » - voir CONNUS dans server/equipe.js.
 echo.
 echo [10 bis] Equipe de depart...
 
-hermes profile create analyste --clone-from default --description "Analyse. Lit les documents et les donnees fournis, en tire les chiffres, les faits et les ecarts verifiables. Produit la matiere chiffree dont les autres se serviront, sans rediger le livrable final." >nul 2>&1
+hermes profile create a-analyste --clone-from default --description "Analyse. Lit les documents et les donnees fournis, en tire les chiffres, les faits et les ecarts verifiables. Produit la matiere chiffree dont les autres se serviront, sans rediger le livrable final." >nul 2>&1
 
-hermes profile create redacteur --clone-from default --description "Redaction. Ecrit le texte du livrable a partir de l analyse fournie : notes, rapports, comptes rendus, courriers. Travaille la clarte et la structure, et ne met pas en page." >nul 2>&1
+hermes profile create b-redacteur --clone-from default --description "Redaction. Ecrit le texte du livrable a partir de l analyse fournie : notes, rapports, comptes rendus, courriers. Travaille la clarte et la structure, et ne met pas en page." >nul 2>&1
 
-hermes profile create metteur --clone-from default --description "Mise en page. Assemble le document final a remettre : page HTML autonome puis PDF, tableaux et sections lisibles. Part de ce que les autres ont ecrit et n en change pas le fond." >nul 2>&1
+hermes profile create c-metteur --clone-from default --description "Mise en page. Assemble le document final a remettre : page HTML autonome puis PDF, tableaux et sections lisibles. Part de ce que les autres ont ecrit et n en change pas le fond." >nul 2>&1
 
 echo   OK - trois roles crees : A (Alphonse), B (Beatrice), C (Camille).
 echo        Renomme-les avec "hermes profile rename".

@@ -53,7 +53,7 @@ mise au point. Le nom du contrôle dit quoi.
 | **1** | `node`, `python`, `hermes` répondent | Le PATH ne suit pas tant qu'on n'a pas rouvert une session Windows |
 | **2** | Vault, Projets, Hub, lanceur, icônes | Une copie interrompue laisse un Hub sans son lanceur, donc sans icône |
 | **3** | Scripts, template, `Resumes-Sessions` vides, `MEMORY.md` | Les scripts calculent leur racine comme leur dossier parent : mal rangés, ils cherchent `Vault/` au mauvais endroit **sans le dire** |
-| **4** | `analyste`, `redacteur`, `metteur` : description **et** credential | Une description vide, et le décomposeur n'a personne à qui confier la tâche. Un `.env` vide, et l'agent ne répond jamais |
+| **4** | `a-analyste`, `b-redacteur`, `c-metteur` : description **et** credential | Une description vide, et le décomposeur n'a personne à qui confier la tâche. Un `.env` vide, et l'agent ne répond jamais |
 | **5** | Le serveur démarre, `/api/health`, l'équipe vue par le Hub | Le Hub et la ligne de commande peuvent lire deux équipes différentes |
 | **6** | `nourrir-vault.py` et `resume-sessions.py` s'exécutent | Ils levaient une trace Python sur un poste sans dossier `Projets` |
 | **7** | Aucune donnée héritée d'un autre poste | Le pack d'origine annonçait des `Resumes-Sessions` vides et contenait sept sessions réelles |
@@ -78,12 +78,12 @@ Sinon, chaque échec porte sa cause. Les trois qu'on rencontre le plus :
 session en cours date d'avant. Ferme la session Windows, rouvre-la, relance le
 contrôle. Ce n'est pas une réinstallation qu'il faut.
 
-**`profil analyste absent`** — les trois rôles n'ont pas été créés. Vérifie que
+**`profil a-analyste absent`** — les trois rôles n'ont pas été créés. Vérifie que
 l'étape `[10 bis] Equipe de depart` est bien passée dans la sortie de
 l'installateur. À la main :
 
 ```
-hermes profile create analyste --clone-from default --description "Analyse. ..."
+hermes profile create a-analyste --clone-from default --description "Analyse. ..."
 ```
 
 **`N fichier(s) portent des traces d'un autre poste`** — sur un poste neuf,

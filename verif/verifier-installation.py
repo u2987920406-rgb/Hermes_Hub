@@ -175,7 +175,7 @@ def controler_equipe():
     if not os.path.isdir(pdir):
         note(KO, "Aucun dossier de profils", pdir)
         return
-    for pid in ("analyste", "redacteur", "metteur"):
+    for pid in ("a-analyste", "b-redacteur", "c-metteur"):
         d = os.path.join(pdir, pid)
         if not os.path.isdir(d):
             note(KO, "profil %s absent" % pid,
@@ -258,7 +258,7 @@ def controler_serveur(racine):
         orch = lire("/api/orchestration")
         ids = [a["id"] for a in orch.get("agents", [])]
         note(OK if "default" in ids else KO, "l'orchestrateur est la")
-        trouves = [p for p in ("analyste", "redacteur", "metteur") if p in ids]
+        trouves = [p for p in ("a-analyste", "b-redacteur", "c-metteur") if p in ids]
         note(OK if len(trouves) == 3 else KO,
              "les trois roles sont vus par le Hub", ", ".join(ids))
         pas_prets = [a["id"] for a in orch.get("agents", []) if not a.get("pretAServir")]
@@ -266,7 +266,7 @@ def controler_serveur(racine):
              "" if not pas_prets else "sans credential : " + ", ".join(pas_prets))
 
         for a in orch.get("agents", []):
-            if a["id"] in ("analyste", "redacteur", "metteur") and not a.get("metier"):
+            if a["id"] in ("a-analyste", "b-redacteur", "c-metteur") and not a.get("metier"):
                 note(KO, "le metier de %s ne se lit pas" % a["id"],
                      "sa description doit commencer par le metier suivi d'un point.")
 
@@ -353,9 +353,10 @@ def controler_decomposition(racine):
     env["HERMES_KANBAN_DB"] = os.path.join(bac, "kanban.db")
     try:
         r = subprocess.run(
-            ["hermes", "kanban", "add",
+            ["hermes", "kanban", "create",
              "A partir du fichier ventes.csv, produis une note de synthese chiffree, "
-             "puis un document PDF presentable pour la direction.", "--json"],
+             "puis un document PDF presentable pour la direction.",
+             "--triage", "--json"],
             capture_output=True, text=True, timeout=180, env=env)
         m = re.search(r'"(?:id|task_id)"\s*:\s*"(t_[a-f0-9]+)"', r.stdout + r.stderr)
         if not m:
