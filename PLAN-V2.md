@@ -702,12 +702,12 @@ simulation.
 construire un graphe et le regarder tourner. Le parcours autour n'est pas
 boucle :
 
-- **une tache bloquee est une impasse.** Constate le 03/08/2026 sur un vrai
-  pole : il a fallu `hermes kanban unblock` en ligne de commande pour repartir.
-  Or bloquer est precisement ce que font toutes les gardes - livrable absent,
-  livrable creux, PDF d'erreur - et chaque garde ajoutee rend l'impasse plus
-  frequente. C'est le manque le plus grave, parce qu'il arrete l'utilisateur
-  net ;
+- ~~une tache bloquee est une impasse~~ **- ferme le 03/08/2026.** Le panneau
+  du noeud porte « Remettre en circulation » des que la tache est bloquee, et
+  le tableau la rend a `ready` par le meme verbe que le reste. C'etait le
+  manque le plus grave : bloquer est ce que font toutes les gardes - livrable
+  absent, livrable creux, PDF d'erreur - et chaque garde ajoutee rendait
+  l'impasse plus frequente ;
 - **la simulation a change de place sans que le parcours suive.** Elle vivait
   dans Orchestration ; depuis que la vignette d'un pole mene au Studio, elle
   n'est plus atteignable que de la. Ce n'est pas forcement faux, mais ca n'a

@@ -28,6 +28,7 @@ import {
 import {
   ajouterTache,
   assigner,
+  debloquer,
   delier,
   dernierJson,
   epingler,
@@ -1887,8 +1888,14 @@ async function handleApi(req, res, url) {
       if ('modele' in body) {
         Object.assign(fait, epingler(id, body.modele ? String(body.modele) : null))
       }
+      // Remettre une tache bloquee en circulation. Passe par le meme verbe que
+      // le reste - un seul ecrivain sur le tableau - et par la meme porte : un
+      // pole qui tourne ne se remanie pas, y compris pour debloquer.
+      if (body.debloquer === true) {
+        Object.assign(fait, debloquer(id, body.raison ? String(body.raison) : null))
+      }
       if (!Object.keys(fait).length) {
-        const err = new Error('Rien a changer : precise un agent ou un modele.')
+        const err = new Error('Rien a changer : precise un agent, un modele, ou debloquer.')
         err.status = 400
         throw err
       }

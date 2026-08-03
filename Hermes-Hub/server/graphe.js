@@ -180,6 +180,29 @@ export function assigner(id, agent) {
 }
 
 /**
+ * Une tache bloquee qu'on remet en circulation.
+ *
+ * C'etait l'impasse du Studio, et elle se refermait un peu plus a chaque garde
+ * qu'on ajoutait. Le Hub bloque une tache quand elle n'a pas produit son
+ * livrable, quand le fichier ecrit avoue un echec, quand un PDF n'est qu'une
+ * page d'erreur - autant de refus justes. Mais rien dans l'interface ne
+ * permettait de repartir : le 03/08/2026, il a fallu `hermes kanban unblock`
+ * en ligne de commande pour relancer un pole. Un produit qui sait dire non doit
+ * savoir dire « recommence ».
+ *
+ * La raison est portee en commentaire sur la tache plutot que perdue : le
+ * tableau garde donc la trace du blocage ET celle de la reprise, et la tache
+ * suivante lira les deux dans `kanban context`.
+ */
+export function debloquer(id, raison) {
+  const args = ['unblock', id]
+  if (raison) args.push('--reason', raison)
+  const r = hermes(args)
+  if (r.status !== 0) throw refus(r, "La tache n'a pas pu etre debloquee.")
+  return { id, debloquee: true }
+}
+
+/**
  * Le modele impose a une tache, par-dessus celui de son agent.
  *
  * `null` retire l'epingle : la tache repart sur le modele de son agent. La CLI

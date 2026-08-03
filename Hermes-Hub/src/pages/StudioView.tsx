@@ -52,6 +52,7 @@ import {
   LayoutGrid,
   Play,
   Plus,
+  RotateCcw,
   Square,
   Trash2,
 } from 'lucide-react'
@@ -550,6 +551,22 @@ function Atelier({ poleId, onQuitter }: Props) {
     [poleId, brouillon, charger, notifier, reglerLiensPrevus],
   )
 
+  /**
+   * Remettre une tache bloquee en circulation.
+   *
+   * On ne la relance pas : on la rend au tableau, qui decidera de son tour
+   * comme pour n'importe quelle autre. Relancer d'ici court-circuiterait les
+   * dependances - une tache debloquee dont le parent a echoue repartirait
+   * avant lui.
+   */
+  const debloquerLaTache = useCallback(
+    (id: string) => {
+      if (!poleId) return
+      void agir(() => api.debloquerTache(poleId, id), 'Tache remise en circulation.')
+    },
+    [poleId, agir],
+  )
+
   const retirer = useCallback(
     (id: string) => {
       if (!poleId) return
@@ -725,6 +742,35 @@ function Atelier({ poleId, onQuitter }: Props) {
                   {tacheChoisie.corps}
                 </p>
               </>
+            )}
+
+            {/* La sortie de l'impasse.
+                Le Hub bloque une tache quand elle n'a pas produit son livrable,
+                quand le fichier ecrit avoue un echec, quand un PDF n'est qu'une
+                page d'erreur. Ces refus sont justes - mais jusqu'ici rien dans
+                l'interface ne permettait de repartir : le 03/08/2026 il a fallu
+                `hermes kanban unblock` en ligne de commande pour relancer un
+                pole. Le bouton est ici, sur le noeud qui porte le blocage,
+                parce que c'est la qu'on le voit. */}
+            {modifiable && tacheChoisie.etat === 'blocked' && (
+              <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-2 dark:border-amber-500/40 dark:bg-amber-500/10">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300">
+                  Tache bloquee
+                </p>
+                <p className="mt-1 text-[11px] leading-relaxed">
+                  Elle ne repartira pas d-elle-meme. Corrige ce qui l-a fait
+                  echouer - l-enonce, l-agent, le modele - puis remets-la en
+                  circulation.
+                </p>
+                <button
+                  onClick={() => debloquerLaTache(tacheChoisie.id)}
+                  disabled={occupe}
+                  className="btn-primary mt-2 w-full justify-center gap-1.5 py-1.5 text-[11px] disabled:opacity-50"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Remettre en circulation
+                </button>
+              </div>
             )}
 
             {/* Retirer une tache est le seul geste du Studio qui defait du

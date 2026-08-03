@@ -248,6 +248,14 @@ export const api = {
       `/orchestration/tache?pole=${enc(pole)}&id=${enc(id)}`,
       { method: 'DELETE' },
     ),
+
+  // Remettre en circulation une tache que le Hub a bloquee. Sans ca, une garde
+  // qui refuse un livrable laissait le pole sans issue dans l'interface.
+  debloquerTache: (pole: string, id: string, raison?: string) =>
+    request<{ id: string; debloquee: boolean }>('/orchestration/tache', {
+      method: 'PATCH',
+      body: body({ pole, id, debloquer: true, raison }),
+    }),
   relier: (pole: string, de: string, vers: string) =>
     request<{ de: string; vers: string; lie: boolean }>('/orchestration/lien', {
       method: 'POST',
