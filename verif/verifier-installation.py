@@ -63,6 +63,19 @@ def trouver_racine(demandee):
     return candidats[-1] if candidats else None
 
 
+def home_hermes():
+    """
+    Le meme chemin que celui du Hub et de la ligne de commande.
+
+    `HERMES_HOME` d'abord : c'est ce que `hermes` honore, et depuis le
+    03/08/2026 `equipe.js` aussi. Chercher ailleurs ferait echouer ce controle
+    sur un poste qui deplace son home, alors que tout y serait en ordre.
+    """
+    return os.environ.get("HERMES_HOME") or os.path.join(
+        os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "hermes"
+    )
+
+
 def outil(nom, arg="--version"):
     try:
         r = subprocess.run([nom, arg], capture_output=True, text=True, timeout=60)
@@ -147,8 +160,7 @@ def controler_memoire(racine):
             note(OK if not ids else KO, "exclusions.json vierge",
                  "" if not ids else "il contient %d identifiant(s) etranger(s)" % len(ids))
 
-    home = os.path.join(os.environ.get("LOCALAPPDATA", ""), "hermes")
-    md = os.path.join(home, "memories", "MEMORY.md")
+    md = os.path.join(home_hermes(), "memories", "MEMORY.md")
     if os.path.isfile(md):
         txt = io.open(md, encoding="utf-8", errors="replace").read()
         note(OK if "MEMOIRE DURABLE" in txt else KO, "MEMORY.md porte la memoire durable")
@@ -159,8 +171,7 @@ def controler_memoire(racine):
 
 def controler_equipe():
     section("4. L'equipe de depart")
-    home = os.path.join(os.environ.get("LOCALAPPDATA", ""), "hermes")
-    pdir = os.path.join(home, "profiles")
+    pdir = os.path.join(home_hermes(), "profiles")
     if not os.path.isdir(pdir):
         note(KO, "Aucun dossier de profils", pdir)
         return
