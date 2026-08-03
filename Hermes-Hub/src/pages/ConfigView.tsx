@@ -20,6 +20,7 @@ import {
 import { useEffect, useState } from 'react'
 import { ConfirmDialog } from '../components/Modal'
 import { PageHeader } from '../components/PageHeader'
+import { ProfilsMemoire } from '../components/ProfilsMemoire'
 import { api } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
 import type { AppConfig, Diagnostics, MemoryFile, Theme } from '../types'
@@ -435,8 +436,24 @@ export function ConfigView({ onMenu }: Props) {
               ))}
             </div>
 
+            {/* L'encart et la bulle passent AVANT le champ : c'est la que se
+                decide ce qu'on ecrit. Sous le textarea, ils auraient servi a
+                ceux qui avaient deja fini. */}
+            <ProfilsMemoire
+              fichier={fichier}
+              onApplique={() => {
+                api
+                  .readMemory(fichier)
+                  .then((m) => {
+                    setMemoire(m)
+                    setTexteMemoire(m.content)
+                  })
+                  .catch(() => null)
+              }}
+            />
+
             {memoire ? (
-              <>
+              <div className="mt-4">
                 <p className="text-xs font-medium">{memoire.titre}</p>
                 <p className="mt-0.5 text-[11px] muted">{memoire.aide}</p>
                 <textarea
@@ -513,9 +530,9 @@ export function ConfigView({ onMenu }: Props) {
                     <Save className="h-4 w-4" /> Enregistrer ce fichier
                   </button>
                 </div>
-              </>
+              </div>
             ) : (
-              <p className="text-[11px] muted">Lecture...</p>
+              <p className="mt-4 text-[11px] muted">Lecture...</p>
             )}
           </section>
           )}

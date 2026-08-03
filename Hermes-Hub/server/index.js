@@ -39,6 +39,16 @@ import { lireCompteurs, oublierCompteurs } from './compteurs.js'
 import { creerAgent, decrireAgent, renommerAgent, retirerAgent } from './agents.js'
 import { brancherOutil, debrancherOutil, listerOutils, repartirOutil } from './outils.js'
 import {
+  appliquerProfil,
+  enregistrerProfil,
+  lireAccueil,
+  lireProfil,
+  listerProfils,
+  noterAccueil,
+  renommerProfil,
+  supprimerProfil,
+} from './profils.js'
+import {
   apprendre,
   lireCompetences,
   oublierCompetence,
@@ -1664,8 +1674,43 @@ async function handleApi(req, res, url) {
     if (rest[1] === 'log') return sendJson(res, 200, openLog())
   }
 
+  // L'accueil du premier lancement : ce que le poste retient de la premiere
+  // visite. Cote serveur et pas dans le navigateur - la fenetre reviendrait
+  // sinon chez quelqu'un qui a change de navigateur ou vide ses donnees.
+  if (rest[0] === 'accueil') {
+    if (method === 'GET') return sendJson(res, 200, lireAccueil())
+    if (method === 'POST') return sendJson(res, 200, noterAccueil(await readBody(req)))
+  }
+
   if (rest[0] === 'memory' && rest[1]) {
     const nom = decodeURIComponent(rest[1])
+
+    // Les profils : trois niveaux livres pour les regles, et les siens. Le
+    // profil par defaut n'y figure pas - il est le fichier installe, et se
+    // recupere par « Version d'origine ».
+    if (rest[2] === 'profils') {
+      const { chemin } = fichierMemoire(nom)
+      if (!rest[3] && method === 'GET') return sendJson(res, 200, listerProfils(nom, chemin))
+      if (!rest[3] && method === 'POST') {
+        const body = await readBody(req)
+        return sendJson(res, 201, enregistrerProfil(nom, chemin, body.nom))
+      }
+      if (rest[3] && rest[4] === 'appliquer' && method === 'POST') {
+        appliquerProfil(nom, chemin, decodeURIComponent(rest[3]))
+        return sendJson(res, 200, lireMemoire(nom))
+      }
+      if (rest[3] && method === 'GET') {
+        return sendJson(res, 200, lireProfil(nom, chemin, decodeURIComponent(rest[3])))
+      }
+      if (rest[3] && method === 'PATCH') {
+        const body = await readBody(req)
+        return sendJson(res, 200, renommerProfil(nom, decodeURIComponent(rest[3]), body.nom))
+      }
+      if (rest[3] && method === 'DELETE') {
+        return sendJson(res, 200, supprimerProfil(nom, decodeURIComponent(rest[3])))
+      }
+    }
+
     if (method === 'GET') return sendJson(res, 200, lireMemoire(nom))
     if (rest[2] === 'restore' && method === 'POST') {
       return sendJson(res, 200, restaurerMemoire(nom))

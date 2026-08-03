@@ -270,24 +270,32 @@ echo.
 set /p RAISON="  Ta principale raison d'utiliser Hermes: "
 echo.
 
-set /p PROFIL_RAF="  Utiliser le profil pre-rempli (regles deja configurees) ? (o/n): "
-echo.
-
-REM -- La passerelle : sans elle, aucune tache programmee ne part jamais.
+REM DEUX QUESTIONS ONT DISPARU D'ICI, et pour la meme raison : elles
+REM proposaient un choix que personne ne pouvait faire en connaissance de cause.
 REM
-REM On pose la question au lieu d'installer d'office : c'est un service qui
-REM tourne en fond, et rien ne doit demarrer tout seul sur une machine qu'on
-REM decouvre. Mais on dit ce qu'il en coute de refuser, parce que le piege est
-REM silencieux - sans passerelle, `hermes cron create` reussit, la tache
-REM s'affiche, sa prochaine echeance est calculee, et rien ne se declenche.
-REM Le Hub le signale desormais dans sa zone Automatisations ; autant ne pas
-REM avoir a le signaler.
-echo   Les automatisations - « tous les jours a 9h, fais ceci » - demandent un
-echo   petit service en fond. Sans lui, elles s'affichent mais ne partent jamais.
-set /p PASSERELLE="  Installer ce service maintenant ? (o/n): "
+REM « Utiliser le profil pre-rempli ? » - sans savoir ce qu'il contenait. Tout
+REM le monde repondait oui, et celui qui repondait non repartait sans aucune
+REM regle de travail. Les regles sont maintenant posees d'office, et le Hub
+REM offre d'en changer avec le contenu sous les yeux.
+REM
+REM « Installer le service d'automatisation ? » - sans savoir que sans lui,
+REM `hermes cron create` REUSSIT, la tache s'affiche, son echeance se calcule,
+REM et rien ne part jamais. Une fonction a moitie morte en silence est pire
+REM qu'un service en fond. Il est pose d'office, et annonce.
 echo.
 
-REM Le texte des regles vit dans :write_memory_rules, qui l'ecrit dans la
+REM ON N'INSTALLE PAS UN SERVICE EN SILENCE. Ne plus demander ne veut pas dire
+REM ne rien dire : un service qui demarre tout seul et dont personne n'a parle
+REM est ce qui fait passer un produit pour intrusif. On l'annonce, et on donne
+REM la commande pour le retirer - c'est la difference entre imposer et cacher.
+echo   Un petit service en fond sera installe : c'est lui qui declenche les
+echo   taches programmees ^(« tous les jours a 9h, fais ceci »^), meme Hub ferme.
+echo   Il demarre a l'ouverture de session. Pour le retirer plus tard :
+echo     hermes gateway uninstall
+echo.
+
+REM Le texte des regles vit dans :write_memory_socle et :write_memory_atelier,
+REM qui l'ecrivent dans la
 REM memoire d'Hermes. Il etait auparavant stocke ici dans une variable que
 REM personne ne lisait : la question ci-dessus restait donc sans effet.
 
@@ -535,10 +543,13 @@ hermes profile create c-metteur --clone-from default --description "Mise en page
 echo   OK - trois roles crees : A (Alphonse), B (Beatrice), C (Camille).
 echo        Renomme-les avec "hermes profile rename".
 
-REM == Etape 10 ter: la passerelle, si elle a ete acceptee ==
-if /i "%PASSERELLE%"=="o" (
-    echo.
-    echo [10 ter] Installation du service d'automatisation...
+REM == Etape 10 ter: la passerelle ==
+REM Posee d'office, et annoncee a l'etape 7. Sans elle, `hermes cron create`
+REM reussit, la tache s'affiche, son echeance se calcule, et rien ne part
+REM jamais : une fonction a moitie morte en silence est pire qu'un service en
+REM fond, et une question que personne ne comprend n'est pas un choix.
+echo.
+echo [10 ter] Installation du service d'automatisation...
     REM LES DEUX DRAPEAUX NE SONT PAS DECORATIFS - sans eux l'installation se
     REM fige ici, et de la pire facon. Mesure le 03/08/2026 sur un second poste :
     REM « hermes gateway install » teste sys.stdin.isatty() et, sur un vrai
@@ -561,20 +572,14 @@ if /i "%PASSERELLE%"=="o" (
     REM tout de suite et repart a l'ouverture de session - sans quoi les taches
     REM programmees ne partiraient qu'avec le Hub ouvert, ce qui les vide de leur
     REM sens.
-    hermes gateway install --start-now --start-on-login >nul 2>&1
-    hermes cron status >nul 2>&1
-    if errorlevel 1 (
-        echo   Le service n'a pas pu etre installe. Les automatisations
-        echo   s'afficheront dans le Hub sans se declencher. Pour reessayer :
-        echo     hermes gateway install
-    ) else (
-        echo   OK - les taches programmees se declencheront, Hub ferme.
-    )
-) else (
-    echo.
-    echo   Service d'automatisation non installe. Les taches programmees
-    echo   s'afficheront sans partir. Pour l'activer plus tard :
+hermes gateway install --start-now --start-on-login >nul 2>&1
+hermes cron status >nul 2>&1
+if errorlevel 1 (
+    echo   Le service n'a pas pu etre installe. Les automatisations
+    echo   s'afficheront dans le Hub sans se declencher. Pour reessayer :
     echo     hermes gateway install
+) else (
+    echo   OK - les taches programmees se declencheront, Hub ferme.
 )
 
 REM == Etape 11: SOUL.md + scripts + memoire ==
@@ -623,11 +628,21 @@ call :write_user_memory
 REM -- Regles de travail : c'est la reponse a la question posee a l'etape 7.
 REM    Sans cette ecriture, la question ne servait a rien et Hermes demarrait
 REM    sans aucune regle.
-if /i "%PROFIL_RAF%"=="o" (
-    call :write_memory_rules
-) else (
-    echo   Regles non installees ^(profil pre-rempli refuse^).
-)
+REM PLUS DE QUESTION ICI, et c'est voulu. « Utiliser le profil pre-rempli ? »
+REM ne voulait rien dire pour qui ne savait pas ce qu'on lui proposait - donc
+REM tout le monde repondait oui, et un client repondant non repartait sans
+REM AUCUNE regle. Ce qui se pose ici est desormais le profil par defaut, entier,
+REM et c'est le Hub qui offre d'en changer : Configuration ^> Memoire.
+call :write_memory_socle
+
+REM Le socle NU, copie avant que l'atelier ne s'ajoute. C'est ce fichier que le
+REM Hub lit pour construire ses profils, et il n'existe que pour ca : sans lui,
+REM « Essentiel » vaudrait exactement le fichier installe et le choix ne
+REM servirait a rien. Le Hub ne connait ainsi toujours aucun texte livre - il
+REM apporte ses supplements, jamais la base.
+copy /y "!HERMES_HOME!\memories\MEMORY.md" "!HERMES_HOME!\memories\MEMORY.socle.md" >nul 2>&1
+
+call :write_memory_atelier
 
 REM La memoire durable ne se refuse pas avec les regles : ses scripts sont
 REM poses dans tous les cas, donc son mode d'emploi aussi. Sinon un client qui
@@ -851,47 +866,48 @@ echo   OK - Profil ecrit dans la memoire d'Hermes.
 exit /b 0
 
 REM ================================================
-REM :write_memory_rules - ecrit les regles dans la memoire d'Hermes
-REM   Hermes lit HERMES_HOME\memories\MEMORY.md a chaque session : c'est la
-REM   que vivent les regles de travail. Le fichier est ecrit en sections
-REM   lisibles plutot qu'en une ligne, pour rester modifiable ensuite.
-REM   Ecrase sans etat d'ame: on n'arrive ici que si l'utilisateur a demande
-REM   le profil pre-rempli.
+REM :write_memory_socle - les garde-fous, pour tout le monde
 REM ================================================
-:write_memory_rules
+REM   Hermes lit HERMES_HOME\memories\MEMORY.md a CHAQUE session : c'est la que
+REM   vivent les regles de travail, et c'est aussi pourquoi leur longueur se
+REM   paie a chaque demarrage. Mesure le 03/08/2026 : l'ancienne liste faisait
+REM   46 lignes, environ 553 jetons.
+REM
+REM   LE COUT EN ARGENT N'EST PAS L'ARGUMENT - trois dixiemes de centime par
+REM   session, moins encore avec le cache. Le vrai cout est la dilution : sur
+REM   les 25 lignes de l'ancienne liste, six parlaient de commits, de tests et
+REM   d'architectures evolutives. Chez un comptable ou un avocat elles ne
+REM   veulent rien dire, et une charte qu'on ne relit plus parce qu'elle parle
+REM   d'un autre metier ne protege plus personne.
+REM
+REM   D'OU LA SEPARATION, et c'est la meme lecon que pour la memoire durable :
+REM   un garde-fou n'est pas un gout. « Ne jamais inventer » ne se refuse pas.
+REM   Le socle part donc dans tous les cas ; l'atelier logiciel, lui, reste
+REM   derriere une question - et la question dit desormais ce qu'elle propose.
+REM ================================================
+:write_memory_socle
 mkdir "!HERMES_HOME!\memories" 2>nul
 (
 echo # Regles de travail
 echo.
 echo _Hermes Hub v%HERMES_VERSION% - modifiable depuis le Hub : Configuration ^> Memoire_
 echo.
-echo ## JAMAIS
-echo - Prendre une decision irreversible sans mon accord
-echo - Commit sans demander
-echo - Supprimer ou acceder a des fichiers hors du cadre sans accord
-echo - Inventer une reponse ou mentir
+echo Ce que j'attends de toi, dans tous les cas. Huit lignes, relues a chaque
+echo demarrage : n'en ajoute pas sans en retirer.
 echo.
-echo ## DETESTE
-echo - Verbosite, blabla
-echo - Hallucinations
-echo - Coder sans tests
-echo - Repeter les memes erreurs
-echo - Supposer au lieu de verifier
-echo - Prendre des raccourcis
-echo.
-echo ## DOIT
-echo - Guider par questions quand je bloque; sinon coder en senior expert
-echo - Tester avant d'annoncer que c'est fini
-echo - Etre honnete sur la faisabilite
-echo - Ne pas sur-coder, faire simple et juste
-echo - Etre proactif sans alourdir
-echo - Proposer des architectures evolutives
-echo - Demander mon accord pour les fichiers critiques
-echo - Analyser les captures d'ecran que j'envoie
-echo - Faire une revue visuelle et code a chaque jalon
-echo - Ecrire REPRISE.md a chaque jalon, ADM.md en cumulatif
-echo - Tenir les 6 fichiers standard par projet
-echo - Nourrir le coffre memoire, revue mensuelle
+echo - Rien d'irreversible sans mon accord : supprimer, ecraser, envoyer,
+echo   publier, payer.
+echo - Ne jamais inventer. « Je ne sais pas » est une reponse ; une reponse
+echo   plausible et fausse n'en est pas une.
+echo - Verifier plutot que supposer, et dire ce qui a ete verifie et ce qui ne
+echo   l'a pas ete.
+echo - Ne pas annoncer fini ce qui n'a pas ete eprouve : essaie-le d'abord.
+echo - Dire ce qui a rate, tout de suite et sans l'enrober.
+echo - Faire ce qui est demande, ni moins ni plus. Un doute qui change le
+echo   travail se pose ; le reste se tranche.
+echo - Quand je bloque, guide-moi par questions plutot que de deviner a ma place.
+echo - Aller a l'essentiel : pas de preambule, pas de resume de ce que je viens
+echo   de dire.
 echo.
 echo ## REPRISE
 echo.
@@ -906,31 +922,54 @@ echo.
 echo Ne cherche jamais un fichier de reprise ecrit a la main hors de ces
 echo endroits : un memo tenu a cote pourrit quand la seance s'arrete mal,
 echo c'est-a-dire pile quand on en a besoin.
-echo.
-echo ## PROJETS
-echo - Proposer la creation d'un projet QUAND la conversation devient concrete,
-echo   jamais systematiquement
-echo - Si j'accepte: creer le dossier + les 6 fichiers, puis basculer dedans
-echo - Signaler le changement de dossier dans un ENCADRE ROUGE
-echo - Au demarrage d'un projet: demander si j'ai deja un plan
-echo   - si oui, le peaufiner ensemble
-echo   - si non, me guider par questions
-echo - Valider le plan avec moi avant d'ecrire plan.md
 ) > "!HERMES_HOME!\memories\MEMORY.md"
+goto :eof
+
+REM ================================================
+REM :write_memory_atelier - les habitudes d'un atelier logiciel
+REM ================================================
+REM   Tout ce qui suppose qu'on ecrit du code. C'etait melange au socle, et
+REM   c'est ce melange qu'on defait : le socle protege, ceci organise. Le
+REM   premier ne se refuse pas, le second ne concerne pas tout le monde.
+REM
+REM   Le bloc s'annonce pour ce qu'il est et invite a l'elaguer. Un texte lu a
+REM   chaque demarrage doit pouvoir maigrir, et personne ne coupe dans un
+REM   fichier qui a l'air officiel : c'est le fichier qui doit le permettre.
+REM ================================================
+:write_memory_atelier
+(
+echo.
+echo ## Habitudes d'atelier logiciel
+echo.
+echo _Ces lignes supposent qu'on ecrit du code, et elles sont relues a chaque
+echo demarrage comme les autres. Efface celles qui ne te concernent pas._
+echo.
+echo - Tester avant d'annoncer fini ; ne rien commiter sans demander
+echo - Ne pas sur-coder : simple et juste plutot qu'evolutif par principe
+echo - Revue visuelle ET code a chaque jalon ; analyser les captures d'ecran
+echo - Ecrire REPRISE.md a chaque jalon, ADM.md en cumulatif
+echo - Tenir les 6 fichiers standard par projet, nourrir le coffre memoire
+echo - Proposer un projet QUAND la conversation devient concrete, jamais
+echo   systematiquement. Si j'accepte : creer le dossier et les 6 fichiers,
+echo   signaler le changement dans un ENCADRE ROUGE, et valider le plan avec
+echo   moi avant d'ecrire plan.md
+) >> "!HERMES_HOME!\memories\MEMORY.md"
 goto :eof
 
 REM -----------------------------------------------------------------------------
 REM :write_memory_durable - le mode d'emploi de l'archive qui survit a state.db
 REM -----------------------------------------------------------------------------
-REM Separe de :write_memory_rules, et ce n'est pas un detail d'organisation.
-REM Les regles de travail sont un GOUT - elles vivent derriere la question
-REM « utiliser le profil pre-rempli ? », et un client peut les refuser. La
-REM memoire durable n'est pas un gout : ses scripts sont installes dans tous les
-REM cas, donc son mode d'emploi doit l'etre aussi. Melangees, un client
-REM repondant « n » recevait les scripts sans jamais savoir qu'ils existent.
+REM Separe de :write_memory_atelier, et ce n'est pas un detail d'organisation.
+REM Les habitudes d'atelier sont un GOUT - elles vivent derriere une question,
+REM et un client peut les refuser. La memoire durable n'est pas un gout : ses
+REM scripts sont installes dans tous les cas, donc son mode d'emploi doit l'etre
+REM aussi. Melangees, un client repondant « n » recevait les scripts sans jamais
+REM savoir qu'ils existent.
 REM
-REM Ecrit en ajout : si les regles ont ete posees, on complete leur fichier ;
-REM sinon on cree le notre avec son titre.
+REM C'est ce meme partage qui a fini par separer le socle de l'atelier : ce qui
+REM protege se pose toujours, ce qui organise se propose.
+REM
+REM Ecrit en ajout : le socle a deja cree le fichier, on complete.
 :write_memory_durable
 mkdir "!HERMES_HOME!\memories" 2>nul
 if not exist "!HERMES_HOME!\memories\MEMORY.md" (

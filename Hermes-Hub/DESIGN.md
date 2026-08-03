@@ -91,6 +91,24 @@ pour le nommer quand on veut demander une modification.
 La section entiere s'efface quand il n'y a rien a dire - ni tache programmee,
 ni alerte. Un accueil ne porte pas de rubrique vide.
 
+### Le premier lancement, et la memoire
+
+| Ce que tu vois | Zone a grep | Molettes | Sinon |
+|---|---|---|---|
+| La fenetre volante du tout premier lancement | `premiere-fois` | — | `PremiereFois.tsx`, tableau `ECARTS` |
+| Le bandeau rouge « Hermes ne sait pas qui tu es » | `bandeau-profil` | — | idem — **sans croix**, il ne part qu'en choisissant un profil |
+| L'encart et la bulle, dans Configuration > Memoire | `profils-memoire` | — | `ProfilsMemoire.tsx`, tableau `LECON` |
+| Une ligne de la bulle : un profil et son poids | `ligne-profil` | `--densite` | idem |
+
+Deux drapeaux, et leur separation EST le dispositif : la case « ne plus
+afficher » eteint `fenetreVue`, donc la fenetre. Seul un profil choisi pose
+`profilValide`, donc eteint le bandeau. Une case qui eteindrait les deux
+annulerait l'objectif - ceux qui la cochent sont ceux qu'on veut atteindre.
+
+Le profil **par defaut** ne figure pas dans la bulle : il EST le fichier
+installe, et le bouton « Version d'origine » le rend deja. L'y mettre en double
+obligerait le Hub a connaitre un texte que l'installateur possede.
+
 ### Le Studio
 
 | Ce que tu vois | Zone a grep | Molettes | Sinon |
@@ -140,6 +158,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `automatisations` | `src/components/Automatisations.tsx` |
 | `avertissement-convocation` | `src/components/Conversation.tsx` |
 | `banc-essai` | `src/components/BancEssai.tsx` |
+| `bandeau-profil` | `src/components/PremiereFois.tsx` |
 | `barre-saisie` | `src/components/Conversation.tsx` |
 | `boite-demande` | `src/pages/OrchestrationView.tsx` |
 | `brouillon-tache` | `src/pages/StudioView.tsx` |
@@ -164,6 +183,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `ligne-banc` | `src/components/BancEssai.tsx` |
 | `ligne-historique` | `src/pages/OrchestrationView.tsx` |
 | `ligne-outil` | `src/components/OutilsEquipe.tsx` |
+| `ligne-profil` | `src/components/ProfilsMemoire.tsx` |
 | `menu-lateral` | `src/components/Sidebar.tsx` |
 | `nav-orchestration` | `src/pages/OrchestrationView.tsx` |
 | `noeud-organigramme` | `src/components/Organigramme.tsx` |
@@ -176,6 +196,8 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `outils-equipe` | `src/components/OutilsEquipe.tsx` |
 | `palette-commandes` | `src/components/CommandPalette.tsx` |
 | `pastille-agent` | `src/components/Conversation.tsx` |
+| `premiere-fois` | `src/components/PremiereFois.tsx` |
+| `profils-memoire` | `src/components/ProfilsMemoire.tsx` |
 | `rangee-agents` | `src/components/Conversation.tsx` |
 | `studio` | `src/pages/StudioView.tsx` |
 | `trace-delegation` | `src/components/Conversation.tsx` |

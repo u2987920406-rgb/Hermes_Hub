@@ -10,9 +10,13 @@ import type {
   Comparaison,
   Competence,
   Compteurs,
+  Accueil,
   EtatAutomatisations,
   EtatOutils,
+  EtatProfils,
   PoseOutil,
+  Profil,
+  ProfilTexte,
   Decomposition,
   NoteRetour,
   VersionBanc,
@@ -217,6 +221,32 @@ export const api = {
     request<{ id: string; retire: boolean }>(`/orchestration/agent/${enc(id)}`, {
       method: 'DELETE',
     }),
+
+  // --- Les profils de memoire --------------------------------------------------
+  // Le profil par defaut n'est PAS dans cette liste : il est le fichier
+  // installe, et se recupere par « Version d'origine ». La bulle ne propose que
+  // ce qui en differe.
+  profils: (fichier: string) => request<EtatProfils>(`/memory/${enc(fichier)}/profils`),
+  lireProfil: (fichier: string, id: string) =>
+    request<ProfilTexte>(`/memory/${enc(fichier)}/profils/${enc(id)}`),
+  appliquerProfil: (fichier: string, id: string) =>
+    request<MemoryFile>(`/memory/${enc(fichier)}/profils/${enc(id)}/appliquer`, { method: 'POST' }),
+  enregistrerProfil: (fichier: string, nom?: string) =>
+    request<Profil>(`/memory/${enc(fichier)}/profils`, { method: 'POST', body: body({ nom }) }),
+  renommerProfil: (fichier: string, id: string, nom: string) =>
+    request<{ id: string; nom: string }>(`/memory/${enc(fichier)}/profils/${enc(id)}`, {
+      method: 'PATCH',
+      body: body({ nom }),
+    }),
+  supprimerProfil: (fichier: string, id: string) =>
+    request<{ id: string }>(`/memory/${enc(fichier)}/profils/${enc(id)}`, { method: 'DELETE' }),
+
+  // `fenetreVue` eteint le rappel du premier lancement ; `profilValide` eteint
+  // le bandeau. Deux drapeaux, parce que la case « ne plus afficher » ne doit
+  // pas eteindre les deux.
+  accueil: () => request<Accueil>('/accueil'),
+  noterAccueil: (patch: Partial<Accueil>) =>
+    request<Accueil>('/accueil', { method: 'POST', body: body(patch) }),
 
   // --- Les outils MCP ----------------------------------------------------------
   // Un branchement reconnecte le serveur une fois PAR AGENT : compter en

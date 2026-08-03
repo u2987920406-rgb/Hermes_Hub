@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { CommandPalette } from './components/CommandPalette'
 import { NewProjectModal } from './components/NewProjectModal'
+import { BandeauProfil, PremiereFois } from './components/PremiereFois'
 import { Sidebar } from './components/Sidebar'
 import { Toasts } from './components/Toasts'
+import { api } from './lib/api'
 import { useRoute } from './hooks/useRoute'
 import { CleanView } from './pages/CleanView'
 import { ConfigView } from './pages/ConfigView'
@@ -14,7 +16,7 @@ import { ProjectsView } from './pages/ProjectsView'
 import { TrashView } from './pages/TrashView'
 import { VaultView } from './pages/VaultView'
 import { useHubStore } from './store/useHubStore'
-import type { View } from './types'
+import type { Accueil, View } from './types'
 
 export default function App() {
   const { route, navigate } = useRoute()
@@ -26,9 +28,33 @@ export default function App() {
   const [newProject, setNewProject] = useState(false)
   const [recherche, setRecherche] = useState(false)
 
+  /**
+   * L'etat d'accueil vient du SERVEUR, pas du navigateur.
+   *
+   * Un `localStorage` se vide en changeant de navigateur ou en nettoyant ses
+   * donnees, et la fenetre reviendrait chez quelqu'un qui a deja tout rempli.
+   * `null` tant qu'on ne sait pas : sans ca, le bandeau clignoterait a chaque
+   * chargement avant la reponse.
+   */
+  const [accueil, setAccueil] = useState<Accueil | null>(null)
+  const [fenetre, setFenetre] = useState(false)
+
   useEffect(() => {
     void bootstrap()
   }, [bootstrap])
+
+  useEffect(() => {
+    api
+      .accueil()
+      .then((a) => {
+        setAccueil(a)
+        // La fenetre ne s'ouvre que si les DEUX manquent : quelqu'un qui a
+        // choisi son profil sans jamais voir la fenetre n'a plus rien a y
+        // apprendre.
+        if (!a.fenetreVue && !a.profilValide) setFenetre(true)
+      })
+      .catch(() => setAccueil(null))
+  }, [])
 
   // Ctrl+K (Cmd+K sur Mac) ouvre la recherche depuis n'importe quel ecran.
   useEffect(() => {
@@ -138,6 +164,12 @@ export default function App() {
             Le serveur du Hub ne repond pas. Ferme cette page et relance le raccourci Hermes Hub.
           </div>
         )}
+        {/* Sans croix, et il ne part qu'en allant choisir. La case « ne plus
+            afficher » de la fenetre n'eteint QUE la fenetre : ceux qui la
+            cochent sont exactement ceux qu'on veut atteindre. */}
+        {accueil && !accueil.profilValide && route.view !== 'config' && (
+          <BandeauProfil onAller={() => go('config')} />
+        )}
         {renderView()}
       </main>
 
@@ -147,6 +179,16 @@ export default function App() {
         <NewProjectModal
           onClose={() => setNewProject(false)}
           onCreated={(id) => go('project', id)}
+        />
+      )}
+
+      {fenetre && (
+        <PremiereFois
+          onFermer={() => setFenetre(false)}
+          onAller={() => {
+            setFenetre(false)
+            go('config')
+          }}
         />
       )}
 

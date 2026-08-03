@@ -409,6 +409,52 @@ export interface Compteurs {
  * sauvegardee avec le reste - pas dans une base propre au Hub.
  */
 /**
+ * Un profil de memoire, livre ou enregistre.
+ *
+ * `jetons` est une estimation, et elle est affichee : ces fichiers sont relus a
+ * CHAQUE demarrage de session. Sans un poids visible, on empile les regles et
+ * on retrouve la dilution - en pire, parce que cette fois l'utilisateur l'aura
+ * choisie sans le savoir.
+ */
+export interface Profil {
+  id: string
+  nom: string
+  resume: string
+  lignes: number
+  jetons: number
+}
+
+export interface EtatProfils {
+  fichier: string
+  /** Les niveaux livres. Vide pour USER.md et SOUL.md : on ne peut pas deviner
+      qui est quelqu'un, ni son gout pour le caractere de son agent. */
+  livres: Profil[]
+  miens: Profil[]
+  /** Le poids du fichier tel qu'il est maintenant. */
+  actuel: { lignes: number; jetons: number }
+}
+
+export interface ProfilTexte {
+  id: string
+  contenu: string
+  lignes: number
+  jetons: number
+}
+
+/**
+ * Ce que le poste retient de la premiere visite.
+ *
+ * Deux drapeaux, et leur separation est tout le dispositif : la case « ne plus
+ * afficher » eteint `fenetreVue`, donc le rappel. Seul un choix de profil pose
+ * `profilValide`, donc eteint le bandeau. Une case qui eteindrait les deux
+ * annulerait l'objectif - ceux qui la cochent sont ceux qu'on veut atteindre.
+ */
+export interface Accueil {
+  fenetreVue: boolean
+  profilValide: boolean
+}
+
+/**
  * Un outil MCP et qui le possede.
  *
  * `manque` est le champ qui travaille. Les serveurs MCP sont par profil - mesure
