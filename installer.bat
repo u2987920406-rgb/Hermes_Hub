@@ -388,6 +388,17 @@ if exist "%INSTALLER_DIR%fix-hermes.bat" (
     copy /y "%INSTALLER_DIR%fix-hermes.bat" "%WORKSPACE%\Depannage\" >nul 2>&1
     set "DEP_OK=1"
 )
+REM Le controle d'installation part avec eux, et pour la meme raison : la
+REM trousse de livraison finit a la corbeille, et c'est le jour ou quelque
+REM chose cloche qu'on voudrait pouvoir verifier.
+if exist "%INSTALLER_DIR%verif\verifier-installation.py" (
+    mkdir "%WORKSPACE%\Depannage\verif" 2>nul
+    copy /y "%INSTALLER_DIR%verif\verifier-installation.py" "%WORKSPACE%\Depannage\verif\" >nul 2>&1
+    if exist "%INSTALLER_DIR%VERIFIER-INSTALLATION.md" (
+        copy /y "%INSTALLER_DIR%VERIFIER-INSTALLATION.md" "%WORKSPACE%\Depannage\" >nul 2>&1
+    )
+    set "DEP_OK=1"
+)
 (
 echo Deux scripts a garder sous la main.
 echo.
@@ -535,6 +546,11 @@ if /i "%PROFIL_RAF%"=="o" (
 ) else (
     echo   Regles non installees ^(profil pre-rempli refuse^).
 )
+
+REM La memoire durable ne se refuse pas avec les regles : ses scripts sont
+REM poses dans tous les cas, donc son mode d'emploi aussi. Sinon un client qui
+REM refuse le profil pre-rempli recoit les scripts sans savoir qu'ils existent.
+call :write_memory_durable
 
 REM -- Script nouveau projet PowerShell
 call :write_nouveau_projet_ps1 "%WORKSPACE%\Nouveau-Projet.ps1"
@@ -804,6 +820,27 @@ echo - Au demarrage d'un projet: demander si j'ai deja un plan
 echo   - si oui, le peaufiner ensemble
 echo   - si non, me guider par questions
 echo - Valider le plan avec moi avant d'ecrire plan.md
+) > "!HERMES_HOME!\memories\MEMORY.md"
+goto :eof
+
+REM -----------------------------------------------------------------------------
+REM :write_memory_durable - le mode d'emploi de l'archive qui survit a state.db
+REM -----------------------------------------------------------------------------
+REM Separe de :write_memory_rules, et ce n'est pas un detail d'organisation.
+REM Les regles de travail sont un GOUT - elles vivent derriere la question
+REM « utiliser le profil pre-rempli ? », et un client peut les refuser. La
+REM memoire durable n'est pas un gout : ses scripts sont installes dans tous les
+REM cas, donc son mode d'emploi doit l'etre aussi. Melangees, un client
+REM repondant « n » recevait les scripts sans jamais savoir qu'ils existent.
+REM
+REM Ecrit en ajout : si les regles ont ete posees, on complete leur fichier ;
+REM sinon on cree le notre avec son titre.
+:write_memory_durable
+mkdir "!HERMES_HOME!\memories" 2>nul
+if not exist "!HERMES_HOME!\memories\MEMORY.md" (
+    > "!HERMES_HOME!\memories\MEMORY.md" echo # Memoire
+)
+(
 echo.
 echo ## MEMOIRE DURABLE
 echo.
@@ -820,13 +857,16 @@ echo - Un nouveau grand sujet : copier memoire/TEMPLATE-JOURNAL-THEMATIQUE.md
 echo   en Journal-^<Sujet^>.md, et ajouter ICI une ligne - une seule.
 echo - Anti-doublon : une session deja couverte par un journal va dans
 echo   Resumes-Sessions/exclusions.json, sinon elle sera resumee deux fois.
+REM Pas de ^ sur le chevron entre guillemets : les guillemets protegent deja de
+REM la redirection, et le ^ s'y ecrit alors tel quel. Sorti « "^<nom^>" » a
+REM l'essai du 03/08/2026.
 echo - Pont Vault, a la demande : python scripts/nourrir-vault.py --projet
-echo   "^<nom^>". Voir PARAMETRES-DECLENCHEUR.md pour le mode automatique, qui
+echo   "<nom>". Voir PARAMETRES-DECLENCHEUR.md pour le mode automatique, qui
 echo   n'est PAS actif par defaut.
 echo.
 echo _MEMOIRE THEMATIQUE - une ligne par sujet, a remplir au fil du temps :_
 echo.
-) > "!HERMES_HOME!\memories\MEMORY.md"
+) >> "!HERMES_HOME!\memories\MEMORY.md"
 REM Copie de reference : c'est elle que le bouton "Version d'origine" du Hub
 REM restaure. Le Hub ne connait ainsi aucun texte par defaut.
 copy /y "!HERMES_HOME!\memories\MEMORY.md" "!HERMES_HOME!\memories\MEMORY.default.md" >nul 2>&1
