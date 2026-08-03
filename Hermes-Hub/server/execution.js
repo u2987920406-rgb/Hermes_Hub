@@ -441,8 +441,14 @@ function dossierDuPole(pole) {
  *     pas branche ici, et c'est voulu : une mention ouvrirait une chaine
  *     parallele hors du graphe, que le tableau ne verrait jamais. Autant le
  *     dire, plutot que de laisser l'agent ecrire dans le vide ;
- *   - le dossier courant. L'agent a `write_file` et `terminal` ; il faut qu'il
- *     sache ou poser ce qu'il produit ;
+ *   - le dossier de depot. L'agent a `write_file` et `terminal` ; il faut qu'il
+ *     sache ou poser ce qu'il produit. La ligne disait « ecris dans le dossier
+ *     courant » et ne suffisait pas : le 03/08/2026, une tache dont l'enonce
+ *     portait un chemin absolu vers ses donnees d'entree a vu Sofia deposer son
+ *     analyse **a cote de sa source**, hors du pole. Le travail etait bon - 2,5
+ *     ko de chiffres justes - et la tache a ete bloquee pour livrable
+ *     introuvable. Un chemin absolu dans le corps pese plus lourd qu'une notion
+ *     de « dossier courant », alors la consigne nomme maintenant le piege ;
  *   - le shell est PowerShell. Sans ce mot, le modele ecrit `ls -la`, que
  *     PowerShell lit comme `Get-ChildItem -LiteralPath <valeur manquante>` et
  *     pour quoi il **attend une saisie au clavier**. Personne n'est devant le
@@ -462,7 +468,10 @@ function consigne(dossier) {
     "- N'appelle personne par une mention : les autres agents ont deja leurs",
     '  propres taches sur ce meme pole, et une mention partie d ici ne reveille',
     '  personne.',
-    `- Ecris tes fichiers dans le dossier courant : ${dossier}`,
+    `- Tes livrables vont dans ce dossier, et nulle part ailleurs : ${dossier}`,
+    '  Cela vaut meme si la tache te donne un chemin absolu vers un fichier a',
+    '  LIRE : tu lis la-bas, tu ecris ici. Ecrire ton resultat a cote de ta',
+    '  source le rend introuvable, et ta tache sera comptee comme non faite.',
     '- Le terminal est PowerShell sur Windows. Pas de commandes Unix : ni `ls`,',
     '  ni `cat`, ni `grep`, ni `touch`. Une commande Unix ne rend pas une erreur',
     "  ici, elle attend une saisie au clavier que personne ne fera - et ton tour",
