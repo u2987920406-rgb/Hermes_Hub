@@ -5,9 +5,11 @@
 import type {
   Agent,
   AppConfig,
+  Automatisation,
   Chantier,
   Comparaison,
   Compteurs,
+  EtatAutomatisations,
   Decomposition,
   NoteRetour,
   VersionBanc,
@@ -194,6 +196,20 @@ export const api = {
   // l'une annonce, l'autre constate, et on ne les affiche pas au meme endroit.
   compteurs: (pole: string) =>
     request<Compteurs>(`/orchestration/compteurs?pole=${enc(pole)}`),
+
+  // --- Les automatisations -----------------------------------------------------
+  // Le Hub ne planifie rien lui-meme : il lit et ecrit celles d'Hermes, seul
+  // capable de les declencher quand le Hub est ferme.
+  automatisations: () => request<EtatAutomatisations>('/automatisations'),
+  creerAutomatisation: (a: { quand: string; demande: string; nom?: string; dossier?: string }) =>
+    request<{ id: string; creee: boolean }>('/automatisations', { method: 'POST', body: body(a) }),
+  retirerAutomatisation: (id: string) =>
+    request<{ id: string; retiree: boolean }>(`/automatisations/${enc(id)}`, { method: 'DELETE' }),
+  suspendreAutomatisation: (id: string, suspendue: boolean) =>
+    request<{ id: string; suspendue: boolean }>(`/automatisations/${enc(id)}`, {
+      method: 'PATCH',
+      body: body({ suspendue }),
+    }),
 
   // --- Le banc d'essai ---------------------------------------------------------
   // Aucun de ces appels ne photographie : c'est `simulation` qui le fait, et

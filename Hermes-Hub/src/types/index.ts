@@ -402,6 +402,37 @@ export interface Compteurs {
   bascules: number
 }
 
+/**
+ * Une tache programmee, telle qu'Hermes la garde.
+ *
+ * Le Hub n'en tient aucune : il lit celles du planificateur d'Hermes, seul
+ * capable de les declencher quand le Hub est ferme.
+ */
+export interface Automatisation {
+  id: string
+  nom: string
+  demande: string
+  /** « tous les jours a 9h », ou l'expression brute si Hermes n'a pas mieux. */
+  quand: string
+  actif: boolean
+  suspendue: boolean
+  prochaine: string | null
+  derniere: string | null
+  resultat: string | null
+  erreur: string | null
+  dossier: string | null
+  modele: string | null
+}
+
+export interface EtatAutomatisations {
+  automatisations: Automatisation[]
+  /** `null` quand on n'a pas su lire la reponse : ne jamais lire ca « tout va
+      bien », d'ou le tri-etat plutot qu'un booleen. */
+  passerelle: boolean | null
+  /** Des taches actives, et rien pour les declencher. Le seul cas a crier. */
+  muettes: boolean
+}
+
 // -----------------------------------------------------------------------------
 // L'execution
 // -----------------------------------------------------------------------------

@@ -75,6 +75,17 @@ pour le nommer quand on veut demander une modification.
 | Le banc d'essai, en bas de la simulation | `banc-essai` | — | `BancEssai.tsx` |
 | Une ligne du banc : un essai et sa mesure | `ligne-banc` | `--densite` | idem, c'est un `.rang` |
 
+### L'accueil
+
+| Ce que tu vois | Zone a grep | Molettes | Sinon |
+|---|---|---|---|
+| « Automatisations en cours », sous les compteurs | `automatisations` | — | `Automatisations.tsx` |
+| Le bandeau ambre « elles ne partiront pas » | — | — | idem : il ne parait QUE si des taches actives existent sans passerelle |
+| Une ligne d'automatisation, suspendue ou non | — | — | idem, attribut `data-suspendue` |
+
+La section entiere s'efface quand il n'y a rien a dire - ni tache programmee,
+ni alerte. Un accueil ne porte pas de rubrique vide.
+
 ### Le Studio
 
 | Ce que tu vois | Zone a grep | Molettes | Sinon |
@@ -121,6 +132,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 |---|---|
 | `accords-orchestration` | `src/pages/OrchestrationView.tsx` |
 | `agents-au-travail` | `src/components/Conversation.tsx` |
+| `automatisations` | `src/components/Automatisations.tsx` |
 | `avertissement-convocation` | `src/components/Conversation.tsx` |
 | `banc-essai` | `src/components/BancEssai.tsx` |
 | `barre-saisie` | `src/components/Conversation.tsx` |

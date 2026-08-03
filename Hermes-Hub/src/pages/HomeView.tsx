@@ -8,6 +8,7 @@ import {
   Sparkles,
   Sun,
 } from 'lucide-react'
+import { Automatisations } from '../components/Automatisations'
 import { PageHeader } from '../components/PageHeader'
 import { useHubStore } from '../store/useHubStore'
 import type { Theme, View } from '../types'
@@ -122,6 +123,11 @@ export function HomeView({ onNavigate, onMenu }: Props) {
               </div>
             ))}
           </div>
+
+          {/* Ce qui tournera sans toi, avant ce que tu as fait toi-meme : une
+              automatisation en echec doit se voir en ouvrant le Hub, pas se
+              chercher. La section s'efface d'elle-meme s'il n'y a rien a dire. */}
+          <Automatisations />
 
           <section>
             <div className="mb-3 flex items-center justify-between">

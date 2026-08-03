@@ -253,6 +253,20 @@ echo.
 set /p PROFIL_RAF="  Utiliser le profil pre-rempli (regles deja configurees) ? (o/n): "
 echo.
 
+REM -- La passerelle : sans elle, aucune tache programmee ne part jamais.
+REM
+REM On pose la question au lieu d'installer d'office : c'est un service qui
+REM tourne en fond, et rien ne doit demarrer tout seul sur une machine qu'on
+REM decouvre. Mais on dit ce qu'il en coute de refuser, parce que le piege est
+REM silencieux - sans passerelle, `hermes cron create` reussit, la tache
+REM s'affiche, sa prochaine echeance est calculee, et rien ne se declenche.
+REM Le Hub le signale desormais dans sa zone Automatisations ; autant ne pas
+REM avoir a le signaler.
+echo   Les automatisations - « tous les jours a 9h, fais ceci » - demandent un
+echo   petit service en fond. Sans lui, elles s'affichent mais ne partent jamais.
+set /p PASSERELLE="  Installer ce service maintenant ? (o/n): "
+echo.
+
 REM Le texte des regles vit dans :write_memory_rules, qui l'ecrit dans la
 REM memoire d'Hermes. Il etait auparavant stocke ici dans une variable que
 REM personne ne lisait : la question ci-dessus restait donc sans effet.
@@ -497,6 +511,26 @@ hermes profile create c-metteur --clone-from default --description "Mise en page
 
 echo   OK - trois roles crees : A (Alphonse), B (Beatrice), C (Camille).
 echo        Renomme-les avec "hermes profile rename".
+
+REM == Etape 10 ter: la passerelle, si elle a ete acceptee ==
+if /i "%PASSERELLE%"=="o" (
+    echo.
+    echo [10 ter] Installation du service d'automatisation...
+    hermes gateway install >nul 2>&1
+    hermes cron status >nul 2>&1
+    if errorlevel 1 (
+        echo   Le service n'a pas pu etre installe. Les automatisations
+        echo   s'afficheront dans le Hub sans se declencher. Pour reessayer :
+        echo     hermes gateway install
+    ) else (
+        echo   OK - les taches programmees se declencheront, Hub ferme.
+    )
+) else (
+    echo.
+    echo   Service d'automatisation non installe. Les taches programmees
+    echo   s'afficheront sans partir. Pour l'activer plus tard :
+    echo     hermes gateway install
+)
 
 REM == Etape 11: SOUL.md + scripts + memoire ==
 echo.

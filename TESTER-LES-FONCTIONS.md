@@ -245,6 +245,34 @@ Sur un poste neuf sans projet, il doit dire *« Aucun dossier Projets […] : ri
 
 ---
 
+## 11. Les automatisations
+
+**Nouveau.** Le Hub ne tient aucune horloge : il montre celle d'Hermès, seule
+capable de partir quand le Hub est fermé.
+
+- [ ] L'accueil ne montre **rien** si tu n'as rien programmé. C'est voulu.
+- [ ] Pose-en une depuis un terminal :
+
+```
+hermes cron create "0 9 * * *" "Résume les nouveautés du jour" --name essai
+```
+
+- [ ] Recharge l'accueil → une zone **Automatisations en cours** apparaît, avec
+      son horaire et « dans N h ».
+- [ ] Si tu as **refusé** le service à l'installation, un bandeau ambre dit
+      *« Ces automatisations ne partiront pas »* et donne la commande.
+      **Si tu l'as accepté, ce bandeau ne doit PAS apparaître.**
+- [ ] Bouton **pause** → elle passe en « suspendue », et le bandeau disparaît
+      s'il n'en reste aucune active.
+- [ ] Bouton **corbeille** → elle disparaît.
+
+C'est le piège que cette zone existe pour fermer : sans le service, `cron
+create` réussit, la tâche s'affiche, son échéance est calculée — et rien ne
+part jamais. Une automatisation qu'on croit posée est pire que pas
+d'automatisation : on compte dessus.
+
+---
+
 ## Ce que je veux savoir en retour
 
 Par ordre d'utilité :
