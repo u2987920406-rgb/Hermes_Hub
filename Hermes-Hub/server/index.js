@@ -1710,7 +1710,7 @@ async function handleApi(req, res, url) {
       // mauvais echange pour un confort, et la frontiere tient depuis le
       // debut.
       if (body.pole) {
-        const p = lireOrchestration().poles.find((x) => x.id === body.pole)
+        const p = (await lireOrchestration()).poles.find((x) => x.id === body.pole)
         const l = p && livrableDuPole(p)
         if (!l) {
           const err = new Error("Ce pole n'a pas encore de dossier : il n'a jamais tourne.")
