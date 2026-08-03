@@ -414,6 +414,9 @@ if exist "%INSTALLER_DIR%verif\verifier-installation.py" (
     if exist "%INSTALLER_DIR%TESTER-LES-FONCTIONS.md" (
         copy /y "%INSTALLER_DIR%TESTER-LES-FONCTIONS.md" "%WORKSPACE%\Depannage\" >nul 2>&1
     )
+    if exist "%INSTALLER_DIR%CONSIGNE-TESTEUR.md" (
+        copy /y "%INSTALLER_DIR%CONSIGNE-TESTEUR.md" "%WORKSPACE%\Depannage\" >nul 2>&1
+    )
     set "DEP_OK=1"
 )
 (
