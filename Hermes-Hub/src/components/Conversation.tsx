@@ -27,7 +27,9 @@ import {
   Search,
   Send,
   Square,
+  Users,
   Wrench,
+  X,
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
@@ -69,6 +71,10 @@ export function Conversation({
 }: Props) {
   const [tours, setTours] = useState<Tour[]>([])
   const [saisie, setSaisie] = useState('')
+  /** Les destinataires choisis a la pastille. Le texte tape reste souverain :
+      ceux-ci ne le rejoignent qu'a l'envoi, et jamais en double. */
+  const [vises, setVises] = useState<string[]>([])
+  const [groupesVises, setGroupesVises] = useState<string[]>([])
   const [envoi, setEnvoi] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
   const [eveilles, setEveilles] = useState<Set<string>>(() => new Set())
@@ -351,13 +357,15 @@ export function Conversation({
 
   // --- actions ---------------------------------------------------------------
   const envoyer = async () => {
-    const texte = saisie.trim()
-    if (!texte || envoi) return
+    const texte = composer()
+    if (!saisie.trim() || envoi) return
     setEnvoi(true)
     setErreur(null)
     try {
       await api.chatEnvoyer(texte)
       setSaisie('')
+      setVises([])
+      setGroupesVises([])
     } catch (e) {
       setErreur(e instanceof Error ? e.message : String(e))
     } finally {
@@ -366,9 +374,27 @@ export function Conversation({
     }
   }
 
+  /**
+   * Choisir un destinataire ne touche plus au texte.
+   *
+   * Chaque agent choisi se posait DEVANT le message - `@${nom} ${s}` - et
+   * chacun passait devant le precedent, donc l'ordre s'inversait en plus. Trois
+   * agents et la phrase etait repoussee au bout d'une ligne de noms. kuchu, le
+   * 03/08/2026 : « on voit les prenoms et les noms, plus notre message, c'est
+   * brouillon. Une pastille de couleur, ca aurait ete bien. On est en France, on
+   * ecrit de gauche a droite. »
+   *
+   * Le champ ne porte donc que ce qu'on ecrit ; les destinataires vivent a cote,
+   * en pastilles, et ne rejoignent le texte qu'a l'envoi. Ce qui compte se lit
+   * en premier.
+   *
+   * TAPER `@sofia` A LA MAIN CONTINUE DE MARCHER, et c'est ce qui evite deux
+   * sources pour une meme chose : les pastilles ne font qu'AJOUTER au texte, et
+   * une mention deja ecrite n'est pas doublee. Le texte reste la verite.
+   */
   const mentionner = (a: Agent) => {
     const nom = a.id === 'default' ? 'hermes' : a.id
-    setSaisie((s) => (s.includes('@' + nom) ? s : `@${nom} ${s}`.trimStart()))
+    setVises((v) => (v.includes(nom) ? v.filter((x) => x !== nom) : [...v, nom]))
     // La recherche se vide des qu'elle a servi : la garder ouverte laisserait
     // la barre filtree sur un mot dont on ne se souvient plus.
     setRecherche('')
@@ -377,8 +403,27 @@ export function Conversation({
 
   /** Appeler une equipe entiere : une seule mention, tout le monde se reveille. */
   const mentionnerEquipe = (e: Equipe) => {
-    setSaisie((s) => (s.includes(`@equipe ${e.nom}`) ? s : `@equipe ${e.nom} ${s}`.trimStart()))
+    setGroupesVises((g) => (g.includes(e.nom) ? g.filter((x) => x !== e.nom) : [...g, e.nom]))
     champ.current?.focus()
+  }
+
+  /**
+   * Le texte reellement envoye.
+   *
+   * Les mentions vont APRES le message : `lireMentions` les retire avant de
+   * servir l'agent, donc leur place ne change rien a ce qu'il recoit - mais elle
+   * change tout a ce qu'on relit dans le fil. Et un `@equipe Nom` pose en
+   * dernier ne peut plus avaler les mots qui le suivent, puisqu'il n'y en a
+   * plus.
+   */
+  const composer = () => {
+    const dejaEcrites = (m: string) => saisie.toLowerCase().includes(`@${m.toLowerCase()}`)
+    const bouts = [
+      saisie.trim(),
+      ...vises.filter((v) => !dejaEcrites(v)).map((v) => `@${v}`),
+      ...groupesVises.filter((g) => !dejaEcrites(`equipe ${g}`)).map((g) => `@equipe ${g}`),
+    ]
+    return bouts.filter(Boolean).join(' ')
   }
 
   /** Relire une conversation : on rejoue ses evenements, on ne recharge pas la
@@ -676,6 +721,46 @@ export function Conversation({
               placeholder="Ecris a ton equipe. @nom pour appeler quelqu un."
               className="input max-h-40 min-h-[42px] flex-1 resize-y py-2.5"
             />
+
+            {/* Les destinataires, A DROITE du champ - donc apres le message
+                dans le sens de lecture. Une couleur et un nom court : on
+                reconnait qui on appelle sans le relire. La croix retire, parce
+                qu'un choix qu'on ne peut pas defaire n'est pas un choix. */}
+            {(vises.length > 0 || groupesVises.length > 0) && (
+              <div
+                data-zone="destinataires"
+                className="flex max-w-[45%] flex-wrap items-center justify-end gap-1 pb-1"
+              >
+                {vises.map((v) => {
+                  const a = agents.find((x) => x.id === v || (v === 'hermes' && x.id === 'default'))
+                  return (
+                    <button
+                      key={v}
+                      onClick={() => setVises((l) => l.filter((x) => x !== v))}
+                      style={{ ['--agent' as string]: `var(--jeton-${a?.couleur || 'ardoise'})` }}
+                      className="flex items-center gap-1 rounded-full border border-slate-200 py-0.5 pl-1.5 pr-1 text-[10px] hover:bg-slate-50 dark:border-navy-700 dark:hover:bg-navy-800"
+                      title={`Retirer ${a?.nom || v}`}
+                    >
+                      <span className="point-agent flex-none" />
+                      <span className="max-w-[7rem] truncate">{a?.nom || v}</span>
+                      <X className="h-2.5 w-2.5 flex-none opacity-50" />
+                    </button>
+                  )
+                })}
+                {groupesVises.map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => setGroupesVises((l) => l.filter((x) => x !== g))}
+                    className="flex items-center gap-1 rounded-full border border-sky-300 bg-sky-50/60 py-0.5 pl-1.5 pr-1 text-[10px] dark:border-sky-500/40 dark:bg-sky-500/10"
+                    title={`Retirer l equipe ${g}`}
+                  >
+                    <Users className="h-2.5 w-2.5 flex-none" />
+                    <span className="max-w-[7rem] truncate">{g}</span>
+                    <X className="h-2.5 w-2.5 flex-none opacity-50" />
+                  </button>
+                ))}
+              </div>
+            )}
             {enCours ? (
               <button
                 onClick={() => void api.chatInterrompre().catch(() => null)}

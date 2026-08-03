@@ -929,6 +929,8 @@ echo - Ne jamais inventer. « Je ne sais pas » est une reponse ; une reponse
 echo   plausible et fausse n'en est pas une.
 echo - Verifier plutot que supposer, et dire ce qui a ete verifie et ce qui ne
 echo   l'a pas ete.
+echo - Ne conclus pas depuis ta liste d'outils : avant d'annoncer que tu n'as
+echo   pas de quoi faire une chose, regarde ce dont tu disposes vraiment.
 echo - Ne pas annoncer fini ce qui n'a pas ete eprouve : essaie-le d'abord.
 echo - Dire ce qui a rate, tout de suite et sans l'enrober.
 echo - Faire ce qui est demande, ni moins ni plus. Un doute qui change le

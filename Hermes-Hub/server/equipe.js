@@ -360,6 +360,108 @@ export function ecrireEquipes(equipes) {
   return lireEquipes()
 }
 
+/**
+ * Creer, renommer, dissoudre.
+ *
+ * POURQUOI CES TROIS N'EXISTAIENT PAS. `lireEquipes` et `ecrireEquipes` sont la
+ * depuis le debut ; la seconde n'etait appelee de NULLE PART. L'ecran affichait
+ * donc des equipes que personne ne pouvait fabriquer, changer ni jeter - le seul
+ * moyen d'en creer une etait d'editer `.hub/equipes.json` a la main. Mesure le
+ * 03/08/2026 : aucune route, aucun appel. kuchu : « on voit juste les equipes,
+ * on ne peut meme pas parametrer, donc on peut l'enlever ».
+ *
+ * On ne l'enleve pas : `@NomDEquipe` REVEILLE le groupe en conversation, et
+ * c'est le seul moyen d'appeler cinq agents sans taper cinq noms. Ce n'est pas
+ * la fonctionnalite qui manquait, c'est la porte.
+ *
+ * Le nom est la cle : c'est lui qu'on tape apres l'arobase. Deux equipes de meme
+ * nom rendraient une mention ambigue, et le Hub choisirait pour toi - donc on
+ * refuse.
+ */
+function identifiant(nom) {
+  return String(nom).trim().toLowerCase().replace(/\s+/g, '-')
+}
+
+function exigerNom(nom, equipes, saufId = null) {
+  const n = String(nom || '').trim()
+  if (n.length < 2 || n.length > 40) {
+    const err = new Error("Le nom d'une equipe tient entre 2 et 40 caracteres.")
+    err.status = 400
+    throw err
+  }
+  // L'arobase et les espaces multiples casseraient la lecture des mentions.
+  if (/[@\n\r]/.test(n)) {
+    const err = new Error("Le nom d'une equipe ne peut pas contenir d'arobase.")
+    err.status = 400
+    throw err
+  }
+  if (equipes.some((e) => e.id !== saufId && identifiant(e.nom) === identifiant(n))) {
+    const err = new Error(`Une equipe s'appelle deja « ${n} ». Les mentions seraient ambigues.`)
+    err.status = 409
+    throw err
+  }
+  return n
+}
+
+/** Des membres qui existent vraiment, sans doublon, dans l'ordre donne. */
+function exigerMembres(membres) {
+  const existants = new Set(listerAgents().map((a) => a.id))
+  const vus = new Set()
+  const propres = (Array.isArray(membres) ? membres : [])
+    .map((m) => String(m))
+    .filter((m) => existants.has(m) && !vus.has(m) && vus.add(m))
+  if (propres.length === 0) {
+    const err = new Error('Une equipe sans membre n-appellerait personne : choisis au moins un agent.')
+    err.status = 400
+    throw err
+  }
+  return propres
+}
+
+export function creerEquipe({ nom, membres, couleur }) {
+  const brut = readJson(FICHIER_EQUIPES, null)
+  const liste = Array.isArray(brut) ? brut : []
+  const courantes = lireEquipes()
+  const n = exigerNom(nom, courantes)
+  const m = exigerMembres(membres)
+  liste.push({ id: identifiant(n), nom: n, couleur: couleur || 'ciel', membres: m })
+  ecrireEquipes(liste)
+  return lireEquipes().find((e) => e.id === identifiant(n))
+}
+
+export function modifierEquipe(id, { nom, membres, couleur }) {
+  const brut = readJson(FICHIER_EQUIPES, null)
+  const liste = Array.isArray(brut) ? brut : []
+  const courantes = lireEquipes()
+  const i = liste.findIndex((e) => identifiant(e.id || e.nom) === id)
+  if (i < 0) {
+    const err = new Error('Equipe inconnue')
+    err.status = 404
+    throw err
+  }
+  const n = nom === undefined ? liste[i].nom : exigerNom(nom, courantes, id)
+  const m = membres === undefined ? liste[i].membres : exigerMembres(membres)
+  liste[i] = { ...liste[i], id: identifiant(n), nom: n, membres: m, couleur: couleur || liste[i].couleur }
+  ecrireEquipes(liste)
+  return lireEquipes().find((e) => e.id === identifiant(n))
+}
+
+export function dissoudreEquipe(id) {
+  const brut = readJson(FICHIER_EQUIPES, null)
+  const liste = Array.isArray(brut) ? brut : []
+  const restantes = liste.filter((e) => identifiant(e.id || e.nom) !== id)
+  if (restantes.length === liste.length) {
+    const err = new Error('Equipe inconnue')
+    err.status = 404
+    throw err
+  }
+  // Dissoudre ne touche AUCUN agent : une equipe n'est qu'un nom pose sur des
+  // profils qui existent par eux-memes. C'est ce qui rend le geste sans danger,
+  // et ce qui doit se lire a l'ecran avant de cliquer.
+  ecrireEquipes(restantes)
+  return { id, dissoute: true }
+}
+
 // -----------------------------------------------------------------------------
 // Le tableau
 // -----------------------------------------------------------------------------

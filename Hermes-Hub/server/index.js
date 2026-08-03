@@ -14,7 +14,13 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { lireOrchestration, listerAgents } from './equipe.js'
+import {
+  creerEquipe,
+  dissoudreEquipe,
+  lireOrchestration,
+  listerAgents,
+  modifierEquipe,
+} from './equipe.js'
 import { Equipage, lireMentions, resoudre } from './equipage.js'
 import {
   arreter as arreterChantier,
@@ -1826,6 +1832,25 @@ async function handleApi(req, res, url) {
      * l'appelle depuis le Studio, c'est-a-dire depuis la page du pole - la ou
      * l'on va justement chercher ses resultats.
      */
+    /**
+     * Les equipes : creer, renommer, changer les membres, dissoudre.
+     *
+     * Elles s'affichaient depuis le debut et ne s'ecrivaient par aucune route.
+     * La liste elle-meme n'a pas la sienne : elle voyage deja dans
+     * `lireOrchestration`, et deux chemins pour une meme lecture divergent.
+     */
+    if (rest[1] === 'equipe') {
+      if (!rest[2] && method === 'POST') {
+        return sendJson(res, 201, creerEquipe(await readBody(req)))
+      }
+      if (rest[2] && method === 'PATCH') {
+        return sendJson(res, 200, modifierEquipe(decodeURIComponent(rest[2]), await readBody(req)))
+      }
+      if (rest[2] && method === 'DELETE') {
+        return sendJson(res, 200, dissoudreEquipe(decodeURIComponent(rest[2])))
+      }
+    }
+
     if (rest[1] === 'pole' && rest[2] && rest[3] === 'livrable' && method === 'GET') {
       const id = decodeURIComponent(rest[2])
       const p = (await lireOrchestration()).poles.find((x) => x.id === id)

@@ -29,6 +29,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Attente } from '../components/Attente'
 import { Conversation } from '../components/Conversation'
+import { EditeurEquipe } from '../components/EditeurEquipe'
 import { FenetreSimulation } from '../components/FenetreSimulation'
 import { Modal } from '../components/Modal'
 import { Organigramme } from '../components/Organigramme'
@@ -171,6 +172,11 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
    * un instant qui est deja passe.
    */
   const [vivant, setVivant] = useState<Map<string, EtatNoeud>>(new Map())
+
+  /** L'editeur d'equipe : neuve, ou posee sur une existante. Null = ferme. */
+  const [edition, setEdition] = useState<
+    { genre: 'neuve' } | { genre: 'existante'; id: string } | null
+  >(null)
 
   /** La conversation a rouvrir : posee par l'historique, consommee par le
       volet Conversation. Null = le direct. */
@@ -591,7 +597,36 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
                     <Entete
                       titre={`${equipes.length} equipe${equipes.length > 1 ? 's' : ''}`}
                       detail="Des agents qu on appelle ensemble - une equipe ne fait rien toute seule"
+                      action={
+                        !edition && (
+                          <button
+                            className="btn-ghost px-3 py-1.5 text-xs"
+                            onClick={() => setEdition({ genre: 'neuve' })}
+                          >
+                            Composer une equipe
+                          </button>
+                        )
+                      }
                     />
+
+                    {edition && (
+                      <div className="mb-3">
+                        <EditeurEquipe
+                          agents={agents}
+                          equipe={
+                            edition.genre === 'existante'
+                              ? equipes.find((e) => e.id === edition.id)
+                              : undefined
+                          }
+                          onFini={() => {
+                            setEdition(null)
+                            void charger()
+                          }}
+                          onAnnuler={() => setEdition(null)}
+                        />
+                      </div>
+                    )}
+
                     {equipes.length > 0 ? (
                       <div className="grid gap-3 sm:grid-cols-2">
                         {equipes.map((e) => (
@@ -601,15 +636,22 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
                             agents={e.membres
                               .map((m) => agents.find((a) => a.id === m))
                               .filter((a): a is Agent => !!a)}
-                            onOuvrir={() => setOuvert({ genre: 'equipe-nommee', id: e.id })}
+                            // Ouvrir une equipe, c'est vouloir la CHANGER. Voir
+                            // sa composition ne menait a rien qu'on puisse
+                            // faire - c'est ce qui la faisait passer pour un
+                            // ornement. L'organigramme reste accessible depuis
+                            // les agents, ou il decrit tout le monde.
+                            onOuvrir={() => setEdition({ genre: 'existante', id: e.id })}
                           />
                         ))}
                       </div>
                     ) : (
-                      <p className="text-[11px] muted">
-                        Aucune equipe. Elles servent a appeler plusieurs agents d un seul nom dans
-                        la conversation - un confort, pas un passage oblige.
-                      </p>
+                      !edition && (
+                        <p className="text-[11px] muted">
+                          Aucune equipe. Elles servent a appeler plusieurs agents d un seul nom
+                          dans la conversation - un confort, pas un passage oblige.
+                        </p>
+                      )
                     )}
                   </div>
 

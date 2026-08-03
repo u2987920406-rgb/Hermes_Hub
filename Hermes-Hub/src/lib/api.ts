@@ -7,6 +7,7 @@ import type {
   Agent,
   AppConfig,
   Automatisation,
+  Equipe,
   Livrable,
   Chantier,
   Comparaison,
@@ -92,6 +93,16 @@ export const api = {
   /** Ce qu'un pole a ecrit, et ou. `dossier` a null : il n'a jamais tourne. */
   livrablePole: (id: string) =>
     request<Livrable>(`/orchestration/pole/${enc(id)}/livrable`),
+
+  // Les equipes. Pas de lecture ici : elles voyagent avec `orchestration()`.
+  creerEquipe: (input: { nom: string; membres: string[]; couleur?: string }) =>
+    request<Equipe>('/orchestration/equipe', { method: 'POST', body: body(input) }),
+  modifierEquipe: (id: string, patch: { nom?: string; membres?: string[]; couleur?: string }) =>
+    request<Equipe>(`/orchestration/equipe/${enc(id)}`, { method: 'PATCH', body: body(patch) }),
+  dissoudreEquipe: (id: string) =>
+    request<{ id: string; dissoute: boolean }>(`/orchestration/equipe/${enc(id)}`, {
+      method: 'DELETE',
+    }),
 
   readMemory: (file: string) => request<MemoryFile>(`/memory/${enc(file)}`),
   writeMemory: (file: string, content: string, stamp: string) =>

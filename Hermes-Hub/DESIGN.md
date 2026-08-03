@@ -58,6 +58,7 @@ pour le nommer quand on veut demander une modification.
 | Le trait de fin : « 5 agents ont repondu - 24,1 s » | `fin-du-tour` | — | idem, composant `FinDuTour` |
 | La rangee de pastilles d'agents | `rangee-agents` | `--agent-point-compact` | repliee par defaut, voir `deplie` |
 | Une pastille d'agent | `pastille-agent` | `--agent-point-compact` | idem |
+| Qui recevra le message, **a droite du champ** | `destinataires` | — | idem — apres le message dans le sens de lecture, jamais devant |
 
 ### L'orchestration
 
@@ -65,6 +66,7 @@ pour le nommer quand on veut demander une modification.
 |---|---|---|---|
 | Le menu de gauche (Historique, Conversation…) | `nav-orchestration` | — | l'ordre vient de `VOLETS` |
 | Le formulaire « Un agent de plus » | `nouvel-agent` | — | `NouvelAgent.tsx` |
+| Composer une equipe : cocher des agents, la nommer | `editeur-equipe` | — | `EditeurEquipe.tsx` — ouvrir une vignette d'equipe l'ouvre ici |
 | Une fiche dans la liste des agents | `fiche-agent` | `--agent-lisere`, `--agent-point`, `--densite` | `OrchestrationView.tsx` |
 | Les outils MCP, sous les agents | `outils-equipe` | — | `OutilsEquipe.tsx` |
 | La ligne d'un outil, avec « qui l'a » | `ligne-outil` | `--densite` | idem — l'ambre signale un outil incomplet |
@@ -173,6 +175,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `bulle-moi` | `src/components/Conversation.tsx` |
 | `carte-projet` | `src/components/ProjectCard.tsx` |
 | `decompte-decoupage` | `src/components/FenetreSimulation.tsx` |
+| `destinataires` | `src/components/Conversation.tsx` |
 | `ecran-accueil` | `src/pages/HomeView.tsx` |
 | `ecran-clean` | `src/pages/CleanView.tsx` |
 | `ecran-coffre` | `src/pages/VaultView.tsx` |
@@ -180,6 +183,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `ecran-corbeille` | `src/pages/TrashView.tsx` |
 | `ecran-detail-projet` | `src/pages/ProjectDetail.tsx` |
 | `ecran-projets` | `src/pages/ProjectsView.tsx` |
+| `editeur-equipe` | `src/components/EditeurEquipe.tsx` |
 | `entete-page` | `src/components/PageHeader.tsx` |
 | `fenetre-modale` | `src/components/Modal.tsx` |
 | `fenetre-simulation` | `src/components/FenetreSimulation.tsx` |
