@@ -36,6 +36,12 @@ import {
   supprimerTache,
 } from './graphe.js'
 import { lireCompteurs, oublierCompteurs } from './compteurs.js'
+import {
+  creerAutomatisation,
+  etat as etatPlanification,
+  retirerAutomatisation,
+  suspendreAutomatisation,
+} from './planification.js'
 import { ecrireReglage, lireReglage } from './laissez-passer.js'
 import { annulerValidation, simuler, valider } from './simulation.js'
 import { comparer, listerVersions, lireVersion, marquerFavori, oublierVersion } from './versions.js'
@@ -1530,6 +1536,27 @@ async function handleApi(req, res, url) {
   if (rest[0] === 'skins' && method === 'GET') return sendJson(res, 200, listSkins())
 
   if (rest[0] === 'diagnostics' && method === 'GET') return sendJson(res, 200, diagnostics())
+
+  // Ce qui tournera sans nous. Le Hub n'a aucune horloge : il lit le
+  // planificateur d'Hermes et lui ecrit par sa ligne de commande.
+  if (rest[0] === 'automatisations') {
+    if (!rest[1] && method === 'GET') return sendJson(res, 200, etatPlanification())
+    if (!rest[1] && method === 'POST') {
+      const body = await readBody(req)
+      return sendJson(res, 201, creerAutomatisation(body))
+    }
+    if (rest[1] && method === 'DELETE') {
+      return sendJson(res, 200, retirerAutomatisation(decodeURIComponent(rest[1])))
+    }
+    if (rest[1] && method === 'PATCH') {
+      const body = await readBody(req)
+      return sendJson(
+        res,
+        200,
+        suspendreAutomatisation(decodeURIComponent(rest[1]), body.suspendue === true),
+      )
+    }
+  }
 
   if (rest[0] === 'trash') {
     if (!rest[1] && method === 'GET') return sendJson(res, 200, trashList())

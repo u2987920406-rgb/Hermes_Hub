@@ -39,7 +39,7 @@ import { Equipage } from './equipage.js'
 import { lireOrchestration } from './equipe.js'
 import { dernierMot, hermes } from './graphe.js'
 import { noterTache } from './compteurs.js'
-import { lireCapacites, lireLivrables, lireValidation } from './simulation.js'
+import { lireCapacites, lireFichiers, lireLivrables, lireValidation } from './simulation.js'
 import { HUB_DIR, WORKSPACE, readJson, sanitizeName, writeJson } from './workspace.js'
 
 /**
@@ -253,6 +253,42 @@ function indexer(dossier, depuis = 0, profondeurMax = 4) {
  * par `livrablesManquants` juste apres, et bloquera avec sa vraie raison -
  * « il avoue » plutot que « il n'existe pas ».
  */
+/**
+ * Ou l'on accepte d'aller chercher un livrable egare.
+ *
+ * La racine du workspace, et les dossiers que LA TACHE ELLE-MEME nomme. Cette
+ * seconde source n'est pas un elargissement de confort : le cas documente est
+ * « l'agent ecrit a cote de sa source », et sa source est la ou pointe le
+ * chemin absolu de l'enonce. Ne regarder que la racine ne couvrait ce cas que
+ * par hasard - parce que les donnees d'essai s'y trouvaient. Un enonce qui
+ * pointe vers `D:\dossiers\clients\mars\donnees.csv` aurait vu son livrable
+ * depose la, et le filet serait reste muet.
+ *
+ * La borne tient au fait que la tache les a nommes : on ne balaie pas le
+ * disque, on relit ce que l'agent avait sous les yeux. Un dossier trop court
+ * - une racine de volume - est refuse : personne n'ecrit un livrable dans
+ * `C:\`, et deplacer un fichier depuis la ne se rattrape pas.
+ */
+function endroitsOuChercher(tache) {
+  const vus = new Map()
+  const ajouter = (dir) => {
+    if (!dir) return
+    const abs = path.resolve(dir)
+    // `C:\` fait 3 caracteres, `/` en fait 1 : on exige plus profond.
+    if (abs.length <= path.parse(abs).root.length) return
+    if (!vus.has(abs.toLowerCase())) vus.set(abs.toLowerCase(), abs)
+  }
+
+  ajouter(WORKSPACE)
+  for (const f of lireFichiers(`${tache.titre || ''}\n${tache.corps || ''}`)) {
+    // Seuls les chemins que l'enonce donne en entier designent un dossier. Un
+    // nom nu - « rapport.md » - ne dit rien de plus que la racine.
+    const brut = f.chemin.replace(/\//g, path.sep)
+    if (path.isAbsolute(brut)) ajouter(path.dirname(brut))
+  }
+  return [...vus.values()]
+}
+
 export function repecher(tache, dossier, depuis) {
   const attendus = livrablesAttendus(tache)
   if (!attendus.length) return []
@@ -265,34 +301,44 @@ export function repecher(tache, dossier, depuis) {
     .filter((nom) => !dansLePole.has(nom))
   if (!manquants.length) return []
 
-  let entrees
-  try {
-    entrees = fs.readdirSync(WORKSPACE, { withFileTypes: true })
-  } catch {
-    return []
-  }
-
   const repeches = []
-  for (const e of entrees) {
-    if (!e.isFile()) continue
-    if (!manquants.includes(e.name.toLowerCase())) continue
+  const cible = path.resolve(dossier).toLowerCase()
 
-    const de = path.join(WORKSPACE, e.name)
+  for (const endroit of endroitsOuChercher(tache)) {
+    // Le pole lui-meme n'est pas un endroit d'ou repecher : on s'y deplacerait
+    // sur place, et un sous-dossier du pole est deja couvert par `indexer`.
+    if (path.resolve(endroit).toLowerCase() === cible) continue
+
+    let entrees
     try {
-      if (fs.statSync(de).mtimeMs < depuis) continue
-      const vers = path.join(dossier, e.name)
-      // `rename` echoue d'un volume a l'autre ; le workspace et le pole sont sur
-      // le meme, mais rien ne l'impose - un workspace peut vivre sur un disque
-      // reseau. On recopie alors, et on n'efface qu'une fois la copie posee.
-      try {
-        fs.renameSync(de, vers)
-      } catch {
-        fs.copyFileSync(de, vers)
-        fs.unlinkSync(de)
-      }
-      repeches.push(e.name)
+      entrees = fs.readdirSync(endroit, { withFileTypes: true })
     } catch {
-      /* un fichier verrouille, ou deja parti : on ne bloque pas pour ca */
+      continue
+    }
+
+    for (const e of entrees) {
+      if (!e.isFile()) continue
+      const nom = e.name.toLowerCase()
+      if (!manquants.includes(nom)) continue
+      if (repeches.some((r) => r.toLowerCase() === nom)) continue
+
+      const de = path.join(endroit, e.name)
+      try {
+        if (fs.statSync(de).mtimeMs < depuis) continue
+        const vers = path.join(dossier, e.name)
+        // `rename` echoue d'un volume a l'autre - et depuis qu'on suit les
+        // chemins de l'enonce, la source peut vraiment vivre sur un autre
+        // disque. On recopie alors, et on n'efface qu'une fois la copie posee.
+        try {
+          fs.renameSync(de, vers)
+        } catch {
+          fs.copyFileSync(de, vers)
+          fs.unlinkSync(de)
+        }
+        repeches.push(e.name)
+      } catch {
+        /* un fichier verrouille, ou deja parti : on ne bloque pas pour ca */
+      }
     }
   }
   return repeches

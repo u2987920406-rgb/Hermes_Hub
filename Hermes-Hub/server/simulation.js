@@ -47,12 +47,49 @@ function estLocal(modele) {
  * ecrit » est la question a laquelle il faut repondre AVANT de lancer, pas
  * apres.
  */
-const MOTIF_FICHIER = /(?:^|[\s`'"(\[])([\w./\\-]*[\w-]+\.(?:md|pdf|txt|csv|json|ya?ml|html?|docx?|xlsx?|png|jpe?g|svg))/gi
+/**
+ * La lettre de lecteur est prevue explicitement, et il a fallu s'en apercevoir.
+ *
+ * Le `:` de `C:` n'appartient a aucune classe de caracteres d'un chemin, et le
+ * motif exige d'etre precede d'un blanc ou d'un guillemet. Un chemin absolu
+ * Windows n'etait donc PAS reconnu : `C:/dossier/source.csv` ne rendait rien du
+ * tout, et `C:\Dev _Hub\source.md` ne rendait que le fragment qui suit le
+ * dernier espace du chemin - `_Hub\source.md`.
+ *
+ * Consequences vues le 03/08/2026 : la simulation affichait des chemins
+ * tronques dans « les fichiers qui seraient touches », et le repechage, qui
+ * relit ces chemins pour savoir ou l'agent a pu deposer son travail, ne
+ * trouvait aucun dossier a fouiller. Or c'est exactement le cas qu'il vise -
+ * l'enonce donne un chemin absolu, l'agent ecrit a cote.
+ */
+const EXTENSIONS = 'md|pdf|txt|csv|json|ya?ml|html?|docx?|xlsx?|png|jpe?g|svg'
+
+/**
+ * Deux facons d'ecrire un chemin, et la premiere est la seule qui survit aux
+ * espaces.
+ *
+ * Un chemin nu se delimite par des blancs : `C:\Dev _Hub\bac\donnees.md` rend
+ * donc `_Hub\bac\donnees.md`, et il n'y a pas de remede - rien ne distingue
+ * l'espace d'un nom de dossier de l'espace qui termine le chemin. Entre
+ * guillemets, la question ne se pose plus : on prend ce qu'ils entourent.
+ * C'est ainsi qu'on ecrit un chemin a espaces partout ailleurs.
+ */
+const MOTIF_FICHIER = new RegExp(
+  // 1. entre guillemets ou apostrophes : les espaces sont admis
+  `["']((?:[A-Za-z]:[\\\\/])?[^"'\\n]*[\\w-]+\\.(?:${EXTENSIONS}))["']` +
+    // 2. nu : delimite par un blanc, une parenthese ou un crochet
+    `|(?:^|[\\s\`(\\[])((?:[A-Za-z]:[\\\\/])?[\\w./\\\\-]*[\\w-]+\\.(?:${EXTENSIONS}))`,
+  'gi',
+)
 
 export function lireFichiers(corps) {
   const vus = new Map()
   for (const m of String(corps || '').matchAll(MOTIF_FICHIER)) {
-    const brut = m[1].replace(/\\/g, '/')
+    // Le motif a deux alternatives - entre guillemets, puis nu - donc deux
+    // groupes dont un seul est rempli a chaque tour.
+    const capture = m[1] ?? m[2]
+    if (!capture) continue
+    const brut = capture.replace(/\\/g, '/')
     // Un nom de fichier sans dossier reste ambigu ; on le garde quand meme,
     // c'est a l'utilisateur de juger, mais on ne l'invente pas de chemin.
     if (!vus.has(brut)) {

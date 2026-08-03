@@ -115,6 +115,42 @@ test('un perime seul dans le pole ne suffit pas a passer la garde', () => {
   assert.equal(livrablesManquants(TACHE, POLE), null)
 })
 
+test('le livrable depose a cote d une source HORS de la racine est repeche', () => {
+  // La racine du workspace ne couvrait le cas documente que par hasard : les
+  // donnees d'essai s'y trouvaient. Un enonce qui pointe ailleurs y verrait son
+  // livrable depose, et le filet restait muet.
+  const ailleurs = path.join(BAC.racine, 'donnees-client')
+  fs.mkdirSync(ailleurs, { recursive: true })
+  poser(ailleurs, 'source.csv', 'des chiffres')
+
+  const tache = {
+    titre: 'Analyser les ventes du client',
+    corps:
+      `Lis ${ailleurs.replace(/\\/g, '/')}/source.csv et redige rapport_ventes.md ` +
+      `dans le meme dossier.`,
+  }
+  poser(ailleurs, 'rapport_ventes.md', 'RAPPORT - chiffres du trimestre')
+
+  assert.deepEqual(repecher(tache, POLE, DEBUT()), ['rapport_ventes.md'])
+  assert.ok(fs.existsSync(path.join(POLE, 'rapport_ventes.md')), 'arrive dans le pole')
+  assert.ok(!fs.existsSync(path.join(ailleurs, 'rapport_ventes.md')), 'ne traine plus la-bas')
+  // La source, elle, ne bouge pas : on ne repeche que ce que la tache promet.
+  assert.ok(fs.existsSync(path.join(ailleurs, 'source.csv')), 'la source reste')
+  fs.rmSync(ailleurs, { recursive: true, force: true })
+})
+
+test('on ne repeche jamais depuis une racine de volume', () => {
+  // Un enonce qui nommerait « C:/rapport.md » ferait designer `C:\` comme
+  // endroit ou chercher. Deplacer un fichier depuis la ne se rattrape pas.
+  const tache = {
+    titre: 'Ecrire le rapport',
+    corps: 'Redige C:/rapport_racine_test.md a partir des donnees.',
+  }
+  // Rien n'est pose a la racine du volume : on verifie seulement que l'appel
+  // ne leve pas et ne ramene rien.
+  assert.deepEqual(repecher(tache, POLE, DEBUT()), [])
+})
+
 test('une tache qui ne produit aucun fichier n a rien a prouver', () => {
   const analyse = { titre: 'Arbitrer entre les deux profils', corps: 'Donne ton avis argumente.' }
   poser(WS, 'dossier_dirigeants.pdf', 'peu importe')
