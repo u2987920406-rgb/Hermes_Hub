@@ -36,6 +36,7 @@ import {
   supprimerTache,
 } from './graphe.js'
 import { lireCompteurs, oublierCompteurs } from './compteurs.js'
+import { creerAgent, decrireAgent, renommerAgent, retirerAgent } from './agents.js'
 import {
   apprendre,
   lireCompetences,
@@ -1718,6 +1719,31 @@ async function handleApi(req, res, url) {
         throw err
       }
       return sendJson(res, 200, await simuler(pole))
+    }
+
+    // Composer son equipe. `equipe.js` lit les profils, `agents.js` les ecrit -
+    // meme partage que partout : le disque pour lire, la ligne de commande
+    // d'Hermes pour ecrire.
+    if (rest[1] === 'agent') {
+      if (!rest[2] && method === 'POST') {
+        return sendJson(res, 201, creerAgent(await readBody(req)))
+      }
+      if (rest[2] && method === 'PATCH') {
+        const body = await readBody(req)
+        const id = decodeURIComponent(rest[2])
+        const fait = {}
+        if ('description' in body) Object.assign(fait, decrireAgent(id, body.description))
+        if ('nom' in body) Object.assign(fait, renommerAgent(id, body.nom))
+        if (!Object.keys(fait).length) {
+          const err = new Error('Rien a changer : precise une description ou un nom.')
+          err.status = 400
+          throw err
+        }
+        return sendJson(res, 200, fait)
+      }
+      if (rest[2] && method === 'DELETE') {
+        return sendJson(res, 200, retirerAgent(decodeURIComponent(rest[2])))
+      }
     }
 
     // Ce qu'on a appris des poles qui ont abouti.

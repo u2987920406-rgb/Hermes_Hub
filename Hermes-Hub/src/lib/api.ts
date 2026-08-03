@@ -198,6 +198,24 @@ export const api = {
   compteurs: (pole: string) =>
     request<Compteurs>(`/orchestration/compteurs?pole=${enc(pole)}`),
 
+  // --- Composer l'equipe -------------------------------------------------------
+  // `orchestration` lit les profils, ceci les ecrit. Un poste neuf recoit trois
+  // roles ; sans ces verbes il ne pouvait jamais en ajouter un quatrieme.
+  creerAgent: (a: { nom: string; description: string }) =>
+    request<{ id: string; cree: boolean }>('/orchestration/agent', {
+      method: 'POST',
+      body: body(a),
+    }),
+  modifierAgent: (id: string, patch: { description?: string; nom?: string }) =>
+    request<{ id: string }>(`/orchestration/agent/${enc(id)}`, {
+      method: 'PATCH',
+      body: body(patch),
+    }),
+  retirerAgent: (id: string) =>
+    request<{ id: string; retire: boolean }>(`/orchestration/agent/${enc(id)}`, {
+      method: 'DELETE',
+    }),
+
   // --- Ce qu'on a appris -------------------------------------------------------
   // `pour` demande ce qui ressemble a une demande en cours d'ecriture : c'est
   // la proactivite du plan, et elle propose sans jamais substituer.

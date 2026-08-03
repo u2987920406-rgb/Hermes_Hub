@@ -64,6 +64,7 @@ pour le nommer quand on veut demander une modification.
 | Ce que tu vois | Zone a grep | Molettes | Sinon |
 |---|---|---|---|
 | Le menu de gauche (Historique, Conversation…) | `nav-orchestration` | — | l'ordre vient de `VOLETS` |
+| Le formulaire « Un agent de plus » | `nouvel-agent` | — | `NouvelAgent.tsx` |
 | Une fiche dans la liste des agents | `fiche-agent` | `--agent-lisere`, `--agent-point`, `--densite` | `OrchestrationView.tsx` |
 | Une conversation dans l'historique | `ligne-historique` | `--densite` | tri : `ONGLETS` |
 | Une vignette de pole | `vignette-pole` | `--agent-lisere-vignette` | idem |
@@ -164,6 +165,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `noeud-organigramme` | `src/components/Organigramme.tsx` |
 | `noeud-studio` | `src/components/NoeudStudio.tsx` |
 | `notifications` | `src/components/Toasts.tsx` |
+| `nouvel-agent` | `src/components/NouvelAgent.tsx` |
 | `nouvelle-automatisation` | `src/components/NouvelleAutomatisation.tsx` |
 | `organigramme` | `src/components/Organigramme.tsx` |
 | `palette-commandes` | `src/components/CommandPalette.tsx` |

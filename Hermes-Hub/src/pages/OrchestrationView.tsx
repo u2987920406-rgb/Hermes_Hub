@@ -32,6 +32,7 @@ import { FenetreSimulation } from '../components/FenetreSimulation'
 import { Modal } from '../components/Modal'
 import { Organigramme } from '../components/Organigramme'
 import type { EtatNoeud, LienOrg, NoeudOrg } from '../components/Organigramme'
+import { NouvelAgent } from '../components/NouvelAgent'
 import { PageHeader } from '../components/PageHeader'
 import { sansAccord } from '../lib/accords'
 import { api, ecouterChat } from '../lib/api'
@@ -522,14 +523,17 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
                     titre={`${agents.length} agent${agents.length > 1 ? 's' : ''}`}
                     detail={`${prets} pret${prets > 1 ? 's' : ''} a servir`}
                     action={
-                      agents.length > 0 ? (
-                        <button
-                          className="btn-ghost px-3 py-1.5 text-xs"
-                          onClick={() => setOuvert({ genre: 'equipe' })}
-                        >
-                          Voir l organigramme
-                        </button>
-                      ) : null
+                      <div className="flex items-center gap-1">
+                        <NouvelAgent onFait={() => void charger()} />
+                        {agents.length > 0 && (
+                          <button
+                            className="btn-ghost px-3 py-1.5 text-xs"
+                            onClick={() => setOuvert({ genre: 'equipe' })}
+                          >
+                            Voir l organigramme
+                          </button>
+                        )}
+                      </div>
                     }
                   />
                   <div className="space-y-2">
