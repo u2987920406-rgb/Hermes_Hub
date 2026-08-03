@@ -772,6 +772,52 @@ possede quoi et repare d'un bouton.
 
 *Reste* : sous-graphes, propositions multi-poles, monitoring detaille.
 
+### Phase 9 - Le poste tient tout seul *(a ecrire, apres l'usage du Studio)*
+
+Demandee par kuchu le 03/08/2026 sous la forme « API, menu de configuration et
+autres parametres », et volontairement laissee ouverte : elle se precisera quand
+il aura joue le parcours du Studio, parce que c'est l'usage qui dira ce qui
+manque vraiment.
+
+Ce qui est deja certain, dans l'ordre ou je le ferais.
+
+**9.1 - La sauvegarde, et c'est le plus urgent.** `hermes backup` existe deja et
+fait exactement le travail : un zip de la configuration, des skills, des
+sessions et des donnees, plus un mode `--quick` pour l'etat critique seul. **Le
+Hub n'a aucun bouton.** Aujourd'hui, un poste client qui meurt emporte les
+profils, la memoire, le tableau et le Coffre - et la personne qu'on appellera,
+c'est kuchu. C'est ce qui separe un outil d'une responsabilite, et ca coute un
+appel de CLI.
+
+*Livrable* : « Sauvegarder maintenant » dans Configuration, et un fichier qu'on
+peut poser sur une cle. Puis la restauration, qui est le vrai sujet - une
+sauvegarde qu'on n'a jamais restauree n'est pas une sauvegarde.
+
+**9.2 - Les cles et les modeles depuis le Hub.** C'est le « API » de kuchu, et
+le trou est mesure : le champ « Modele par defaut » de Configuration porte
+« Informatif - le vrai reglage se fait avec `hermes setup` ». Donc **un client
+dont la cle expire doit ouvrir un terminal**, et c'est precisement le moment ou
+il appelle a l'aide.
+
+La regle du depot ne change pas : le Hub ne devient pas proprietaire du reglage,
+il PILOTE `hermes setup` et `hermes config set`. Lecture sur le disque, ecriture
+par la ligne de commande, comme partout ailleurs - sinon deux sources pour un
+meme reglage, et elles divergeront.
+
+*Un point a trancher avant d'ecrire une ligne* : saisir une cle d'API dans un
+formulaire web, meme sur 127.0.0.1, merite d'etre pese. Le Hub peut la passer a
+`hermes` sans jamais l'ecrire lui-meme, mais elle transite par un champ, un POST
+et un journal potentiel. A decider avec kuchu, pas seul.
+
+**9.3 - Le menu de configuration remis d'aplomb.** `ConfigView.tsx` depasse les
+800 lignes pour six volets, et la memoire a beaucoup grossi le 03/08/2026. Ce
+n'est pas un probleme de code mais de lecture : quelqu'un qui cherche un reglage
+doit le trouver, pas le parcourir.
+
+*Ce qui n'entre PAS dans cette phase* : les sous-graphes et les propositions
+multi-poles restent a la phase 8. On ne melange pas ce qui construit et ce qui
+regle.
+
 ---
 
 ### Hors phases - le premier contact *(fait le 03/08/2026)*
