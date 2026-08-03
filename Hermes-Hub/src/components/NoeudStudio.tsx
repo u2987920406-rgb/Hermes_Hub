@@ -148,9 +148,17 @@ export function NoeudStudio({ data, selected }: NodeProps) {
       {/* L'autorisation, posee sur le noeud qui l'attend.
           Elle vivait dans un bandeau en haut de page, loin du noeud concerne :
           on voyait qu-un agent attendait sans voir lequel. Ici, la question est
-          a l'endroit ou elle se pose, et deux boutons suffisent a y repondre. */}
+          a l'endroit ou elle se pose, et deux boutons suffisent a y repondre.
+
+          `z-30` N'EST PAS COSMETIQUE. La carte prend `z-index: 2` quand elle
+          travaille - pose pour que son aura ne soit pas rognee par ses voisines
+          - et cette pastille, qui n'est que sa soeur, passait DESSOUS. Or le
+          noeud qui travaille est exactement celui qui demande une autorisation :
+          elle etait donc cachee precisement quand elle compte, et le pole
+          restait arrete devant une question qu'on ne pouvait pas voir. Vu par
+          kuchu le 03/08/2026, sur un pole en cours d'execution. */}
       {accords.length > 0 && (
-        <div className="absolute -bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-amber-300 bg-white px-1.5 py-0.5 shadow-md dark:border-amber-500/50 dark:bg-navy-900">
+        <div className="absolute -bottom-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full border border-amber-300 bg-white px-1.5 py-0.5 shadow-md dark:border-amber-500/50 dark:bg-navy-900">
           {/* Le rouge se distingue de l'orange avant meme d'etre lu : ecrire,
               effacer et lancer une commande ne se repondent pas du meme geste
               que sortir sur le web. Ce qui aurait pu passer seul n'arrive

@@ -213,7 +213,9 @@
      Les six etats : endormi, reveil, reflexion, encours, succes, erreur.
      L'absence d'etat est legitime - une tache qui attend son tour. */
   .noeud-agent {
-    border-color: color-mix(in srgb, var(--agent) var(--agent-lisere-noeud), transparent);
+    /* Au repos, la case se tient en retrait : la couleur arrive avec le
+       travail. Voir `--noeud-repos` pour le pourquoi de la molette separee. */
+    border-color: color-mix(in srgb, var(--agent) var(--noeud-repos), transparent);
     transition:
       border-color 220ms ease,
       opacity 220ms ease,
@@ -477,10 +479,28 @@
   --noeud-eclair: 300ms;
   /* Le fondu vers l'etat termine. */
   --noeud-succes: 1.2s;
-  /* Force du contour d'une tache finie. Neutre a dessein : le vert etait trop
-     present sur un pole entierement termine. 25% = a peine la, 60% = un cadre
-     franc, 100% = gris plein. */
-  --noeud-fini: 45%;
+  /* Force du contour d'une tache finie. 25% = a peine la, 60% = un cadre franc,
+     100% = la couleur pleine de l'agent.
+
+     LA PROGRESSION DOIT MONTER, et elle descendait. Repos 60, travail 100,
+     fini 45 : une tache accomplie etait MOINS coloree qu'une tache qui n'avait
+     jamais demarre, et un pole termine s'eteignait au lieu de s'allumer. Vu par
+     kuchu le 03/08/2026, sur son premier pole mene au bout : « tout gris comme
+     si tout etait eteint, alors que c'est l'inverse ».
+
+     La correction precedente avait vise juste et corrige trop loin - le vert
+     partout faisait une guirlande, on l'a donc eteint. Mais c'etait la COULEUR
+     D'ETAT qui criait, pas celle de l'agent. */
+  --noeud-fini: 90%;
+
+  /* Le contour d'une tache du graphe qui attend son tour. Volontairement plus
+     bas que `--noeud-fini` : c'est ce qui fait que les couleurs ARRIVENT quand
+     le travail se fait, au lieu de s'en aller.
+
+     Une molette a part, et pas `--agent-lisere-noeud` : celle-la sert aussi aux
+     cases de l'organigramme, ou un agent n'a pas d'etat - le palir la-bas
+     effacerait une identite pour rien. */
+  --noeud-repos: 32%;
 
   /* La taille du titre dans une case du graphe. Il vit ici et non dans le bloc
      typographie parce qu'il ne suit pas `--texte-echelle` : on regle la
