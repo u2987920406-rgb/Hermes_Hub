@@ -158,6 +158,35 @@ d'heure. S'il est identique deux fois, c'est figé.
 
 ---
 
+## L'autre arrêt : `[10 ter]`, le service d'automatisation
+
+**Corrigé le 03/08/2026** — mais si ta copie de l'installateur est antérieure,
+voici ce que tu vois : l'écran s'arrête sur
+
+```
+[10 ter] Installation du service d'automatisation...
+```
+
+et plus rien. Ce n'est ni lent ni cassé : `hermes gateway install` teste
+`sys.stdin.isatty()` et, sur un vrai terminal, **pose deux questions**. Le
+`>nul 2>&1` de l'installateur redirige la *sortie*, pas l'*entrée* — les
+questions partent dans le vide et l'installateur attend une réponse à une
+question que personne ne voit.
+
+**Appuie deux fois sur Entrée.** Les deux valent « oui », qui est leur défaut :
+
+```
+Start the gateway now after install?
+Start the gateway automatically on Windows login with a Scheduled Task?
+```
+
+C'est le même piège que `hermes mcp add`, et le même enseignement : rediriger
+la sortie d'une commande ne la rend pas muette, **ça la rend aveugle**. La
+version corrigée passe les réponses sur la ligne — `--start-now
+--start-on-login` — et ne demande plus rien.
+
+---
+
 ## Après l'installation : ce qu'on peut jeter
 
 Si la machine avait déjà connu Hermès, le script en a mis l'ancienne copie de

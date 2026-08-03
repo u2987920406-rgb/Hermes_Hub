@@ -539,7 +539,29 @@ REM == Etape 10 ter: la passerelle, si elle a ete acceptee ==
 if /i "%PASSERELLE%"=="o" (
     echo.
     echo [10 ter] Installation du service d'automatisation...
-    hermes gateway install >nul 2>&1
+    REM LES DEUX DRAPEAUX NE SONT PAS DECORATIFS - sans eux l'installation se
+    REM fige ici, et de la pire facon. Mesure le 03/08/2026 sur un second poste :
+    REM « hermes gateway install » teste sys.stdin.isatty() et, sur un vrai
+    REM terminal, POSE DEUX QUESTIONS. Le « >nul 2>&1 » redirige la sortie, pas
+    REM l'entree : les questions partaient dans nul et l'installateur attendait
+    REM indefiniment une reponse a une question que personne ne voyait.
+    REM
+    REM Meme piege que « hermes mcp add » repare ce matin, et c'est le meme
+    REM enseignement : rediger la sortie d'une commande ne la rend pas muette,
+    REM ca la rend AVEUGLE. Toute commande interactive appelee ici doit porter
+    REM ses reponses sur sa ligne.
+    REM
+    REM Les autres appels « hermes ... >nul » du fichier ont ete relus dans la
+    REM foulee - version, profile create, config set, cron status. Aucun ne pose
+    REM de question : le seul input() de profiles.py garde la SUPPRESSION, et
+    REM elle n'est jamais appelee ici. Audit fait le 03/08/2026, a refaire si un
+    REM appel est ajoute.
+    REM
+    REM Les deux valent « oui », qui est aussi leur defaut : le service demarre
+    REM tout de suite et repart a l'ouverture de session - sans quoi les taches
+    REM programmees ne partiraient qu'avec le Hub ouvert, ce qui les vide de leur
+    REM sens.
+    hermes gateway install --start-now --start-on-login >nul 2>&1
     hermes cron status >nul 2>&1
     if errorlevel 1 (
         echo   Le service n'a pas pu etre installe. Les automatisations
