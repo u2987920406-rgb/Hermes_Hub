@@ -242,32 +242,27 @@ if errorlevel 1 (
 )
 echo   OK - Hermes configure.
 
-REM == Etape 7: Questions personnelles ==
+REM == Etape 7: ce qui suit l'installation ==
+REM
+REM NEUF QUESTIONS ONT DISPARU D'ICI, et leur echec vaut d'etre garde en tete :
+REM metier, langue, style, niveau, projet en cours, objectifs a 1 mois et a 6
+REM mois, type de projets, raison d'utiliser Hermes. Elles etaient posees dans
+REM un terminal, au bout de quarante minutes d'installation, avant que personne
+REM n'ait vu le produit. On tape Entree pour en finir - L'AUTEUR DE CE FICHIER A
+REM SAUTE SES PROPRES QUESTIONS le 03/08/2026, et il n'y a pas de meilleure
+REM preuve.
+REM
+REM Elles ne sont pas perdues : elles sont posees par le Hub, ou l'on peut
+REM MONTRER ce qu'elles changent - la meme demande, avec et sans. Un terminal ne
+REM sait pas faire ca. Et USER.md n'est plus livre vide mais en GABARIT : un
+REM fichier blanc n'apprend rien, un fichier qui pose ses questions appelle ses
+REM reponses.
 echo.
-echo [7/13] Questions personnelles - ta memoire globale...
-echo   Ces infos suivront dans TOUS tes projets.
-echo.
-echo   Ta memoire globale pourra etre modifiee a tout moment.
-echo   Tu pourras la changer plus tard si besoin.
-echo.
-
-set /p METIER="  Ton metier ou role: "
-echo.
-set /p LANGUE="  Ta langue de travail (fr/en/bilingue): "
-echo.
-set /p STYLE="  Style de reponse prefere (concis/detaille/pedagogique): "
-echo.
-set /p NIVEAU="  Ton niveau en tech (debutant/intermediaire/avance): "
-echo.
-set /p PROJET_ACTUEL="  Sur quoi tu travailles en ce moment: "
-echo.
-set /p OBJECTIF_1M="  Ton objectif dans 1 mois: "
-echo.
-set /p OBJECTIF_6M="  Ton objectif dans 6-12 mois: "
-echo.
-set /p TYPE_PROJET="  Type de projets (web/data/IA/automation/tous): "
-echo.
-set /p RAISON="  Ta principale raison d'utiliser Hermes: "
+echo [7/13] Ce qui se reglera dans le Hub...
+echo   Hermes travaille bien mieux quand il sait qui tu es et ce que tu attends
+echo   de lui. Ces questions ne se posent pas ici : le Hub les pose en montrant
+echo   ce qu'elles changent, ce qu'un terminal ne sait pas faire.
+echo   Au premier lancement, une fenetre te le proposera. Cinq minutes.
 echo.
 
 REM DEUX QUESTIONS ONT DISPARU D'ICI, et pour la meme raison : elles
@@ -592,6 +587,15 @@ echo Tu es Hermes, un agent IA cree par Nous Research.
 echo.
 echo ^(profil Hermes Hub v%HERMES_VERSION%^)
 echo.
+REM UN EN-TETE QUI DIT CE QU'EST CE FICHIER. Il est le seul des trois a etre
+REM livre plein, et c'est justement pour ca qu'on le presente : un texte deja
+REM ecrit se lit comme officiel, donc intouchable. Or c'est un caractere, pas
+REM une loi - il se change, et personne ne s'en doute sans qu'on le dise.
+echo CE FICHIER EST SON CARACTERE, PAS SES REGLES.
+echo Sa maniere d'etre et son ton : comment il te parle, pas ce qu'il a le droit
+echo de faire - ca, c'est MEMORY.md. Ce qui suit est un point de depart, pas une
+echo loi : recris-le a ta main depuis le Hub, Configuration ^> Memoire.
+echo.
 echo PERSONNALITE:
 echo - Honnete et direct. Tu dis quand tu ne sais pas.
 echo - Pedagogique. Tu expliques simplement, sans jargon inutile.
@@ -834,32 +838,52 @@ REM   ecrites; sans ca elles etaient saisies puis jetees.
 REM ================================================
 :write_user_memory
 mkdir "!HERMES_HOME!\memories" 2>nul
+REM Expansion differee (!VAR! et non %VAR%) : le prenom vient de l'utilisateur.
+REM Avec %VAR%, une reponse contenant ^& ou une parenthese est relue par cmd
+REM comme du code - "commerce ^& marketing" ecrivait "commerce" puis tentait
+REM d'executer "marketing". Avec !VAR!, la substitution a lieu apres l'analyse :
+REM le texte reste du texte.
 (
 echo # Qui je suis
 echo.
-echo _Hermes Hub v%HERMES_VERSION% - modifiable depuis le Hub : Configuration ^> Memoire_
+echo _Hermes lit ce fichier a chaque session. Reponds sous chaque question, en
+echo une ligne ou deux. Ce qui reste sans reponse, il ne le saura pas - et il
+echo repondra a cote. Efface les indications en italique une fois repondu :
+echo tout ce qui est ici se relit a chaque demarrage._
 echo.
-REM Expansion differee (!VAR! et non %VAR%) : ces valeurs viennent de l'
-REM utilisateur. Avec %VAR%, une reponse contenant ^& ou une parenthese est
-REM relue par cmd comme du code - "commerce ^& marketing" ecrivait "commerce"
-REM puis tentait d'executer "marketing". Avec !VAR!, la substitution a lieu
-REM apres l'analyse : le texte reste du texte.
-echo - Prenom : !PRENOM!
-echo - Metier ou role : !METIER!
-echo - Langue de travail : !LANGUE!
-echo - Style de reponse attendu : !STYLE!
-echo - Niveau en tech : !NIVEAU!
+echo _Modifiable a tout moment depuis le Hub : Configuration ^> Memoire._
 echo.
-echo ## Ce sur quoi je travaille
-echo - En ce moment : !PROJET_ACTUEL!
-echo - Type de projets : !TYPE_PROJET!
+echo ## Qui je suis
 echo.
-echo ## Mes objectifs
-echo - Dans 1 mois : !OBJECTIF_1M!
-echo - Dans 6 a 12 mois : !OBJECTIF_6M!
+echo Prenom : !PRENOM!
 echo.
-echo ## Pourquoi j'utilise Hermes
-echo - !RAISON!
+echo _Metier, role, activite, passion - ce que tu veux, en une phrase._
+echo.
+echo ## Ce que je compte lui faire faire
+echo.
+echo _C'est LA question qui change ses reponses, et ce n'est pas forcement ton
+echo metier : on peut travailler de ses mains et n'attendre d'Hermes que l'ecrit
+echo et le classement. Exemple : « Preparer mes devis et mes courriers, suivre
+echo mes dossiers, retrouver ce que j'ai ecrit. »_
+echo.
+echo ## Ce qu'il ne doit jamais faire avec moi
+echo.
+echo _Tes lignes rouges a toi. Exemple : « Ne touche jamais a mes fichiers de
+echo comptabilite. » « N'envoie jamais rien en mon nom. »_
+echo.
+echo ## Mes outils et mes formats
+echo.
+echo _Excel, Word, PDF, papier, un logiciel metier... Ceci change ce qu'il
+echo PRODUIT, pas seulement ce qu'il dit._
+echo.
+echo ## Avec qui je travaille
+echo.
+echo _Seul, une equipe, des clients. Ca change le ton d'un livrable._
+echo.
+echo ## Ma langue, et comment je veux qu'il me reponde
+echo.
+echo _Francais ou anglais. Court, detaille ou pedagogique. Tutoiement ou
+echo vouvoiement - en francais, ca change chaque phrase._
 ) > "!HERMES_HOME!\memories\USER.md"
 copy /y "!HERMES_HOME!\memories\USER.md" "!HERMES_HOME!\memories\USER.default.md" >nul 2>&1
 echo   OK - Profil ecrit dans la memoire d'Hermes.
@@ -892,8 +916,12 @@ echo # Regles de travail
 echo.
 echo _Hermes Hub v%HERMES_VERSION% - modifiable depuis le Hub : Configuration ^> Memoire_
 echo.
-echo Ce que j'attends de toi, dans tous les cas. Huit lignes, relues a chaque
-echo demarrage : n'en ajoute pas sans en retirer.
+echo VOICI LE COMPORTEMENT QUE DOIT AVOIR HERMES : ce qu'il ne fait jamais, ce
+echo qu'il doit toujours, ce qui n'est pas negociable. C'est sa charte de
+echo travail, quel que soit le sujet - son caractere, lui, vit dans SOUL.md.
+echo.
+echo Huit lignes, relues a chaque demarrage : n'en ajoute pas sans en retirer.
+echo Chaque ligne de trop rend les autres un peu moins suivies.
 echo.
 echo - Rien d'irreversible sans mon accord : supprimer, ecraser, envoyer,
 echo   publier, payer.
