@@ -636,6 +636,19 @@ export type AccordEnAttente = DemandeAutorisation & {
   tache?: string | null
 }
 
+/**
+ * Ce qu'un pole a laisse sur le disque.
+ *
+ * `dossier` a `null` veut dire « il n'a jamais tourne » - a ne pas confondre
+ * avec un dossier vide, qui veut dire « il a tourne et n'a rien ecrit ». Les
+ * deux se disent differemment a l'ecran : le premier n'est pas un probleme, le
+ * second en est peut-etre un.
+ */
+export interface Livrable {
+  dossier: string | null
+  fichiers: { nom: string; octets: number }[]
+}
+
 export const ETATS_TACHE: Record<EtatTache, string> = {
   triage: 'A cadrer',
   todo: 'En attente',

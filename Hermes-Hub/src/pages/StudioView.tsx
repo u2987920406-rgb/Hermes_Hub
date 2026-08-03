@@ -59,6 +59,7 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Attente } from '../components/Attente'
+import { LivrablePole } from '../components/LivrablePole'
 import { NoeudStudio } from '../components/NoeudStudio'
 import type { DonneesNoeud } from '../components/NoeudStudio'
 import { FenetreSimulation } from '../components/FenetreSimulation'
@@ -776,6 +777,17 @@ function Atelier({ poleId, onQuitter }: Props) {
           <Controls showInteractive={false} />
           <MiniMap pannable zoomable className="!bg-white/80 dark:!bg-navy-900/80" />
         </ReactFlow>
+
+        {/* Le livrable prend la meme place que les reglages, et jamais en meme
+            temps : choisir une tache est une question sur le detail, chercher
+            le resultat est une question sur l'ensemble. Il ne parait pas du
+            tout tant que le pole n'a jamais tourne - `LivrablePole` rend null,
+            plutot qu'une boite vide qui ferait croire a une perte. */}
+        {!tacheChoisie && poleId && (
+          <div className="absolute right-3 top-3 max-h-[calc(100%-1.5rem)] w-80 overflow-y-auto">
+            <LivrablePole poleId={poleId} actif={!!chantier?.actif} />
+          </div>
+        )}
 
         {/* Les reglages du noeud : ce qu'il est, et ce qu'il doit accomplir. */}
         {tacheChoisie && (

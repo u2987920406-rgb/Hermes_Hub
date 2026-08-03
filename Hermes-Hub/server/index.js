@@ -22,6 +22,7 @@ import {
   endormirChantiers,
   etatChantiers,
   lancer as lancerChantier,
+  livrableDuPole,
   poleActif,
   relacherOrphelines,
 } from './execution.js'
@@ -1703,6 +1704,21 @@ async function handleApi(req, res, url) {
   if (rest[0] === 'open' && method === 'POST') {
     const body = await readBody(req)
     if (rest[1] === 'folder') {
+      // Le pole voyage par son IDENTIFIANT, jamais par son chemin. Le serveur
+      // le resout lui-meme, comme il le fait deja pour un projet : une route
+      // capable d'ouvrir n'importe quel dossier depuis une page web serait un
+      // mauvais echange pour un confort, et la frontiere tient depuis le
+      // debut.
+      if (body.pole) {
+        const p = lireOrchestration().poles.find((x) => x.id === body.pole)
+        const l = p && livrableDuPole(p)
+        if (!l) {
+          const err = new Error("Ce pole n'a pas encore de dossier : il n'a jamais tourne.")
+          err.status = 404
+          throw err
+        }
+        return sendJson(res, 200, openFolder(l.dossier))
+      }
       const target = body.projectId
         ? safeJoin(PROJECTS_DIR, body.projectId)
         : body.target === 'vault'
@@ -1800,6 +1816,26 @@ async function handleApi(req, res, url) {
   // L'equipe et ses poles : le seul lieu de l'orchestration.
   if (rest[0] === 'orchestration') {
     if (!rest[1] && method === 'GET') return sendJson(res, 200, await lireOrchestration())
+
+    /**
+     * Ce qu'un pole a produit, et ou.
+     *
+     * Une route a part plutot qu'un champ de la liste : repondre demande de
+     * parcourir un dossier, et le faire pour chaque pole a chaque ouverture de
+     * l'ecran ferait payer une lecture disque a ceux qui ne regardent rien. On
+     * l'appelle depuis le Studio, c'est-a-dire depuis la page du pole - la ou
+     * l'on va justement chercher ses resultats.
+     */
+    if (rest[1] === 'pole' && rest[2] && rest[3] === 'livrable' && method === 'GET') {
+      const id = decodeURIComponent(rest[2])
+      const p = (await lireOrchestration()).poles.find((x) => x.id === id)
+      if (!p) {
+        const err = new Error('Pole inconnu')
+        err.status = 404
+        throw err
+      }
+      return sendJson(res, 200, livrableDuPole(p) || { dossier: null, fichiers: [] })
+    }
 
     // La demande en francais devient un graphe de taches assignables.
     //

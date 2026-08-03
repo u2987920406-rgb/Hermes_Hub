@@ -7,6 +7,7 @@ import type {
   Agent,
   AppConfig,
   Automatisation,
+  Livrable,
   Chantier,
   Comparaison,
   Competence,
@@ -87,6 +88,10 @@ export const api = {
   /** Tout ce qui attend une reponse : la conversation ET les poles en cours.
       Lu par la barre laterale, qui n'a aucun autre moyen de savoir. */
   accords: () => request<{ total: number; accords: AccordEnAttente[] }>('/accords'),
+
+  /** Ce qu'un pole a ecrit, et ou. `dossier` a null : il n'a jamais tourne. */
+  livrablePole: (id: string) =>
+    request<Livrable>(`/orchestration/pole/${enc(id)}/livrable`),
 
   readMemory: (file: string) => request<MemoryFile>(`/memory/${enc(file)}`),
   writeMemory: (file: string, content: string, stamp: string) =>
@@ -188,8 +193,11 @@ export const api = {
     }),
   launchObsidian: () =>
     request<{ opened: string }>('/launch/obsidian', { method: 'POST', body: body({}) }),
-  openFolder: (input: { projectId?: string; target?: 'workspace' | 'vault' } = {}) =>
-    request<{ opened: string }>('/open/folder', { method: 'POST', body: body(input) }),
+  /** `pole` voyage par identifiant : c'est le serveur qui resout son dossier.
+      Aucun chemin arbitraire ne traverse jamais cette frontiere. */
+  openFolder: (
+    input: { projectId?: string; pole?: string; target?: 'workspace' | 'vault' } = {},
+  ) => request<{ opened: string }>('/open/folder', { method: 'POST', body: body(input) }),
 
   // --- Orchestration : l'equipe et ses poles -----------------------------------
   orchestration: () => request<Orchestration>('/orchestration'),

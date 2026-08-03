@@ -606,6 +606,75 @@ function dossierDuPole(pole) {
   return dir
 }
 
+/**
+ * Ou un pole a ecrit, SANS rien creer.
+ *
+ * Jumelle en lecture seule de `dossierDuPole`. Elle existe parce que l'autre
+ * fabrique : l'appeler pour afficher un chemin poserait un dossier vide par
+ * pole a chaque ouverture de l'ecran, et le Coffre se remplirait de coquilles.
+ *
+ * POURQUOI ON MONTRE CA. « Le pole a fini sa tache. Par contre, je ne sais pas
+ * ou je dois retrouver les resultats ni dans quel fichier. Ils ne sont ni
+ * apparents, accessibles nulle part. » - kuchu, 03/08/2026. Le dossier existait
+ * depuis toujours et ne se voyait pas : un pole qui produit un livrable
+ * introuvable n'a pas fini son travail, il l'a perdu.
+ *
+ * Rend `null` quand rien n'a jamais tourne - c'est different d'un dossier vide,
+ * et l'ecran doit pouvoir dire lequel des deux.
+ */
+export function livrableDuPole(pole, { max = 200 } = {}) {
+  let base
+  try {
+    base = sanitizeName(pole.titre.slice(0, 60).trim())
+  } catch {
+    base = pole.id
+  }
+
+  let dossier = null
+  for (const nom of [base, `${base} (${pole.id})`, pole.id]) {
+    const dir = path.join(POLES_DIR, nom)
+    if (!fs.existsSync(dir)) continue
+    const a = readJson(path.join(dir, '.pole.json'), null)
+    if (!a || a.pole === pole.id) {
+      dossier = dir
+      break
+    }
+  }
+  if (!dossier) return null
+
+  /** Ce que l'agent a laisse. Le marqueur du Hub n'en fait pas partie : il est
+      a nous, pas a l'utilisateur, et le compter gonflerait un dossier vide. */
+  const fichiers = []
+  const parcourir = (dir, profondeur) => {
+    if (profondeur > 3 || fichiers.length >= max) return
+    let entrees
+    try {
+      entrees = fs.readdirSync(dir, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const e of entrees) {
+      if (fichiers.length >= max) return
+      if (e.name === '.pole.json') continue
+      const complet = path.join(dir, e.name)
+      if (e.isDirectory()) {
+        parcourir(complet, profondeur + 1)
+        continue
+      }
+      let octets = 0
+      try {
+        octets = fs.statSync(complet).size
+      } catch {
+        /* disparu entre la lecture et le stat */
+      }
+      fichiers.push({ nom: path.relative(dossier, complet), octets })
+    }
+  }
+  parcourir(dossier, 0)
+
+  return { dossier, fichiers }
+}
+
 // -----------------------------------------------------------------------------
 // Ce qu'on dit a l'agent
 // -----------------------------------------------------------------------------

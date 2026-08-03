@@ -120,6 +120,7 @@ obligerait le Hub a connaitre un texte que l'installateur possede.
 | L'ecran entier, sans barre laterale | `studio` | — | `StudioView.tsx` |
 | Une case du canevas | `noeud-studio` | `--agent-lisere-noeud`, `--agent-point` | `NoeudStudio.tsx` |
 | La fiche « une tache de plus » | `brouillon-tache` | — | `StudioView.tsx` |
+| « 5 fichiers produits », a droite du canevas | `livrable-pole` | — | `LivrablePole.tsx` — absent tant que le pole n'a jamais tourne |
 | Le panneau de reglages a droite | — | — | `StudioView.tsx`, cherche `<aside` |
 | Les traits entre les cases | — | — | pas de molette : la couleur vient de l'agent amont |
 
@@ -191,6 +192,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `ligne-outil` | `src/components/OutilsEquipe.tsx` |
 | `ligne-profil` | `src/components/ProfilsMemoire.tsx` |
 | `ligne-sauvegarde` | `src/components/Sauvegardes.tsx` |
+| `livrable-pole` | `src/components/LivrablePole.tsx` |
 | `memoire-equipe` | `src/components/MemoireEquipe.tsx` |
 | `menu-lateral` | `src/components/Sidebar.tsx` |
 | `nav-orchestration` | `src/pages/OrchestrationView.tsx` |

@@ -102,11 +102,26 @@ type Volet = 'historique' | 'conversation' | 'agents' | 'poles'
  * au-dessus parce qu'on ouvre une application sur ce qu'on a laisse en cours,
  * pas sur une page blanche.
  */
+/**
+ * Deux questions, deux volets - et c'est tout le sujet.
+ *
+ * L'onglet s'appelait « Poles / Equipes ». Une barre oblique annonce deux
+ * variantes d'une meme chose, et ce sont deux natures differentes : le pole dit
+ * CE QUI EST FAIT - un graphe de taches lu dans `kanban.db` - l'equipe dit QUI
+ * pourrait le faire, un simple groupe nomme dans `.hub/equipes.json`. kuchu, le
+ * 03/08/2026 : « on ne comprend pas vraiment quelles sont les differences entre
+ * pole et equipe ». Le modele, lui, etait deja juste ; c'est l'ecran qui les
+ * confondait.
+ *
+ * Les equipes remontent donc chez les agents. Meme raison que les outils MCP,
+ * poses la avant elles : c'est la meme question - « qui ai-je ? ». Une equipe
+ * n'est qu'une facon de grouper des agents, et elle ne FAIT rien.
+ */
 const VOLETS: { id: Volet; label: string; icon: typeof Users }[] = [
   { id: 'historique', label: 'Historique', icon: History },
   { id: 'conversation', label: 'Conversation', icon: MessageSquare },
-  { id: 'agents', label: 'Agents', icon: Users },
-  { id: 'poles', label: 'Poles / Equipes', icon: Network },
+  { id: 'agents', label: 'Agents et equipes', icon: Users },
+  { id: 'poles', label: 'Poles', icon: Network },
 ]
 
 /** Ce qui est ouvert par-dessus : l'organigramme de l'equipe, ou celui d'un pole. */
@@ -567,6 +582,37 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
                     ))}
                   </div>
 
+                  {/* Les equipes sont ici, avec les agents qu'elles groupent,
+                      et plus a cote des poles ou on les prenait pour la meme
+                      chose. La definition insiste sur ce qu'une equipe ne fait
+                      PAS : c'est le seul moyen de ne pas la confondre avec un
+                      pole, qui lui produit quelque chose. */}
+                  <div className="border-t border-slate-200 pt-4 dark:border-navy-800">
+                    <Entete
+                      titre={`${equipes.length} equipe${equipes.length > 1 ? 's' : ''}`}
+                      detail="Des agents qu on appelle ensemble - une equipe ne fait rien toute seule"
+                    />
+                    {equipes.length > 0 ? (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {equipes.map((e) => (
+                          <VignetteEquipe
+                            key={e.id}
+                            equipe={e}
+                            agents={e.membres
+                              .map((m) => agents.find((a) => a.id === m))
+                              .filter((a): a is Agent => !!a)}
+                            onOuvrir={() => setOuvert({ genre: 'equipe-nommee', id: e.id })}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] muted">
+                        Aucune equipe. Elles servent a appeler plusieurs agents d un seul nom dans
+                        la conversation - un confort, pas un passage oblige.
+                      </p>
+                    )}
+                  </div>
+
                   {/* Les outils tiennent sous les agents, et pas dans un volet
                       a eux : c'est la meme question - « qui ai-je, et que
                       savent-ils faire ? ». Un outil qui manque a un agent est
@@ -586,31 +632,21 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
                     occupee={simuOccupee}
                   />
 
+                  {/* Le pole avait un compteur la ou l'equipe avait une
+                      definition - « 2 poles - aucun en cours ». Un compteur
+                      n'apprend rien, et le lecteur en concluait que les deux
+                      etaient des variantes. Il dit maintenant ce qu'il EST, et
+                      la phrase est volontairement dissymetrique de celle de
+                      l'equipe : l'une nomme des gens, l'autre produit quelque
+                      chose. */}
                   <Entete
-                    titre={`${equipes.length} equipe${equipes.length > 1 ? 's' : ''}`}
-                    detail="Un groupe d agents qu on appelle d un bloc"
+                    titre={`${poles.length} pole${poles.length > 1 ? 's' : ''}`}
+                    detail={
+                      actifs > 0
+                        ? `${actifs} en cours - des taches enchainees qui produisent un livrable`
+                        : 'Un scenario : des taches enchainees qui produisent un livrable'
+                    }
                   />
-                  {equipes.length > 0 && (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {equipes.map((e) => (
-                        <VignetteEquipe
-                          key={e.id}
-                          equipe={e}
-                          agents={e.membres
-                            .map((m) => agents.find((a) => a.id === m))
-                            .filter((a): a is Agent => !!a)}
-                          onOuvrir={() => setOuvert({ genre: 'equipe-nommee', id: e.id })}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="pt-2">
-                    <Entete
-                      titre={`${poles.length} pole${poles.length > 1 ? 's' : ''}`}
-                      detail={actifs > 0 ? `${actifs} en cours` : 'aucun en cours'}
-                    />
-                  </div>
 
                   {data && !data.tableau.disponible && (
                     <TableauIndisponible raison={data.tableau.raison} />
