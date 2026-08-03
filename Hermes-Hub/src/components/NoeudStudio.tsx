@@ -58,6 +58,25 @@ export function NoeudStudio({ data, selected }: NodeProps) {
   const style = { '--agent': `var(--jeton-${d.couleur})` } as CSSProperties
   const accords = d.accords || []
 
+  /**
+   * Les trois reponses possibles a la demande de tete.
+   *
+   * Separees explicitement plutot que devinees au vol : `allow_once` et
+   * `allow_always` commencent tous deux par « allow », et les confondre revient
+   * a donner une permission permanente pour un clic qui voulait dire « cette
+   * fois ». `toujours` reste absent quand le serveur l'a retire - sur le rouge,
+   * toujours.
+   */
+  const options = accords[0]?.options || []
+  const oui_tous = options.filter((o) => String(o.genre || '').startsWith('allow'))
+  // « Pas toujours » plutot que « egal a allow_once » : un genre inconnu qui
+  // autorise doit rester cliquable. Le contraire ferait disparaitre le bouton
+  // vert et rendrait la tache indeblocable depuis le graphe - on aurait
+  // remplace un accord silencieux par un pole mort.
+  const toujours = oui_tous.find((o) => String(o.genre).includes('always'))
+  const oui = oui_tous.find((o) => !String(o.genre).includes('always'))
+  const non = options.find((o) => String(o.genre || '').startsWith('reject'))
+
   return (
     <div className="relative" style={style}>
       {/* Les prises : discretes au repos, elles grossissent au survol du noeud.
@@ -180,26 +199,44 @@ export function NoeudStudio({ data, selected }: NodeProps) {
               <span className="ml-1 font-normal opacity-70">1 sur {accords.length}</span>
             )}
           </span>
+          {/* UNE FOIS et TOUJOURS sont deux gestes differents, et ils avaient
+              le meme bouton. Le vert prenait `find(genre commence par allow)` -
+              donc le PREMIER, qui peut etre `allow_always` selon l'ordre
+              qu'envoie le protocole. On pouvait accorder une permission
+              permanente en croyant repondre une fois, sans que rien ne le dise.
+              Un accord qu'on ne se souvient pas d'avoir donne est le pire des
+              accords.
+
+              Le vert vise donc `allow_once` explicitement, et « toujours » a
+              son propre bouton. QUAND IL EXISTE : c'est le serveur qui decide -
+              `arbitrer()` retire l'option sur le rouge, ecrire, effacer et
+              lancer une commande se redemandant a chaque fois. L'interface ne
+              rejuge pas le risque, elle montre ce qu'on lui donne. */}
+          {oui && (
+            <button
+              title={`Une fois : ${accords[0].titre}`}
+              onClick={() => d.onRepondre?.(accords[0].demande, accords[0].agent, oui.id)}
+              className="grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white hover:bg-emerald-600"
+            >
+              <Check className="h-3 w-3" />
+            </button>
+          )}
+          {toujours && (
+            <button
+              title={`${toujours.libelle} — il ne redemandera plus de la session`}
+              onClick={() => d.onRepondre?.(accords[0].demande, accords[0].agent, toujours.id)}
+              className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-300"
+            >
+              toujours
+            </button>
+          )}
           <button
             title={accords[0].titre}
             onClick={() =>
               d.onRepondre?.(
                 accords[0].demande,
                 accords[0].agent,
-                accords[0].options.find((o) => o.genre?.startsWith('allow'))?.id || 'allow_once',
-              )
-            }
-            className="grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white hover:bg-emerald-600"
-          >
-            <Check className="h-3 w-3" />
-          </button>
-          <button
-            title={accords[0].titre}
-            onClick={() =>
-              d.onRepondre?.(
-                accords[0].demande,
-                accords[0].agent,
-                accords[0].options.find((o) => o.genre?.startsWith('reject'))?.id || 'deny',
+                non?.id || 'deny',
               )
             }
             className="grid h-5 w-5 place-items-center rounded-full bg-red-500 text-white hover:bg-red-600"

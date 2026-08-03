@@ -4,7 +4,7 @@ import { NewProjectModal } from './components/NewProjectModal'
 import { BandeauProfil, PremiereFois } from './components/PremiereFois'
 import { Sidebar } from './components/Sidebar'
 import { Toasts } from './components/Toasts'
-import { api } from './lib/api'
+import { api, ecouterChat } from './lib/api'
 import { useRoute } from './hooks/useRoute'
 import { CleanView } from './pages/CleanView'
 import { ConfigView } from './pages/ConfigView'
@@ -23,6 +23,23 @@ export default function App() {
   const bootstrap = useHubStore((s) => s.bootstrap)
   const ready = useHubStore((s) => s.ready)
   const connected = useHubStore((s) => s.connected)
+  const rafraichirAccords = useHubStore((s) => s.rafraichirAccords)
+
+  /**
+   * Le compte des demandes en attente, tenu au niveau de l'application.
+   *
+   * Ici et pas dans un ecran : une question qui bloque un pole doit se voir
+   * depuis les Projets, le Coffre ou la Configuration - c'est-a-dire depuis
+   * l'endroit ou l'on est justement parti. Un ecran qui la porte ne la montre
+   * qu'a ceux qui l'ont deja trouvee.
+   *
+   * On ne compte pas les evenements, on RELIT le serveur a chacun : ils disent
+   * bien quand une demande arrive, jamais de facon fiable quand elle s'en va.
+   */
+  useEffect(() => {
+    void rafraichirAccords()
+    return ecouterChat(() => void rafraichirAccords())
+  }, [rafraichirAccords])
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [newProject, setNewProject] = useState(false)

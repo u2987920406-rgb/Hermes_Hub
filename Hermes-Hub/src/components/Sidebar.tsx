@@ -83,12 +83,16 @@ function NavButton({
   active,
   onNavigate,
   badge,
+  badgeTitre,
   collapsed,
 }: {
   item: NavItem
   active: boolean
   onNavigate: (view: View) => void
   badge?: number
+  /** Ce que la pastille veut dire. Elle etait ecrite en dur pour la corbeille -
+      la meme phrase serait fausse partout ailleurs. */
+  badgeTitre?: string
   collapsed: boolean
 }) {
   const { id, label, icon: Icon, accent, bordure } = item
@@ -117,7 +121,7 @@ function NavButton({
               ? 'px-2 py-0.5 lg:absolute lg:right-1 lg:top-1 lg:px-1.5 lg:py-0 lg:text-[9px]'
               : 'px-2 py-0.5'
           }`}
-          title={`${badge} element${badge > 1 ? 's' : ''} dans la corbeille`}
+          title={badgeTitre || `${badge} element${badge > 1 ? 's' : ''} dans la corbeille`}
         >
           {badge}
         </span>
@@ -134,6 +138,7 @@ export function Sidebar({ current, onNavigate, open, onClose, onRechercher }: Si
   const connected = useHubStore((s) => s.connected)
   const workspace = useHubStore((s) => s.workspace)
   const trash = useHubStore((s) => s.trash)
+  const accords = useHubStore((s) => s.accords)
   const version = useHubStore((s) => s.version)
 
   const [collapsed, setCollapsed] = useState(() => {
@@ -229,12 +234,22 @@ export function Sidebar({ current, onNavigate, open, onClose, onRechercher }: Si
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-2">
+          {/* La pastille d'Orchestration ne compte pas des elements ranges,
+              comme celle de la Corbeille : elle compte des agents ARRETES, qui
+              attendront indefiniment. Elle vit donc dans le menu, pour se voir
+              depuis l'ecran ou l'on est justement parti. */}
           {NAV.map((item) => (
             <NavButton
               key={item.id}
               item={item}
               active={current === item.id || (item.id === 'projects' && current === 'project')}
               onNavigate={onNavigate}
+              badge={item.id === 'orchestration' ? accords : undefined}
+              badgeTitre={
+                accords === 1
+                  ? 'Un agent attend ta reponse - il est arrete tant qu-elle ne vient pas'
+                  : `${accords} agents attendent ta reponse - ils sont arretes tant qu-elle ne vient pas`
+              }
               collapsed={collapsed}
             />
           ))}

@@ -2220,6 +2220,32 @@ async function handleApi(req, res, url) {
     }
   }
 
+  /**
+   * Tout ce qui attend une reponse, d'ou que ca vienne.
+   *
+   * Deux sources, et il faut les deux : la conversation (`equipage`) et les
+   * poles en cours (`etatChantiers`). Une demande nee dans un pole bloque
+   * autant qu'une autre, et c'est meme le cas le plus courant.
+   *
+   * UNE SOURCE PLUTOT QU'UN COMPTEUR TENU DANS LE NAVIGATEUR. Les demandes
+   * ARRIVENT par le flux, mais elles s'en vont par des chemins qui n'y passent
+   * pas tous : une tache qui quitte `running`, un agent qui s'endort, un pole
+   * arrete a la main. Un compteur entretenu a la main dans l'interface finirait
+   * par annoncer un blocage deja leve - et une pastille rouge qui ment est pire
+   * qu'une pastille absente : on apprend a ne plus la croire, et le jour ou
+   * elle dit vrai on ne la regarde plus.
+   */
+  if (rest[0] === 'accords' && !rest[1] && method === 'GET') {
+    const conversation = equipage
+      .etat()
+      .agents.flatMap((a) => (a.autorisations || []).map((d) => ({ ...d, agent: a.agent, pole: null })))
+    const poles = (etatChantiers().chantiers || []).flatMap((c) =>
+      (c.accords || []).map((d) => ({ ...d, pole: c.pole })),
+    )
+    const tout = [...conversation, ...poles]
+    return sendJson(res, 200, { total: tout.length, accords: tout })
+  }
+
   if (rest[0] === 'chat') {
     // Le flux precede la session : le navigateur doit deja ecouter quand les
     // premiers evenements du demarrage partent.

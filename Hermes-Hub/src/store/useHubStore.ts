@@ -32,6 +32,15 @@ interface HubState {
   vault: VaultFolder[]
   skins: Skin[]
   trash: TrashItem[]
+  /**
+   * Combien d'agents attendent une reponse, partout.
+   *
+   * Vit ici et pas dans un ecran : un pole arrete par une question qu'on n'a
+   * pas vue doit se signaler depuis N'IMPORTE OU dans le Hub. C'etait le
+   * constat de kuchu - « si je quitte la conversation, en aucun cas j'ai une
+   * indication comme quoi c'est bloque ».
+   */
+  accords: number
 
   loading: boolean
   toasts: Toast[]
@@ -63,6 +72,11 @@ interface HubState {
   refreshTrash: () => Promise<void>
   restoreTrash: (id: string) => Promise<boolean>
   purgeTrash: (id: string) => Promise<boolean>
+
+  /** Relit le serveur. Silencieux : un echec ne doit pas jeter une notification
+      toutes les quelques secondes, et un compte perime vaut mieux qu'une alerte
+      qui crie a la place du blocage qu'elle est censee annoncer. */
+  rafraichirAccords: () => Promise<void>
 }
 
 let toastSeq = 0
@@ -107,6 +121,7 @@ export const useHubStore = create<HubState>((set, get) => {
     vault: [],
     skins: [],
     trash: [],
+    accords: 0,
 
     loading: false,
     toasts: [],
@@ -252,6 +267,14 @@ export const useHubStore = create<HubState>((set, get) => {
 
     refreshTrash: async () => {
       set({ trash: await withError(() => api.trash(), get().trash) })
+    },
+
+    rafraichirAccords: async () => {
+      try {
+        set({ accords: (await api.accords()).total })
+      } catch {
+        /* Le serveur repondra au prochain evenement. Voir le contrat plus haut. */
+      }
     },
 
     restoreTrash: async (id) => {

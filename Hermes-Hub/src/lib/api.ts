@@ -3,6 +3,7 @@
  * of these calls - there is no local-only state pretending to be data.
  */
 import type {
+  AccordEnAttente,
   Agent,
   AppConfig,
   Automatisation,
@@ -82,6 +83,10 @@ export const api = {
   skins: () => request<Skin[]>('/skins'),
 
   diagnostics: () => request<Diagnostics>('/diagnostics'),
+
+  /** Tout ce qui attend une reponse : la conversation ET les poles en cours.
+      Lu par la barre laterale, qui n'a aucun autre moyen de savoir. */
+  accords: () => request<{ total: number; accords: AccordEnAttente[] }>('/accords'),
 
   readMemory: (file: string) => request<MemoryFile>(`/memory/${enc(file)}`),
   writeMemory: (file: string, content: string, stamp: string) =>
