@@ -310,6 +310,52 @@ demandé.
 
 ---
 
+## 13. Les outils MCP — et le piège qu'ils tendent
+
+**Nouveau.** Un serveur MCP donne à l'équipe une capacité qu'elle n'a pas :
+lire une boîte mail, interroger un logiciel métier, piloter un service.
+
+**Le piège, mesuré le 03/08/2026 : les serveurs MCP sont par profil.** Un outil
+branché avec `hermes mcp add` dans un terminal n'arrive que sur Hermès — jamais
+sur A, B et C, ceux-là mêmes qui exécutent les tâches. Et **rien ne le
+signale** : un agent privé d'outil ne dit pas qu'il lui manque, il fait
+autrement, ou il invente. C'est la pire panne, celle qui rend un résultat
+plausible.
+
+D'où cet écran, sous la liste des agents dans **Orchestration → Agents**.
+
+- [ ] Sur une installation neuve, la ligne dit **« 0 outil MCP »**. C'est
+      normal : le client branche les siens.
+- [ ] **Brancher un outil** → le formulaire demande un nom, puis *soit* une
+      adresse `https://…`, *soit* une commande et ses arguments. Remplir l'un
+      **grise** l'autre.
+- [ ] Sous « Pour qui », **tous les agents sont cochés d'avance**. C'est le
+      cœur de l'écran : la ligne de commande fait l'inverse, et c'est la panne
+      qu'on répare.
+- [ ] Branche-le → compte **quelques secondes par agent** : le serveur est
+      reconnecté chez chacun, l'un après l'autre. La ligne affiche ensuite
+      « Chez les N agents » en vert.
+
+Puis la réparation, celle qui vaut le détour :
+
+- [ ] Ouvre un terminal et branche un outil **à l'ancienne**, sur Hermès seul :
+      `hermes mcp add essai --command node --args C:\chemin\vers\un-serveur.mjs`
+- [ ] Recharge l'écran → la ligne apparaît **en ambre** : « 1 agent sur 4 — il
+      manque à A, B, C ».
+- [ ] Clique **Donner à toute l'équipe** → au bout de quelques secondes elle
+      repasse au vert.
+- [ ] La corbeille retire l'outil **de partout**, après confirmation.
+
+Un outil qui porte un en-tête d'authentification affiche **« ne se recopie
+pas »** au lieu du bouton : son secret ne se relit pas depuis la ligne de
+commande, et le recopier brancherait un serveur qui répond 401 sans expliquer
+pourquoi. Il faut alors l'ajouter agent par agent, avec son secret.
+
+> Les agents chargent leurs outils **au réveil**. Un agent déjà en train de
+> travailler gardera les anciens jusqu'à sa prochaine tâche.
+
+---
+
 ## Ce que je veux savoir en retour
 
 Par ordre d'utilité :
@@ -318,5 +364,7 @@ Par ordre d'utilité :
    spécialiste plutôt qu'à Hermes.
 2. **L'icône (§1)** — et si elle manque, le `lanceur.log`.
 3. **Le repêchage (§9)** — la seule fonction jamais vue marcher en vrai.
-4. Tout endroit où tu t'es senti **coincé sans issue** : c'est ce qui reste de
+4. **Les outils MCP (§13)** — si « Donner à toute l'équipe » a bien tenu sur un
+   vrai serveur métier, pas seulement sur un serveur d'essai.
+5. Tout endroit où tu t'es senti **coincé sans issue** : c'est ce qui reste de
    la phase 4, et je ne peux pas le trouver sans toi.

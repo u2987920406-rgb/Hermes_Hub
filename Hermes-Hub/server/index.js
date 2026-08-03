@@ -37,6 +37,7 @@ import {
 } from './graphe.js'
 import { lireCompteurs, oublierCompteurs } from './compteurs.js'
 import { creerAgent, decrireAgent, renommerAgent, retirerAgent } from './agents.js'
+import { brancherOutil, debrancherOutil, listerOutils, repartirOutil } from './outils.js'
 import {
   apprendre,
   lireCompetences,
@@ -1743,6 +1744,27 @@ async function handleApi(req, res, url) {
       }
       if (rest[2] && method === 'DELETE') {
         return sendJson(res, 200, retirerAgent(decodeURIComponent(rest[2])))
+      }
+    }
+
+    // Les outils MCP de l'equipe.
+    //
+    // Un branchement reconnecte le serveur une fois par agent - de deux a dix
+    // secondes chacun, mesure. L'appel est donc long par nature, et c'est
+    // l'interface qui doit l'annoncer plutot que le serveur qui doit l'abreger.
+    if (rest[1] === 'outils') {
+      if (!rest[2] && method === 'GET') return sendJson(res, 200, listerOutils())
+      if (!rest[2] && method === 'POST') return sendJson(res, 201, brancherOutil(await readBody(req)))
+      if (rest[2] && rest[3] === 'partager' && method === 'POST') {
+        return sendJson(res, 200, repartirOutil(decodeURIComponent(rest[2])))
+      }
+      if (rest[2] && method === 'DELETE') {
+        const pour = url.searchParams.get('pour')
+        return sendJson(
+          res,
+          200,
+          debrancherOutil(decodeURIComponent(rest[2]), pour ? pour.split(',') : null),
+        )
       }
     }
 

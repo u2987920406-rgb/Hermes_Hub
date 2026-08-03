@@ -918,6 +918,22 @@ echo - Pont Vault, a la demande : python scripts/nourrir-vault.py --projet
 echo   "<nom>". Voir PARAMETRES-DECLENCHEUR.md pour le mode automatique, qui
 echo   n'est PAS actif par defaut.
 echo.
+echo ## OUTILS MCP
+echo.
+echo Les serveurs MCP sont PAR PROFIL - mesure le 03/08/2026. Chaque profil est
+echo un home complet avec son propre config.yaml.
+echo.
+echo - "hermes mcp add" ne branche l'outil que sur le profil courant. Lance seul
+echo   dans un terminal, il le donne a Hermes et a personne d'autre : a-analyste,
+echo   b-redacteur et c-metteur - ceux qui executent les taches - travailleront
+echo   sans. Rien ne le signale, l'agent fait autrement ou invente.
+echo - Donc : brancher un outil se fait depuis le Hub, Orchestration ^> Agents,
+echo   section "outils MCP". Toute l'equipe est cochee d'avance.
+echo - Un outil deja branche a l'ancienne s'y voit en ambre ^("1 agent sur 4"^),
+echo   avec le bouton "Donner a toute l'equipe" a cote.
+echo - Les agents chargent leurs outils au reveil : un agent en train de
+echo   travailler garde les anciens jusqu'a sa prochaine tache.
+echo.
 echo _MEMOIRE THEMATIQUE - une ligne par sujet, a remplir au fil du temps :_
 echo.
 ) >> "!HERMES_HOME!\memories\MEMORY.md"

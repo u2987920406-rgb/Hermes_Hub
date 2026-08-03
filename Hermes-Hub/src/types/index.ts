@@ -408,6 +408,41 @@ export interface Compteurs {
  * Rangee dans le Coffre (`Vault/Skills`), donc lisible dans Obsidian et
  * sauvegardee avec le reste - pas dans une base propre au Hub.
  */
+/**
+ * Un outil MCP et qui le possede.
+ *
+ * `manque` est le champ qui travaille. Les serveurs MCP sont par profil - mesure
+ * le 03/08/2026 - donc un outil branche au terminal n'arrive que sur Hermes, et
+ * les agents qui executent les taches travaillent sans. Rien ne le signalait :
+ * un agent prive d'outil ne se plaint pas, il fait autrement.
+ */
+export interface Outil {
+  nom: string
+  transport: 'stdio' | 'http'
+  /** L'adresse, ou la commande et son dernier argument. */
+  resume: string
+  actif: boolean
+  present: string[]
+  manque: string[]
+  partout: boolean
+  /** Non nul quand l'outil ne peut pas etre recopie : en-tete d'authentification,
+      ou forme que le Hub ne sait pas relire. */
+  pourquoiPas: string | null
+}
+
+export interface EtatOutils {
+  /** L'equipe visee, bac a sable exclu. */
+  equipe: string[]
+  outils: Outil[]
+}
+
+/** Le compte rendu d'un branchement : un agent peut echouer sans les autres. */
+export interface PoseOutil {
+  nom: string
+  deja?: boolean
+  resultats: { profil: string; ok: boolean; message: string | null }[]
+}
+
 export interface Competence {
   fichier: string
   chemin: string

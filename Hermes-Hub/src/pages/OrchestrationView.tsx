@@ -33,6 +33,7 @@ import { Modal } from '../components/Modal'
 import { Organigramme } from '../components/Organigramme'
 import type { EtatNoeud, LienOrg, NoeudOrg } from '../components/Organigramme'
 import { NouvelAgent } from '../components/NouvelAgent'
+import { OutilsEquipe } from '../components/OutilsEquipe'
 import { PageHeader } from '../components/PageHeader'
 import { sansAccord } from '../lib/accords'
 import { api, ecouterChat } from '../lib/api'
@@ -540,6 +541,14 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
                     {agents.map((a) => (
                       <LigneAgent key={a.id} agent={a} />
                     ))}
+                  </div>
+
+                  {/* Les outils tiennent sous les agents, et pas dans un volet
+                      a eux : c'est la meme question - « qui ai-je, et que
+                      savent-ils faire ? ». Un outil qui manque a un agent est
+                      un trou de competence, pas un reglage. */}
+                  <div className="border-t border-slate-200 pt-4 dark:border-navy-800">
+                    <OutilsEquipe nomsAgents={new Map(agents.map((a) => [a.id, a.nom]))} />
                   </div>
                 </>
               )}

@@ -11,6 +11,8 @@ import type {
   Competence,
   Compteurs,
   EtatAutomatisations,
+  EtatOutils,
+  PoseOutil,
   Decomposition,
   NoteRetour,
   VersionBanc,
@@ -215,6 +217,27 @@ export const api = {
     request<{ id: string; retire: boolean }>(`/orchestration/agent/${enc(id)}`, {
       method: 'DELETE',
     }),
+
+  // --- Les outils MCP ----------------------------------------------------------
+  // Un branchement reconnecte le serveur une fois PAR AGENT : compter en
+  // dizaines de secondes pour une equipe, pas en dixiemes. L'appelant doit
+  // occuper l'ecran pendant ce temps.
+  outils: () => request<EtatOutils>('/orchestration/outils'),
+  brancherOutil: (o: {
+    nom: string
+    commande?: string
+    args?: string[]
+    url?: string
+    env?: Record<string, string>
+    pour?: string[]
+  }) => request<PoseOutil>('/orchestration/outils', { method: 'POST', body: body(o) }),
+  partagerOutil: (nom: string) =>
+    request<PoseOutil>(`/orchestration/outils/${enc(nom)}/partager`, { method: 'POST' }),
+  debrancherOutil: (nom: string, pour?: string[]) =>
+    request<PoseOutil>(
+      `/orchestration/outils/${enc(nom)}${pour?.length ? `?pour=${enc(pour.join(','))}` : ''}`,
+      { method: 'DELETE' },
+    ),
 
   // --- Ce qu'on a appris -------------------------------------------------------
   // `pour` demande ce qui ressemble a une demande en cours d'ecriture : c'est

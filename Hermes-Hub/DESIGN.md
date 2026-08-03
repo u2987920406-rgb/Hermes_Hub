@@ -66,6 +66,9 @@ pour le nommer quand on veut demander une modification.
 | Le menu de gauche (Historique, Conversation…) | `nav-orchestration` | — | l'ordre vient de `VOLETS` |
 | Le formulaire « Un agent de plus » | `nouvel-agent` | — | `NouvelAgent.tsx` |
 | Une fiche dans la liste des agents | `fiche-agent` | `--agent-lisere`, `--agent-point`, `--densite` | `OrchestrationView.tsx` |
+| Les outils MCP, sous les agents | `outils-equipe` | — | `OutilsEquipe.tsx` |
+| La ligne d'un outil, avec « qui l'a » | `ligne-outil` | `--densite` | idem — l'ambre signale un outil incomplet |
+| Le formulaire « Brancher un outil » | `nouvel-outil` | — | idem |
 | Une conversation dans l'historique | `ligne-historique` | `--densite` | tri : `ONGLETS` |
 | Une vignette de pole | `vignette-pole` | `--agent-lisere-vignette` | idem |
 | Une vignette d'equipe | `vignette-equipe` | `--agent-lisere-vignette` | idem |
@@ -160,14 +163,17 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `formulaire-nouveau-projet` | `src/components/NewProjectModal.tsx` |
 | `ligne-banc` | `src/components/BancEssai.tsx` |
 | `ligne-historique` | `src/pages/OrchestrationView.tsx` |
+| `ligne-outil` | `src/components/OutilsEquipe.tsx` |
 | `menu-lateral` | `src/components/Sidebar.tsx` |
 | `nav-orchestration` | `src/pages/OrchestrationView.tsx` |
 | `noeud-organigramme` | `src/components/Organigramme.tsx` |
 | `noeud-studio` | `src/components/NoeudStudio.tsx` |
 | `notifications` | `src/components/Toasts.tsx` |
 | `nouvel-agent` | `src/components/NouvelAgent.tsx` |
+| `nouvel-outil` | `src/components/OutilsEquipe.tsx` |
 | `nouvelle-automatisation` | `src/components/NouvelleAutomatisation.tsx` |
 | `organigramme` | `src/components/Organigramme.tsx` |
+| `outils-equipe` | `src/components/OutilsEquipe.tsx` |
 | `palette-commandes` | `src/components/CommandPalette.tsx` |
 | `pastille-agent` | `src/components/Conversation.tsx` |
 | `rangee-agents` | `src/components/Conversation.tsx` |
