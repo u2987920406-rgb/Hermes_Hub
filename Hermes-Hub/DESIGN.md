@@ -99,6 +99,7 @@ ni alerte. Un accueil ne porte pas de rubrique vide.
 | Le bandeau rouge « Hermes ne sait pas qui tu es » | `bandeau-profil` | — | idem — **sans croix**, il ne part qu'en choisissant un profil |
 | L'encart et la bulle, dans Configuration > Memoire | `profils-memoire` | — | `ProfilsMemoire.tsx`, tableau `LECON` |
 | Une ligne de la bulle : un profil et son poids | `ligne-profil` | `--densite` | idem |
+| Les sept questions, quand `USER.md` est choisi | `questions-user` | — | `QuestionsUser.tsx`, tableau `CHAMPS` |
 
 Deux drapeaux, et leur separation EST le dispositif : la case « ne plus
 afficher » eteint `fenetreVue`, donc la fenetre. Seul un profil choisi pose
@@ -198,6 +199,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `pastille-agent` | `src/components/Conversation.tsx` |
 | `premiere-fois` | `src/components/PremiereFois.tsx` |
 | `profils-memoire` | `src/components/ProfilsMemoire.tsx` |
+| `questions-user` | `src/components/QuestionsUser.tsx` |
 | `rangee-agents` | `src/components/Conversation.tsx` |
 | `studio` | `src/pages/StudioView.tsx` |
 | `trace-delegation` | `src/components/Conversation.tsx` |

@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react'
 import { ConfirmDialog } from '../components/Modal'
 import { PageHeader } from '../components/PageHeader'
 import { ProfilsMemoire } from '../components/ProfilsMemoire'
+import { QuestionsUser } from '../components/QuestionsUser'
 import { api } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
 import type { AppConfig, Diagnostics, MemoryFile, Theme } from '../types'
@@ -28,6 +29,14 @@ import { FICHIERS_MEMOIRE, THEMES } from '../types'
 
 interface Props {
   onMenu: () => void
+  /**
+   * Ouvrir directement sur les questions de USER.md.
+   *
+   * La fenetre du premier lancement et le bandeau y renvoient : les deposer sur
+   * l'onglet general laisserait chercher, et une personne qu'on a convaincue en
+   * trois secondes se perd en trois clics.
+   */
+  versQuiJeSuis?: boolean
 }
 
 const EDITABLE: { key: keyof AppConfig; label: string; hint: string; placeholder?: string }[] = [
@@ -102,7 +111,7 @@ function Ligne({
   )
 }
 
-export function ConfigView({ onMenu }: Props) {
+export function ConfigView({ onMenu, versQuiJeSuis = false }: Props) {
   const config = useHubStore((s) => s.config)
   const skins = useHubStore((s) => s.skins)
   const version = useHubStore((s) => s.version)
@@ -115,9 +124,9 @@ export function ConfigView({ onMenu }: Props) {
   const [draft, setDraft] = useState<Partial<AppConfig>>({})
   const [saving, setSaving] = useState(false)
   const [diag, setDiag] = useState<Diagnostics | null>(null)
-  const [onglet, setOnglet] = useState<Onglet>('general')
+  const [onglet, setOnglet] = useState<Onglet>(versQuiJeSuis ? 'memoire' : 'general')
   const [autoStart, setAutoStart] = useState(false)
-  const [fichier, setFichier] = useState<string>('MEMORY.md')
+  const [fichier, setFichier] = useState<string>(versQuiJeSuis ? 'USER.md' : 'MEMORY.md')
   const [memoire, setMemoire] = useState<MemoryFile | null>(null)
   const [texteMemoire, setTexteMemoire] = useState('')
   const [proposition, setProposition] = useState<string | null>(null)
@@ -451,6 +460,25 @@ export function ConfigView({ onMenu }: Props) {
                   .catch(() => null)
               }}
             />
+
+            {/* Les questions n'existent que pour USER.md : c'est le seul des
+                trois qu'on ne peut pas deviner. Les regles et le caractere sont
+                deja ecrits - on les montre, on ne les demande pas. */}
+            {fichier === 'USER.md' && (
+              <div className="mt-3">
+                <QuestionsUser
+                  onEnregistre={() => {
+                    api
+                      .readMemory(fichier)
+                      .then((m) => {
+                        setMemoire(m)
+                        setTexteMemoire(m.content)
+                      })
+                      .catch(() => null)
+                  }}
+                />
+              </div>
+            )}
 
             {memoire ? (
               <div className="mt-4">

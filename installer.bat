@@ -1003,45 +1003,43 @@ mkdir "!HERMES_HOME!\memories" 2>nul
 if not exist "!HERMES_HOME!\memories\MEMORY.md" (
     > "!HERMES_HOME!\memories\MEMORY.md" echo # Memoire
 )
+REM CE BLOC ENONCAIT SA PROPRE REGLE PUIS LA VIOLAIT. Il s'annoncait « couche
+REM d'indice - jamais le contenu ici, car ce bloc est charge a chaque
+REM demarrage », et posait ensuite cinq puces de procedure : chemins de scripts,
+REM noms de fichiers JSON, ordre des greps. Mesure le 03/08/2026 : 530 jetons a
+REM CHAQUE demarrage, plus que les huit garde-fous eux-memes.
+REM
+REM Or ce sont des procedures, pas des comportements - et la difference decide
+REM de l'endroit. Un comportement doit etre en contexte TOUJOURS : on ne cherche
+REM pas « ne pas inventer » au moment ou l'on invente. Une procedure ne sert que
+REM le jour ou on l'execute, une fois par mois au mieux.
+REM
+REM Le detail part donc dans memoire/MODE-D-EMPLOI.md, a la racine de l'espace
+REM de travail - un dossier de travail, jamais charge tout seul. Ici ne reste
+REM que l'indice, et surtout QUAND aller lire : un pointeur sans declencheur ne
+REM se suit pas.
 (
 echo.
 echo ## MEMOIRE DURABLE
 echo.
-echo _La couche d'indice que la memoire native n'a pas : une ligne par grand
-echo sujet, pointant vers son journal. Jamais le contenu ici - seulement
-echo l'indice, car ce bloc est charge a chaque demarrage._
+echo state.db est FRAGILE : un reset le vide. L'archive disque - journaux
+echo thematiques et Resumes-Sessions/ - lui survit, et c'est elle le garant.
 echo.
-echo - state.db est FRAGILE : un reset le vide. L'archive disque - journaux
-echo   thematiques et Resumes-Sessions/ - lui survit. C'est elle le garant.
-echo - Pour retrouver un sujet ancien : lire ce bloc, puis grep des TAGS dans
-echo   l'INDEX du journal ^(jamais le fichier entier^), puis ouvrir le seul bloc
-echo   vise. Repli : scripts/resume-sessions.py si state.db est encore la.
-echo - Un nouveau grand sujet : copier memoire/TEMPLATE-JOURNAL-THEMATIQUE.md
-echo   en Journal-^<Sujet^>.md, et ajouter ICI une ligne - une seule.
-echo - Anti-doublon : une session deja couverte par un journal va dans
-echo   Resumes-Sessions/exclusions.json, sinon elle sera resumee deux fois.
-REM Pas de ^ sur le chevron entre guillemets : les guillemets protegent deja de
-REM la redirection, et le ^ s'y ecrit alors tel quel. Sorti « "^<nom^>" » a
-REM l'essai du 03/08/2026.
-echo - Pont Vault, a la demande : python scripts/nourrir-vault.py --projet
-echo   "<nom>". Voir PARAMETRES-DECLENCHEUR.md pour le mode automatique, qui
-echo   n'est PAS actif par defaut.
+echo Le mode d'emploi complet est dans **memoire/MODE-D-EMPLOI.md**, a la racine
+echo de l'espace de travail. Va le lire quand je demande de retrouver un sujet
+echo ancien, d'en ouvrir un nouveau, de nourrir le Coffre, ou de brancher un
+echo outil MCP. Ne le charge pas autrement : ce qui est ecrit ici se relit a
+echo chaque demarrage, lui non.
 echo.
+REM Une seule ligne pour les MCP, et c'est celle qui evite la panne : le reste
+REM - pourquoi, comment reparer, ce que voit l'ecran - est dans le mode
+REM d'emploi. Ce qui reste ici doit tenir en une phrase qu'on lit sans y penser.
 echo ## OUTILS MCP
 echo.
-echo Les serveurs MCP sont PAR PROFIL - mesure le 03/08/2026. Chaque profil est
-echo un home complet avec son propre config.yaml.
-echo.
-echo - "hermes mcp add" ne branche l'outil que sur le profil courant. Lance seul
-echo   dans un terminal, il le donne a Hermes et a personne d'autre : a-analyste,
-echo   b-redacteur et c-metteur - ceux qui executent les taches - travailleront
-echo   sans. Rien ne le signale, l'agent fait autrement ou invente.
-echo - Donc : brancher un outil se fait depuis le Hub, Orchestration ^> Agents,
-echo   section "outils MCP". Toute l'equipe est cochee d'avance.
-echo - Un outil deja branche a l'ancienne s'y voit en ambre ^("1 agent sur 4"^),
-echo   avec le bouton "Donner a toute l'equipe" a cote.
-echo - Les agents chargent leurs outils au reveil : un agent en train de
-echo   travailler garde les anciens jusqu'a sa prochaine tache.
+echo Les serveurs MCP sont PAR PROFIL : "hermes mcp add" ne les donne qu'au
+echo profil courant, jamais aux agents qui executent les taches - et rien ne le
+echo signale. Brancher un outil se fait depuis le Hub, Orchestration ^> Agents,
+echo qui coche toute l'equipe d'avance.
 echo.
 echo _MEMOIRE THEMATIQUE - une ligne par sujet, a remplir au fil du temps :_
 echo.
@@ -1049,8 +1047,78 @@ echo.
 REM Copie de reference : c'est elle que le bouton "Version d'origine" du Hub
 REM restaure. Le Hub ne connait ainsi aucun texte par defaut.
 copy /y "!HERMES_HOME!\memories\MEMORY.md" "!HERMES_HOME!\memories\MEMORY.default.md" >nul 2>&1
+call :write_mode_emploi
 echo   OK - Regles ecrites dans la memoire d'Hermes.
 exit /b 0
+
+REM -----------------------------------------------------------------------------
+REM :write_mode_emploi - le detail que la memoire ne porte plus
+REM -----------------------------------------------------------------------------
+REM Il vit dans l'ESPACE DE TRAVAIL, pas dans memories/ : un dossier de travail
+REM ne se charge pas tout seul, et c'est exactement ce qu'on cherche. Ce fichier
+REM ne coute rien tant qu'on ne le lit pas, et il est lu le jour ou il sert.
+REM
+REM Sans lui, le pointeur pose dans MEMORY.md ne pointerait sur rien - et un
+REM renvoi vers un fichier absent est pire que pas de renvoi : l'agent cherche,
+REM ne trouve pas, et improvise.
+:write_mode_emploi
+mkdir "%WORKSPACE%\memoire" 2>nul
+(
+echo # Mode d'emploi de la memoire durable
+echo.
+echo _Ce fichier n'est PAS charge au demarrage, et c'est voulu. Hermes vient le
+echo lire quand on lui demande de retrouver un sujet ancien, d'en ouvrir un
+echo nouveau, de nourrir le Coffre ou de brancher un outil - sa memoire le lui
+echo dit. Le reste du temps il ne coute rien._
+echo.
+echo ## Retrouver un sujet ancien
+echo.
+echo 1. Lire le bloc MEMOIRE THEMATIQUE de la memoire : une ligne par sujet.
+echo 2. Grep les TAGS dans l'INDEX du journal vise - jamais le fichier entier.
+echo 3. Ouvrir le seul bloc concerne.
+echo.
+echo Repli, tant que state.db est encore la : python scripts/resume-sessions.py
+echo.
+echo ## Ouvrir un nouveau grand sujet
+echo.
+echo Copier memoire/TEMPLATE-JOURNAL-THEMATIQUE.md en Journal-du-sujet.md, puis
+echo ajouter UNE ligne - une seule - dans le bloc MEMOIRE THEMATIQUE. L'indice
+echo reste court, le contenu vit dans le journal.
+echo.
+echo ## Ne pas resumer deux fois
+echo.
+echo Une session deja couverte par un journal se declare dans
+echo Resumes-Sessions/exclusions.json. Sans ca elle sera resumee une seconde
+echo fois, et les deux resumes se contrediront tot ou tard.
+echo.
+echo ## Nourrir le Coffre
+echo.
+echo     python scripts/nourrir-vault.py --projet "le nom du projet"
+echo.
+echo Le mode automatique existe et n'est PAS actif par defaut : voir
+echo PARAMETRES-DECLENCHEUR.md avant de l'activer.
+echo.
+echo ## Brancher un outil MCP
+echo.
+echo Les serveurs MCP sont PAR PROFIL - mesure le 03/08/2026. Chaque profil est
+echo un home complet, avec son propre config.yaml.
+echo.
+echo - "hermes mcp add" lance seul dans un terminal ne donne l'outil qu'au
+echo   profil courant. Les agents qui executent les taches travailleront sans,
+echo   et RIEN NE LE SIGNALE : un agent prive d'outil ne se plaint pas, il fait
+echo   autrement, ou il invente. C'est la pire panne, celle qui rend un
+echo   resultat plausible.
+echo - Passer par le Hub : Orchestration ^> Agents, section outils MCP. Toute
+echo   l'equipe est cochee d'avance - le defaut y est celui qui marche.
+echo - Un outil deja branche a l'ancienne s'y voit en ambre, avec le bouton
+echo   "Donner a toute l'equipe" juste a cote.
+echo - Un outil portant un en-tete d'authentification affiche "ne se recopie
+echo   pas" : son secret ne se relit pas depuis la ligne de commande. Il faut
+echo   l'ajouter agent par agent.
+echo - Les agents chargent leurs outils AU REVEIL : un agent en train de
+echo   travailler garde les anciens jusqu'a sa prochaine tache.
+) > "%WORKSPACE%\memoire\MODE-D-EMPLOI.md"
+goto :eof
 
 REM ================================================
 REM :declare_obsidian - inscrit le coffre dans Obsidian

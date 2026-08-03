@@ -38,6 +38,15 @@ export default function App() {
    */
   const [accueil, setAccueil] = useState<Accueil | null>(null)
   const [fenetre, setFenetre] = useState(false)
+  /** Vrai quand on arrive sur Configuration par la fenetre ou le bandeau :
+      l'ecran s'ouvre alors sur les questions, pas sur l'onglet general. */
+  const [versQuiJeSuis, setVersQuiJeSuis] = useState(false)
+
+  const allerAuxQuestions = () => {
+    setVersQuiJeSuis(true)
+    setFenetre(false)
+    go('config')
+  }
 
   useEffect(() => {
     void bootstrap()
@@ -55,6 +64,19 @@ export default function App() {
       })
       .catch(() => setAccueil(null))
   }, [])
+
+  /**
+   * Relu en quittant Configuration.
+   *
+   * C'est la qu'on repond aux questions, et l'etat change cote serveur sans que
+   * cet ecran-ci le sache. Sans cette relecture, le bandeau rouge continuerait
+   * d'annoncer qu'Hermes ne sait pas qui vous etes a quelqu'un qui vient de le
+   * lui dire - un avertissement qui ment est pire que pas d'avertissement.
+   */
+  useEffect(() => {
+    if (route.view === 'config') return
+    api.accueil().then(setAccueil).catch(() => null)
+  }, [route.view])
 
   // Ctrl+K (Cmd+K sur Mac) ouvre la recherche depuis n'importe quel ecran.
   useEffect(() => {
@@ -113,7 +135,7 @@ export default function App() {
       case 'trash':
         return <TrashView onMenu={() => setMenuOpen(true)} />
       case 'config':
-        return <ConfigView onMenu={() => setMenuOpen(true)} />
+        return <ConfigView onMenu={() => setMenuOpen(true)} versQuiJeSuis={versQuiJeSuis} />
       default:
         return <HomeView onNavigate={go} onMenu={() => setMenuOpen(true)} />
     }
@@ -168,7 +190,7 @@ export default function App() {
             afficher » de la fenetre n'eteint QUE la fenetre : ceux qui la
             cochent sont exactement ceux qu'on veut atteindre. */}
         {accueil && !accueil.profilValide && route.view !== 'config' && (
-          <BandeauProfil onAller={() => go('config')} />
+          <BandeauProfil onAller={allerAuxQuestions} />
         )}
         {renderView()}
       </main>
@@ -182,15 +204,7 @@ export default function App() {
         />
       )}
 
-      {fenetre && (
-        <PremiereFois
-          onFermer={() => setFenetre(false)}
-          onAller={() => {
-            setFenetre(false)
-            go('config')
-          }}
-        />
-      )}
+      {fenetre && <PremiereFois onFermer={() => setFenetre(false)} onAller={allerAuxQuestions} />}
 
       <Toasts />
     </div>
