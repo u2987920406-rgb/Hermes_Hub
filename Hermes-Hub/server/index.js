@@ -269,6 +269,13 @@ function readProject(name) {
     // workspace et survit a une reinstallation du Hub.
     pinned: meta.pinned === true,
     files,
+    // Le total voyage avec la liste, et ce n'est pas de la redondance :
+    // l'interface ecrivait « /6 » en dur. Le jour ou DESIGN.md est entre dans
+    // STANDARD_FILES, un projet qui avait les six autres affichait
+    // « 6/6 - certains manquent » : un compte juste, une phrase juste, et un
+    // ecran qui se contredit tout seul. Personne ne peut corriger ce qu'un
+    // ecran affirme complet.
+    total: STANDARD_FILES.length,
     complete: files.length === STANDARD_FILES.length,
   }
 }

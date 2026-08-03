@@ -73,7 +73,9 @@ export function ProjectCard({ project, onOpen }: Props) {
         </p>
 
         <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] muted">
-          <span>{project.files.length}/6 fichiers</span>
+          <span>
+            {project.files.length}/{project.total} fichiers
+          </span>
           <span>Utilise {relativeDate(project.lastUsed)}</span>
           {!project.complete && (
             <span className="text-amber-600 dark:text-amber-400">Fichiers manquants</span>

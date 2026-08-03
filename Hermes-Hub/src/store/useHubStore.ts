@@ -164,7 +164,7 @@ export const useHubStore = create<HubState>((set, get) => {
     createProject: async (input) => {
       const project = await withError(() => api.createProject(input), null as Project | null)
       if (project) {
-        notify('success', `Projet "${project.name}" cree avec ses 6 fichiers.`)
+        notify('success', `Projet "${project.name}" cree avec ses ${project.total} fichiers.`)
         await get().refresh()
       }
       return project

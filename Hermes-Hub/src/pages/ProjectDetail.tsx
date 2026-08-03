@@ -19,7 +19,7 @@ export function ProjectDetail({ projectId, onBack, onMenu }: Props) {
   const updateProject = useHubStore((s) => s.updateProject)
   const notify = useHubStore((s) => s.notify)
 
-  // Les 6 fichiers .md sont le reglage du projet, pas son contenu principal :
+  // Les fichiers .md sont le reglage du projet, pas son contenu principal :
   // affiches d'emblee, ils font passer la fiche pour un editeur de texte. On
   // les garde derriere "Fichiers de contexte".
   const [editing, setEditing] = useState(false)
@@ -217,7 +217,7 @@ export function ProjectDetail({ projectId, onBack, onMenu }: Props) {
               <div>
                 <dt className="muted">Fichiers de contexte</dt>
                 <dd>
-                  {project.files.length}/6
+                  {project.files.length}/{project.total}
                   {!project.complete && (
                     <span className="ml-2 text-amber-600 dark:text-amber-400">
                       certains manquent
@@ -236,8 +236,8 @@ export function ProjectDetail({ projectId, onBack, onMenu }: Props) {
             <span className="min-w-0">
               <span className="block text-xs font-medium">Fichiers de contexte</span>
               <span className="block text-[11px] muted">
-                Les 6 fichiers .md que Hermes lit et met a jour. A ouvrir seulement pour les
-                relire ou les corriger a la main.
+                Les {project.total} fichiers .md que Hermes lit et met a jour. A ouvrir seulement
+                pour les relire ou les corriger a la main.
               </span>
             </span>
           </button>

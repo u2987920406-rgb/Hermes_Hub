@@ -67,10 +67,10 @@ import { ApiError, api, ecouterChat } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
 import { ETATS_TACHE } from '../types'
 import type {
+  AccordEnAttente,
   Agent,
   Chantier,
   Compteurs,
-  DemandeAutorisation,
   EtatTache,
   Pole,
   Simulation,
@@ -84,6 +84,29 @@ const ECART_Y = 40
 
 const FINI: EtatTache[] = ['done']
 const DORMANT: EtatTache[] = ['triage', 'todo', 'scheduled']
+
+/**
+ * Les demandes d'autorisation que CE noeud doit porter.
+ *
+ * La tache decide, pas l'agent. Filtrer par nom d'agent posait la meme demande
+ * sur toutes les boites qu'il tient dans le graphe : trois noeuds annonçaient
+ * « 2 demandes » pour une seule, et repondre sur l'un les eteignait tous - on
+ * croyait avoir accorde trois choses en un clic.
+ *
+ * Une demande sans tache ne vient pas du pole. Plutot que de la laisser sans
+ * noeud - donc sans reponse possible, donc un pole bloque en silence - on la
+ * pose sur la tache que cet agent execute a cet instant.
+ */
+function accordsDuNoeud(
+  accords: AccordEnAttente[],
+  tache: { id: string; etat: EtatTache; agent?: string | null },
+  agentId?: string,
+) {
+  const siennes = accords.filter((x) => x.tache === tache.id)
+  if (siennes.length) return siennes
+  if (tache.etat !== 'running') return []
+  return accords.filter((x) => !x.tache && x.agent === (agentId || tache.agent))
+}
 
 function etatVisuel(etat: EtatTache): EtatNoeud | undefined {
   if (FINI.includes(etat)) return 'succes'
@@ -137,7 +160,7 @@ function Atelier({ poleId, onQuitter }: Props) {
   const [agents, setAgents] = useState<Agent[]>([])
   const [noeuds, setNoeuds] = useState<Node[]>([])
   const [vivant, setVivant] = useState<Map<string, EtatNoeud>>(new Map())
-  const [accords, setAccords] = useState<(DemandeAutorisation & { agent: string })[]>([])
+  const [accords, setAccords] = useState<AccordEnAttente[]>([])
   const [chantier, setChantier] = useState<Chantier | null>(null)
   const [compteurs, setCompteurs] = useState<Compteurs | null>(null)
   const [voirPrevus, setVoirPrevus] = useState(false)
@@ -201,6 +224,37 @@ function Atelier({ poleId, onQuitter }: Props) {
       setVoirPrevus(p.finies === 0)
     }
   }, [poleId])
+
+  /**
+   * Un geste, puis on relit.
+   *
+   * Le canevas a deja bouge quand la reponse arrive - React Flow retire le lien
+   * a l'ecran avant qu'on sache si le tableau l'accepte. La relecture n'est donc
+   * pas un rafraichissement de confort : c'est elle qui remet en place ce qu'un
+   * refus vient d'effacer, et elle a lieu que l'appel reussisse ou non.
+   *
+   * DECLARE ICI, avant l'effet qui batit les noeuds. Ces boutons finissaient
+   * tous par `.catch(() => null)` : le serveur refusait, et il ne se passait
+   * RIEN - ni action, ni message. Ca se lit « le bouton Lancer ne marche pas »,
+   * et c'est la seule lecture possible. Le brancher demandait de le remonter :
+   * une constante citee dans un tableau de dependances plus haut que sa propre
+   * declaration jette a l'execution, et l'ecran serait reste blanc.
+   */
+  const agir = useCallback(
+    async (faire: () => Promise<unknown>, dit?: string) => {
+      setOccupe(true)
+      try {
+        await faire()
+        if (dit) notifier('info', dit)
+      } catch (err) {
+        notifier('error', err instanceof ApiError ? err.message : 'Le tableau a refuse ce geste.')
+      } finally {
+        setOccupe(false)
+        await charger()
+      }
+    },
+    [charger, notifier],
+  )
 
   /**
    * Le reglage des liens prevus a deux maitres, et la main l'emporte.
@@ -304,10 +358,10 @@ function Atelier({ poleId, onQuitter }: Props) {
           etiquette: ETATS_TACHE[t.etat] || t.etat,
           agent: a?.id,
           compte: parCompte.get(t.id),
-          accords: accords.filter((x) => x.agent === (a?.id || t.agent)),
+          accords: accordsDuNoeud(accords, t, a?.id),
           onRepondre: (demande, agent, option) => {
             setAccords((liste) => sansAccord(liste, agent, demande))
-            void api.chatAutoriser(agent, demande, option).catch(() => null)
+            void agir(() => api.chatAutoriser(agent, demande, option))
           },
         }
         return {
@@ -318,7 +372,7 @@ function Atelier({ poleId, onQuitter }: Props) {
         }
       }),
     )
-  }, [pole, agents, rangs, vivant, accords, compteurs])
+  }, [pole, agents, rangs, vivant, accords, compteurs, agir])
 
   /**
    * Les liaisons.
@@ -414,30 +468,6 @@ function Atelier({ poleId, onQuitter }: Props) {
   // ---------------------------------------------------------------------------
   // Batir le graphe
   // ---------------------------------------------------------------------------
-  /**
-   * Un geste, puis on relit.
-   *
-   * Le canevas a deja bouge quand la reponse arrive - React Flow retire le lien
-   * a l'ecran avant qu'on sache si le tableau l'accepte. La relecture n'est donc
-   * pas un rafraichissement de confort : c'est elle qui remet en place ce qu'un
-   * refus vient d'effacer, et elle a lieu que l'appel reussisse ou non.
-   */
-  const agir = useCallback(
-    async (faire: () => Promise<unknown>, dit?: string) => {
-      setOccupe(true)
-      try {
-        await faire()
-        if (dit) notifier('info', dit)
-      } catch (err) {
-        notifier('error', err instanceof ApiError ? err.message : 'Le tableau a refuse ce geste.')
-      } finally {
-        setOccupe(false)
-        await charger()
-      }
-    },
-    [charger, notifier],
-  )
-
   const surConnexion = useCallback(
     (c: Connection) => {
       if (!poleId || !c.source || !c.target) return
@@ -696,7 +726,7 @@ function Atelier({ poleId, onQuitter }: Props) {
         )}
         {chantier?.actif ? (
           <button
-            onClick={() => void api.arreterPole(poleId!).catch(() => null)}
+            onClick={() => void agir(() => api.arreterPole(poleId!))}
             className="btn-ghost gap-1.5 px-2 py-1.5 text-[11px]"
           >
             <Square className="h-3.5 w-3.5" />
@@ -704,7 +734,7 @@ function Atelier({ poleId, onQuitter }: Props) {
           </button>
         ) : (
           <button
-            onClick={() => void api.lancerPole(poleId!).catch(() => null)}
+            onClick={() => void agir(() => api.lancerPole(poleId!), 'Le pole est lance.')}
             className="btn-primary gap-1.5 px-2.5 py-1.5 text-[11px]"
           >
             <Play className="h-3.5 w-3.5" />
@@ -827,13 +857,13 @@ function Atelier({ poleId, onQuitter }: Props) {
             accords={accords}
             onAccord={(demande, agent, option) => {
               setAccords((a) => sansAccord(a, agent, demande))
-              void api.chatAutoriser(agent, demande, option).catch(() => null)
+              void agir(() => api.chatAutoriser(agent, demande, option))
             }}
-            onLancer={() => void api.lancerPole(poleId!).catch(() => null)}
-            onArreter={() => void api.arreterPole(poleId!).catch(() => null)}
+            onLancer={() => void agir(() => api.lancerPole(poleId!), 'Le pole est lance.')}
+            onArreter={() => void agir(() => api.arreterPole(poleId!))}
             onValider={() => {
               if (!poleId) return
-              void api.validerPole(poleId).then(() => setValidation(true)).catch(() => null)
+              void agir(() => api.validerPole(poleId).then(() => setValidation(true)))
             }}
             // Dans l'atelier, « Modifier » n'envoie nulle part : on y est deja.
             // La fenetre se ferme, et la souris reprend la main sur le graphe.

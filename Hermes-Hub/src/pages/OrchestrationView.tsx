@@ -36,7 +36,8 @@ import { NouvelAgent } from '../components/NouvelAgent'
 import { OutilsEquipe } from '../components/OutilsEquipe'
 import { PageHeader } from '../components/PageHeader'
 import { sansAccord } from '../lib/accords'
-import { api, ecouterChat } from '../lib/api'
+import { ApiError, api, ecouterChat } from '../lib/api'
+import { useHubStore } from '../store/useHubStore'
 import { ETATS_TACHE } from '../types'
 import type {
   Agent,
@@ -164,6 +165,25 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
     setFils(await api.conversations().catch(() => []))
   }, [])
 
+  const notifier = useHubStore((s) => s.notify)
+
+  /** Meme raison qu'au Studio : un refus du serveur ne doit pas ressortir en
+      « le bouton ne fait rien ». Voir le commentaire de `agir` la-bas. */
+  const agir = useCallback(
+    async (quoi: string, faire: () => Promise<unknown>) => {
+      try {
+        return await faire()
+      } catch (err) {
+        notifier(
+          'error',
+          err instanceof ApiError ? `${quoi} : ${err.message}` : `${quoi} n a pas abouti.`,
+        )
+        return null
+      }
+    },
+    [notifier],
+  )
+
   useEffect(() => {
     if (volet === 'historique') void chargerFils()
   }, [volet, chargerFils])
@@ -271,10 +291,13 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
     })
   }, [chargerChantiers, charger])
 
-  const repondreAccord = useCallback(async (demande: string, agent: string, option: string) => {
-    setAccords((a) => sansAccord(a, agent, demande))
-    await api.chatAutoriser(agent, demande, option).catch(() => null)
-  }, [])
+  const repondreAccord = useCallback(
+    async (demande: string, agent: string, option: string) => {
+      setAccords((a) => sansAccord(a, agent, demande))
+      await agir('Ta reponse', () => api.chatAutoriser(agent, demande, option))
+    },
+    [agir],
+  )
 
   /** Simuler un pole qui existe deja : lecture pure, quelques dizaines de ms. */
   const simuler = useCallback(async (pole: string) => {
@@ -362,10 +385,10 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
 
   const arreterPole = useCallback(async () => {
     if (!simu) return
-    await api.arreterPole(simu.pole.id).catch(() => null)
+    await agir("L'arret", () => api.arreterPole(simu.pole.id))
     await chargerChantiers()
     void charger()
-  }, [simu, chargerChantiers, charger])
+  }, [simu, agir, chargerChantiers, charger])
 
   // Un agent est eveille de deux facons : son processus tourne (la conversation
   // le sait en direct), ou une tache du tableau lui est confiee. Les deux
@@ -502,7 +525,7 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
                 setVolet('conversation')
               }}
               onJeter={async (id) => {
-                await api.supprimerConversation(id).catch(() => null)
+                await agir('La suppression', () => api.supprimerConversation(id))
                 void chargerFils()
               }}
             />
@@ -539,7 +562,7 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
                   />
                   <div className="space-y-2">
                     {agents.map((a) => (
-                      <LigneAgent key={a.id} agent={a} />
+                      <LigneAgent key={a.id} agent={a} onFait={() => void charger()} />
                     ))}
                   </div>
 
@@ -1090,8 +1113,38 @@ function Entete({
 }
 
 /** Une ligne par agent : son nom, ce qu'il sait faire, son cerveau. */
-function LigneAgent({ agent }: { agent: Agent }) {
+/**
+ * Les agents qu'on ne retire pas, et pourquoi le bouton n'apparait meme pas.
+ *
+ * `default` est Hermes lui-meme - l'effacer emporterait le home et les
+ * credentials du poste. `clean` est le bac a sable pose par l'installateur.
+ * `agents.js` les refuse deja cote serveur ; montrer une poubelle qui echoue a
+ * tous les coups serait pire qu'une poubelle absente.
+ */
+const INTOUCHABLES = new Set(['default', 'clean'])
+
+function LigneAgent({ agent, onFait }: { agent: Agent; onFait: () => void }) {
   const style = { '--agent': `var(--jeton-${agent.couleur})` } as CSSProperties
+  const [aRetirer, setARetirer] = useState(false)
+  const [occupe, setOccupe] = useState(false)
+  const notifier = useHubStore((s) => s.notify)
+
+  const retirer = async () => {
+    setOccupe(true)
+    try {
+      await api.retirerAgent(agent.id)
+      notifier('success', `${agent.nom} a ete retire de l equipe.`)
+      onFait()
+    } catch (err) {
+      notifier(
+        'error',
+        err instanceof ApiError ? err.message : "L agent n a pas pu etre retire.",
+      )
+    } finally {
+      setOccupe(false)
+      setARetirer(false)
+    }
+  }
 
   return (
     // Le fond reste celui de la carte : un aplat teinte par agent transformait
@@ -1134,7 +1187,55 @@ function LigneAgent({ agent }: { agent: Agent }) {
             </span>
           )}
         </div>
+
+        {/* La confirmation dit ce qui part, et elle le dit AVANT le clic qui
+            compte : Hermes efface le profil, ses sessions et sa memoire propre,
+            et il n'y a pas de corbeille derriere. Le nombre de taches en cours
+            est rappele ici parce qu'il ne se devine pas - retirer un agent qui
+            en tient laisserait un pole sans executant. */}
+        {aRetirer && (
+          <div className="mt-2 rounded-lg border border-rose-300 bg-rose-50/60 p-2.5 dark:border-rose-500/30 dark:bg-rose-500/10">
+            <p className="text-[11px] font-semibold">Retirer {agent.nom} ?</p>
+            <p className="mt-1 text-[11px] leading-relaxed">
+              Hermes efface son profil, ses sessions et sa memoire. C est definitif : il n y a pas
+              de corbeille pour un agent.
+              {agent.taches > 0 && (
+                <>
+                  {' '}
+                  Il tient encore <strong>{agent.taches} tache</strong>
+                  {agent.taches > 1 ? 's' : ''} : le pole qui les attend restera sans executant.
+                </>
+              )}
+            </p>
+            <div className="mt-2 flex justify-end gap-2">
+              <button
+                onClick={() => setARetirer(false)}
+                disabled={occupe}
+                className="btn-ghost px-2 py-1 text-[11px]"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => void retirer()}
+                disabled={occupe}
+                className="btn-danger px-2 py-1 text-[11px] disabled:opacity-40"
+              >
+                {occupe ? 'Retrait...' : 'Retirer'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {!INTOUCHABLES.has(agent.id) && !aRetirer && (
+        <button
+          onClick={() => setARetirer(true)}
+          title={`Retirer ${agent.nom} de l equipe`}
+          className="btn-ghost relative flex-none px-1.5 py-1.5"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   )
 }

@@ -719,8 +719,24 @@ class Chantier {
       // pour de bon. Le pont les conserve deja pour cette raison - on ne fait
       // que les rendre visibles, comme `equipage.etat()` le fait pour la
       // conversation.
+      //
+      // CHACUNE PORTE SA TACHE, et c'est ce qui manquait. L'agent seul ne
+      // designe rien sur un graphe : un agent y tient souvent plusieurs
+      // taches. L'interface, qui n'avait que le nom, posait la meme demande
+      // sur TOUS les noeuds de cet agent - trois boites annoncaient « 2
+      // demandes » pour une seule, et repondre a l'une les faisait toutes
+      // disparaitre. Mesure le 03/08/2026 sur un pole a trois taches.
+      //
+      // `pont.contexte` est pose juste avant l'envoi et efface dans le
+      // `finally` du tour : tant qu'une demande est en attente, il tient la
+      // tache qui l'a provoquee. Il reste nul pour un pont qui ne sert pas le
+      // pole - la demande vient alors d'ailleurs, et aucun noeud ne la porte.
       accords: [...this.equipage.ponts].flatMap(([agent, { pont }]) =>
-        pont.etat().autorisations.map((a) => ({ ...a, agent })),
+        pont.etat().autorisations.map((a) => ({
+          ...a,
+          agent,
+          tache: pont.contexte?.tache || null,
+        })),
       ),
     }
   }

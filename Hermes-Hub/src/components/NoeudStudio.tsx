@@ -163,11 +163,14 @@ export function NoeudStudio({ data, selected }: NodeProps) {
                 : 'text-amber-700 dark:text-amber-300',
             ].join(' ')}
           >
-            {accords.length > 1
-              ? `${accords.length} demandes`
-              : accords[0].risque === 'rouge'
-                ? 'ton accord ?'
-                : 'autorise ?'}
+            {/* On repond a UNE demande - celle de tete. L'etiquette disait « 2
+                demandes » au-dessus de deux boutons qui n'en traitaient qu'une :
+                on croyait accorder les deux d'un clic. Elle dit maintenant
+                laquelle, et combien suivent. */}
+            {accords[0].risque === 'rouge' ? 'ton accord ?' : 'autorise ?'}
+            {accords.length > 1 && (
+              <span className="ml-1 font-normal opacity-70">1 sur {accords.length}</span>
+            )}
           </span>
           <button
             title={accords[0].titre}

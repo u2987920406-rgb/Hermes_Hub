@@ -11,6 +11,9 @@ export interface Project {
   /** Remonte en tete de la liste des projets. */
   pinned: boolean
   files: string[]
+  /** Combien il en faut. Vient du serveur : l'ecrire en dur ici, c'est se
+      contredire le jour ou la liste change. */
+  total: number
   complete: boolean
 }
 
@@ -592,7 +595,19 @@ export interface Chantier {
   /** Ce qu'un agent attend pour continuer. Rejoue a l'ouverture du flux : sans
       lui, un rechargement de page perdrait l'identifiant de la demande, et le
       pole resterait bloque sans moyen de repondre. */
-  accords?: (DemandeAutorisation & { agent: string })[]
+  accords?: AccordEnAttente[]
+}
+
+/**
+ * Une demande en attente, et la tache qui l'a provoquee.
+ *
+ * `tache` est ce qui permet de la poser sur LE bon noeud. Un agent peut en
+ * tenir plusieurs dans un meme graphe : sans elle, la demande s'affichait sur
+ * chacune de ses boites. `null` quand la demande ne vient pas d'un pole.
+ */
+export type AccordEnAttente = DemandeAutorisation & {
+  agent: string
+  tache?: string | null
 }
 
 export const ETATS_TACHE: Record<EtatTache, string> = {
