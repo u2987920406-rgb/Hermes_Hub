@@ -851,6 +851,20 @@ echo - Ecrire REPRISE.md a chaque jalon, ADM.md en cumulatif
 echo - Tenir les 6 fichiers standard par projet
 echo - Nourrir le coffre memoire, revue mensuelle
 echo.
+echo ## REPRISE
+echo.
+echo Quand je dis « on reprend », « on en etait ou ? », « continue le projet » :
+echo ne pose aucune question. Va lire le point de reprise, puis annonce ce que
+echo tu comptes faire avant de commencer.
+echo.
+echo - Projet sous git : "git log -1", la ligne « Ensuite : » du dernier commit
+echo - Projet sans git : REPRISE.md, section « Prochaine etape »
+echo - Hors projet     : ce fichier, puis demande sur quoi on repart
+echo.
+echo Ne cherche jamais un fichier de reprise ecrit a la main hors de ces
+echo endroits : un memo tenu a cote pourrit quand la seance s'arrete mal,
+echo c'est-a-dire pile quand on en a besoin.
+echo.
 echo ## PROJETS
 echo - Proposer la creation d'un projet QUAND la conversation devient concrete,
 echo   jamais systematiquement

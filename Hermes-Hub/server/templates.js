@@ -37,6 +37,13 @@ Des le premier message de l'utilisateur (peu importe ce qu'il dit: bonjour, salu
 9. EFFACER cette section du .hermes.md (pour ne plus reposer la question)
 10. Seulement APRES, commencer a coder
 
+## Reprise
+Quand on dit "on reprend", "on en etait ou ?", "continue le projet" : ne pose
+aucune question. Va lire le point de reprise, puis annonce ce que tu comptes
+faire.
+- Sous git : "git log -1", la ligne "Ensuite :" du dernier commit
+- Sinon : REPRISE.md, section "Prochaine etape"
+
 ## Regles
 - Tester avant de dire fini
 - Review visuelle + code par jalon
@@ -187,6 +194,14 @@ Demarrage
 `,
 
     'REPRISE.md': `# ${name} - REPRISE
+
+> Le premier fichier a ouvrir quand on rouvre ce projet. Il ne contient que
+> deux choses : ou l'on s'est arrete, et ou l'on va. Le reste de l'histoire est
+> dans done.md et ADM.md.
+>
+> Si ce projet est sous git, c'est la ligne "Ensuite :" du dernier commit qui
+> fait foi - un memo tenu a la main pourrit quand la seance s'arrete mal,
+> c'est-a-dire pile quand on en a besoin.
 
 ## Dernier jalon
 (a remplir apres le premier jalon)
