@@ -152,21 +152,25 @@ function promouvoir() {
  * perfection - et on cherche par nom de base, en profondeur, parce qu'un agent
  * range parfois dans un sous-dossier qu'il a cree lui-meme.
  */
-function livrablesManquants(tache, dossier) {
-  const texte = `${tache.titre || ''}\n${tache.corps || ''}`
+/**
+ * Les fichiers qu'une tache s'est engagee a produire - vide si elle n'ecrit pas.
+ *
+ * Une tache qui rend du texte - une analyse, un arbitrage - n'a rien a prouver
+ * sur le disque, et rien a repecher non plus.
+ */
+function livrablesAttendus(tache) {
   const ecrit = lireCapacites({ titre: tache.titre, corps: tache.corps }).some(
     (c) => c.id === 'ecriture',
   )
-  if (!ecrit) return null
+  if (!ecrit) return []
+  return lireLivrables(`${tache.titre || ''}\n${tache.corps || ''}`)
+}
 
-  const attendus = lireLivrables(texte)
-  if (!attendus.length) return null
-
-  // Le chemin complet, pas seulement le nom : il faut pouvoir lire le fichier
-  // pour savoir si c'est un livrable ou un constat d'echec.
-  const surLeDisque = new Map()
+/** nom de fichier en minuscules -> chemin complet, en profondeur. */
+function indexer(dossier, profondeurMax = 4) {
+  const trouves = new Map()
   const parcourir = (dir, profondeur) => {
-    if (profondeur > 4) return
+    if (profondeur > profondeurMax) return
     let entrees
     try {
       entrees = fs.readdirSync(dir, { withFileTypes: true })
@@ -175,12 +179,95 @@ function livrablesManquants(tache, dossier) {
     }
     for (const e of entrees) {
       if (e.isDirectory()) parcourir(path.join(dir, e.name), profondeur + 1)
-      else if (!surLeDisque.has(e.name.toLowerCase())) {
-        surLeDisque.set(e.name.toLowerCase(), path.join(dir, e.name))
+      else if (!trouves.has(e.name.toLowerCase())) {
+        trouves.set(e.name.toLowerCase(), path.join(dir, e.name))
       }
     }
   }
   parcourir(dossier, 0)
+  return trouves
+}
+
+/**
+ * Le livrable ecrit au bon endroit sauf qu'il est a cote : on va le chercher.
+ *
+ * La consigne dit deja « tu lis la-bas, tu ecris ici ». Elle ne suffit pas, et
+ * on savait qu'elle ne suffirait pas : c'est un garde-fou de prompt, il tient
+ * la plupart du temps et pas toujours. Le 03/08/2026 il est tombe deux fois
+ * dans la meme soiree, et les deux fois de la meme facon - l'enonce portait un
+ * chemin absolu vers des donnees d'entree posees a la racine du workspace, et
+ * l'agent a depose son resultat **a cote de sa source**. Sofia : 2,5 ko de
+ * chiffres justes. Le maquettiste : un dossier de 117 ko, complet, verifie -
+ * les deux jetes, tache bloquee pour livrable introuvable.
+ *
+ * Un travail juste ne doit pas etre perdu pour une erreur de rangement. On
+ * regarde donc a la racine du workspace - le seul endroit ou le cas s'est
+ * produit, parce que c'est la que vivent les sources - et ce qui porte le nom
+ * d'un livrable attendu rentre dans le pole.
+ *
+ * Deux bornes, sans quoi le filet ferait plus de degats que le trou :
+ *
+ *   - seulement les noms que la tache s'est engagee a produire. On ne ramasse
+ *     pas un fichier au hasard parce qu'il traine ;
+ *   - seulement s'il a ete ecrit **pendant** le tour. Sans cette borne, une
+ *     tache qui echoue emporterait dans son pole un fichier de l'utilisateur
+ *     qui portait le meme nom depuis la veille - un deplacement qu'il n'a pas
+ *     demande, et qu'il ne verrait pas passer.
+ *
+ * On ne juge pas ici de ce qu'on ramene : un livrable creux repeche sera lu
+ * par `livrablesManquants` juste apres, et bloquera avec sa vraie raison -
+ * « il avoue » plutot que « il n'existe pas ».
+ */
+function repecher(tache, dossier, depuis) {
+  const attendus = livrablesAttendus(tache)
+  if (!attendus.length) return []
+
+  const dansLePole = indexer(dossier)
+  const manquants = attendus
+    .map((f) => path.posix.basename(f.chemin).toLowerCase())
+    .filter((nom) => !dansLePole.has(nom))
+  if (!manquants.length) return []
+
+  let entrees
+  try {
+    entrees = fs.readdirSync(WORKSPACE, { withFileTypes: true })
+  } catch {
+    return []
+  }
+
+  const repeches = []
+  for (const e of entrees) {
+    if (!e.isFile()) continue
+    if (!manquants.includes(e.name.toLowerCase())) continue
+
+    const de = path.join(WORKSPACE, e.name)
+    try {
+      if (fs.statSync(de).mtimeMs < depuis) continue
+      const vers = path.join(dossier, e.name)
+      // `rename` echoue d'un volume a l'autre ; le workspace et le pole sont sur
+      // le meme, mais rien ne l'impose - un workspace peut vivre sur un disque
+      // reseau. On recopie alors, et on n'efface qu'une fois la copie posee.
+      try {
+        fs.renameSync(de, vers)
+      } catch {
+        fs.copyFileSync(de, vers)
+        fs.unlinkSync(de)
+      }
+      repeches.push(e.name)
+    } catch {
+      /* un fichier verrouille, ou deja parti : on ne bloque pas pour ca */
+    }
+  }
+  return repeches
+}
+
+function livrablesManquants(tache, dossier) {
+  const attendus = livrablesAttendus(tache)
+  if (!attendus.length) return null
+
+  // Le chemin complet, pas seulement le nom : il faut pouvoir lire le fichier
+  // pour savoir si c'est un livrable ou un constat d'echec.
+  const surLeDisque = indexer(dossier)
 
   const trouves = attendus
     .map((f) => surLeDisque.get(path.posix.basename(f.chemin).toLowerCase()))
@@ -627,6 +714,10 @@ class Chantier {
     const pris = hermes(['claim', id, '--ttl', String(BAIL_SECONDES)])
     if (pris.status !== 0) return false
 
+    // L'heure du claim borne le repechage : seul ce qui a ete ecrit apres elle
+    // peut etre le travail de ce tour.
+    const debutTour = Date.now()
+
     this.enCours.set(id, { agent: agentId, titre })
     noterBail(id, { pole: this.poleId, agent: agentId })
     this.diffuser({ type: 'tache-etat', tache: id, titre, etat: 'running', agent: agentId })
@@ -682,6 +773,19 @@ class Chantier {
       // fichier et n'en a produit aucun - ni une qui a bien ecrit le fichier,
       // mais pour y avouer qu'elle n'a pas pu. Bloquer plutot que clore, sinon
       // le mensonge part aux taches filles par `kanban context`.
+      // Avant de juger, on va chercher ce qui est tombe a cote.
+      const repeches = repecher({ titre, corps }, this.dossier, debutTour)
+      if (repeches.length) {
+        this.diffuser({
+          type: 'tache-etat',
+          tache: id,
+          titre,
+          etat: 'running',
+          agent: agentId,
+          reprise: `${repeches.join(', ')} ecrit hors du pole - range dans ${path.basename(this.dossier)}`,
+        })
+      }
+
       const manque = livrablesManquants({ titre, corps }, this.dossier)
       if (manque) {
         throw new Error(
