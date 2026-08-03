@@ -714,8 +714,11 @@ boucle :
   jamais ete rejoue de bout en bout ;
 - **la porte de validation vit dans la fenetre de simulation**, donc « valider »
   se trouve a un endroit qu'on n'ouvre pas forcement avant de vouloir lancer ;
-- **on ne cree pas d'agent.** Le client compose un graphe, pas l'equipe qui
-  l'execute. C'est renvoye a la phase 8, mais ca se paie ici.
+- ~~**on ne cree pas d'agent**~~ **- ferme le 03/08/2026.** « Nouvel agent »
+  vit dans Orchestration : identifiant, description obligatoire d'au moins
+  vingt caracteres - c'est le seul texte que le decomposeur lit pour router -
+  et `--clone-from default` pour qu'il naisse avec la cle du poste. Le client
+  compose desormais l'equipe autant que le graphe.
 
 Et le fond du probleme : **le parcours de la section 5 n'a jamais ete joue en
 entier a la souris.** Le 03/08/2026, simuler puis valider puis lancer a ete fait
@@ -754,10 +757,50 @@ gauche de l'accueil.
 *Livrable* : un pole tourne a l'heure dite, Hub ferme.
 *Preuve* : tu le retrouves fait le lendemain matin.
 
-### Phase 8 - Studio complet *(a peine entamee)*
+### Phase 8 - Studio complet *(entamee)*
 
 Creation et edition fine d'agents et de poles, sous-graphes, propositions
 multi-poles, monitoring detaille.
+
+**Fait le 03/08/2026** : la composition d'equipe - creer, decrire, renommer,
+retirer un agent depuis le Hub, avec `default` et le bac a sable intouchables.
+Et les **outils MCP de l'equipe**, qui n'etaient pas au plan et se sont reveles
+indispensables : mesure faite, les serveurs MCP sont PAR PROFIL, donc un outil
+metier branche par un client avec `hermes mcp add` n'atteint aucun des agents
+qui executent ses taches - sans que rien ne le signale. L'ecran montre qui
+possede quoi et repare d'un bouton.
+
+*Reste* : sous-graphes, propositions multi-poles, monitoring detaille.
+
+---
+
+### Hors phases - le premier contact *(fait le 03/08/2026)*
+
+Ce chantier ne figurait dans aucune phase, et c'est le constat de kuchu qui l'a
+ouvert : **la memoire est la configuration qui change le plus l'usage quotidien,
+et c'est celle que tout le monde saute.** Lui le premier, par flemme, au debut.
+
+Les neuf questions posees pendant l'installation ont echoue pour une raison
+mesurable : dans un terminal, au bout de quarante minutes, on tape Entree pour
+en finir. L'auteur de l'installateur a saute ses propres questions.
+
+Ce qui est en place :
+
+- **l'installateur ne pose plus que le prenom.** Deux questions supprimees -
+  le profil pre-rempli et le service d'automatisation - parce qu'elles
+  proposaient un choix que personne ne pouvait faire en connaissance de cause ;
+- **les trois fichiers de memoire partent en gabarits.** `USER.md` pose ses
+  sept questions, `MEMORY.md` et `SOUL.md` s'annoncent. Un fichier blanc
+  n'apprend rien ;
+- **une fenetre au premier lancement** qui MONTRE l'ecart - la meme demande
+  avec et sans profil - plutot que d'obliger. Un mur produit « azerty », et une
+  reponse bidon est pire que le vide ;
+- **un bandeau qui ne s'eteint qu'en repondant.** La case « ne plus afficher »
+  eteint la fenetre, jamais le bandeau ;
+- **trois profils de regles** dans une bulle, chacun avec son poids en jetons.
+
+*Reste* : rien de bloquant. Le parcours n'a pas ete joue a la souris, comme
+celui du Studio.
 
 ---
 
