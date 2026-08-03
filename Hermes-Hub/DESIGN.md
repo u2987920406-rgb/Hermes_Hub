@@ -82,6 +82,7 @@ pour le nommer quand on veut demander une modification.
 | « Automatisations en cours », sous les compteurs | `automatisations` | — | `Automatisations.tsx` |
 | Le bandeau ambre « elles ne partiront pas » | — | — | idem : il ne parait QUE si des taches actives existent sans passerelle |
 | Une ligne d'automatisation, suspendue ou non | — | — | idem, attribut `data-suspendue` |
+| Le formulaire « Programmer une demande » | `nouvelle-automatisation` | — | `NouvelleAutomatisation.tsx` |
 
 La section entiere s'efface quand il n'y a rien a dire - ni tache programmee,
 ni alerte. Un accueil ne porte pas de rubrique vide.
@@ -163,6 +164,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `noeud-organigramme` | `src/components/Organigramme.tsx` |
 | `noeud-studio` | `src/components/NoeudStudio.tsx` |
 | `notifications` | `src/components/Toasts.tsx` |
+| `nouvelle-automatisation` | `src/components/NouvelleAutomatisation.tsx` |
 | `organigramme` | `src/components/Organigramme.tsx` |
 | `palette-commandes` | `src/components/CommandPalette.tsx` |
 | `pastille-agent` | `src/components/Conversation.tsx` |

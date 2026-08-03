@@ -251,11 +251,17 @@ Sur un poste neuf sans projet, il doit dire *« Aucun dossier Projets […] : ri
 capable de partir quand le Hub est fermé.
 
 - [ ] L'accueil ne montre **rien** si tu n'as rien programmé. C'est voulu.
-- [ ] Pose-en une depuis un terminal :
+- [ ] Clique **Programmer**. Un formulaire s'ouvre.
+- [ ] Écris une demande, choisis **Chaque jour** et une heure.
+- [ ] Sous le formulaire, une ligne dit **« Hermès recevra : `0 9 * * *` »** —
+      elle doit changer quand tu changes l'heure ou le rythme.
+- [ ] Essaie les quatre rythmes : chaque jour, chaque semaine, toutes les N
+      heures, expression libre. Les quatre doivent être acceptés.
+- [ ] Clique **Programmer** → l'automatisation apparaît dans la liste avec
+      « dans N h ».
 
-```
-hermes cron create "0 9 * * *" "Résume les nouveautés du jour" --name essai
-```
+**Vérifie l'échéance**, c'est là qu'une erreur se voit : « chaque lundi » posé
+un mardi doit annoncer le lundi suivant, pas demain.
 
 - [ ] Recharge l'accueil → une zone **Automatisations en cours** apparaît, avec
       son horaire et « dans N h ».

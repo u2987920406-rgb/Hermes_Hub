@@ -15,6 +15,7 @@
 import { AlarmClock, CircleSlash, Pause, Play, Trash2, AlertTriangle } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../lib/api'
+import { NouvelleAutomatisation } from './NouvelleAutomatisation'
 import { useHubStore } from '../store/useHubStore'
 import type { EtatAutomatisations } from '../types'
 
@@ -61,15 +62,18 @@ export function Automatisations() {
     [charger, notifier],
   )
 
-  // Rien de programme et rien a signaler : on n'occupe pas l'accueil avec une
-  // section vide. Elle reapparait des qu'il y a quelque chose a dire.
-  if (!etat || (etat.automatisations.length === 0 && !etat.muettes)) return null
+  // Le serveur n'a pas repondu : on ne montre rien plutot qu'une section morte.
+  if (!etat) return null
+
+  const vide = etat.automatisations.length === 0
 
   return (
     <section data-zone="automatisations">
       <div className="mb-3 flex items-center gap-2">
         <AlarmClock className="h-4 w-4 text-slate-400" />
         <h3 className="text-sm font-semibold">Automatisations en cours</h3>
+        <span className="flex-1" />
+        <NouvelleAutomatisation onFait={() => void charger()} />
       </div>
 
       {etat.muettes && (
@@ -88,6 +92,13 @@ export function Automatisations() {
             </code>
           </div>
         </div>
+      )}
+
+      {vide && (
+        <p className="text-[11px] muted">
+          Rien de programme. « Programmer » pose une demande qui partira toute
+          seule, meme le Hub ferme.
+        </p>
       )}
 
       <div className="space-y-2">
