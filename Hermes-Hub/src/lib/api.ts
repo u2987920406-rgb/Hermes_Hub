@@ -8,6 +8,7 @@ import type {
   Automatisation,
   Chantier,
   Comparaison,
+  Competence,
   Compteurs,
   EtatAutomatisations,
   Decomposition,
@@ -196,6 +197,23 @@ export const api = {
   // l'une annonce, l'autre constate, et on ne les affiche pas au meme endroit.
   compteurs: (pole: string) =>
     request<Compteurs>(`/orchestration/compteurs?pole=${enc(pole)}`),
+
+  // --- Ce qu'on a appris -------------------------------------------------------
+  // `pour` demande ce qui ressemble a une demande en cours d'ecriture : c'est
+  // la proactivite du plan, et elle propose sans jamais substituer.
+  competences: (pour?: string) =>
+    request<Competence[]>(
+      '/orchestration/competences' + (pour ? `?pour=${enc(pour)}` : ''),
+    ),
+  apprendreDuPole: (pole: string) =>
+    request<{ fichier: string; titre: string; etapes: number; tags: string[] }>(
+      '/orchestration/competences',
+      { method: 'POST', body: body({ pole }) },
+    ),
+  oublierCompetence: (fichier: string) =>
+    request<{ oubliee: string }>(`/orchestration/competences/${enc(fichier)}`, {
+      method: 'DELETE',
+    }),
 
   // --- Les automatisations -----------------------------------------------------
   // Le Hub ne planifie rien lui-meme : il lit et ecrit celles d'Hermes, seul

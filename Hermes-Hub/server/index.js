@@ -37,6 +37,12 @@ import {
 } from './graphe.js'
 import { lireCompteurs, oublierCompteurs } from './compteurs.js'
 import {
+  apprendre,
+  lireCompetences,
+  oublierCompetence,
+  proposerPour,
+} from './competences.js'
+import {
   creerAutomatisation,
   etat as etatPlanification,
   retirerAutomatisation,
@@ -1712,6 +1718,29 @@ async function handleApi(req, res, url) {
         throw err
       }
       return sendJson(res, 200, await simuler(pole))
+    }
+
+    // Ce qu'on a appris des poles qui ont abouti.
+    //
+    // Le Coffre est le magasin : `Vault/Skills`. Pas de base a nous - il
+    // s'ouvre dans Obsidian, il est sauvegarde avec le reste, et il survit a
+    // une reinstallation du Hub.
+    if (rest[1] === 'competences') {
+      if (!rest[2] && method === 'GET') {
+        // `?pour=` demande ce qui ressemble a une demande en cours d'ecriture.
+        const pour = url.searchParams.get('pour')
+        if (pour) return sendJson(res, 200, proposerPour(pour))
+        return sendJson(res, 200, lireCompetences())
+      }
+      if (!rest[2] && method === 'POST') {
+        const body = await readBody(req)
+        const { agents, poles } = await lireOrchestration()
+        const pole = poles.find((p) => p.id === String(body.pole || ''))
+        return sendJson(res, 201, apprendre(pole, new Map(agents.map((a) => [a.id, a]))))
+      }
+      if (rest[2] && method === 'DELETE') {
+        return sendJson(res, 200, oublierCompetence(decodeURIComponent(rest[2])))
+      }
     }
 
     // Ce que le pole a reellement coute la derniere fois qu'il a tourne.

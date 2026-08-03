@@ -403,6 +403,25 @@ export interface Compteurs {
 }
 
 /**
+ * Ce qu'on a appris d'un pole qui a abouti : la forme d'un travail qui a marche.
+ *
+ * Rangee dans le Coffre (`Vault/Skills`), donc lisible dans Obsidian et
+ * sauvegardee avec le reste - pas dans une base propre au Hub.
+ */
+export interface Competence {
+  fichier: string
+  chemin: string
+  titre: string
+  tags: string[]
+  pole: string | null
+  date: string | null
+  etapes: number
+  /** Presents seulement quand la fiche est proposee pour une demande. */
+  score?: number
+  communs?: string[]
+}
+
+/**
  * Une tache programmee, telle qu'Hermes la garde.
  *
  * Le Hub n'en tient aucune : il lit celles du planificateur d'Hermes, seul

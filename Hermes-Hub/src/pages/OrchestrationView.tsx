@@ -38,6 +38,7 @@ import { api, ecouterChat } from '../lib/api'
 import { ETATS_TACHE } from '../types'
 import type {
   Agent,
+  Competence,
   Chantier,
   DemandeAutorisation,
   Equipe as EquipeType,
@@ -869,6 +870,33 @@ function BoiteDemande({
   onPreparer: () => void
   occupee: boolean
 }) {
+  /**
+   * Ce qu'on avait deja fait de ce genre.
+   *
+   * La proactivite promise par le plan, et elle est deliberement timide : on
+   * MONTRE ce qui avait marche, on ne substitue rien. Rejouer automatiquement
+   * une forme sur une demande qui n'est pas tout a fait la meme donnerait un
+   * plan que personne n'a demande, et personne ne saurait pourquoi.
+   *
+   * On interroge apres une pause : chaque frappe declencherait une lecture du
+   * Coffre, et la fiche clignoterait pendant qu'on ecrit.
+   */
+  const [proches, setProches] = useState<Competence[]>([])
+  useEffect(() => {
+    const t = valeur.trim()
+    if (t.length < 12) {
+      setProches([])
+      return
+    }
+    const minuteur = setTimeout(() => {
+      void api
+        .competences(t)
+        .then(setProches)
+        .catch(() => setProches([]))
+    }, 600)
+    return () => clearTimeout(minuteur)
+  }, [valeur])
+
   return (
     <div data-zone="boite-demande" className="card space-y-2 p-3.5">
       <div className="flex items-center gap-2">
@@ -895,6 +923,25 @@ function BoiteDemande({
           Preparer le plan
         </button>
       </div>
+
+      {/* Ce qu'on avait deja fait de ce genre. La fiche est dans le Coffre :
+          on donne son nom et sa forme, l'utilisateur juge. */}
+      {proches.length > 0 && (
+        <div className="rounded-lg border border-sky-200 bg-sky-50 p-2.5 dark:border-sky-500/30 dark:bg-sky-500/10">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-sky-700 dark:text-sky-300">
+            Deja fait de ce genre
+          </p>
+          {proches.map((c) => (
+            <p key={c.fichier} className="mt-1 text-[11px] leading-relaxed">
+              <span className="font-medium">{c.titre}</span>
+              <span className="muted">
+                {' '}
+                - {c.etapes} etape{c.etapes > 1 ? 's' : ''}, fiche dans le Coffre
+              </span>
+            </p>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

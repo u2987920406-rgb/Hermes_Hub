@@ -46,6 +46,7 @@ import type {
 import '@xyflow/react/dist/style.css'
 import {
   ArrowLeft,
+  BookMarked,
   Eye,
   EyeOff,
   FlaskConical,
@@ -567,6 +568,21 @@ function Atelier({ poleId, onQuitter }: Props) {
     [poleId, agir],
   )
 
+  /**
+   * Mettre en memoire ce qui a marche.
+   *
+   * Un pole reussi disparait : son graphe reste sur le tableau, ses livrables
+   * dans son dossier, et la prochaine demande du meme genre repart de zero.
+   * La fiche va dans le Coffre, donc dans Obsidian - pas dans une base a nous.
+   */
+  const mettreEnMemoire = useCallback(() => {
+    if (!poleId) return
+    void agir(async () => {
+      const r = await api.apprendreDuPole(poleId)
+      return r
+    }, 'Mis en memoire : la fiche est dans le Coffre, dossier Skills.')
+  }, [poleId, agir])
+
   const retirer = useCallback(
     (id: string) => {
       if (!poleId) return
@@ -591,6 +607,9 @@ function Atelier({ poleId, onQuitter }: Props) {
       setSimuOccupee(false)
     }
   }, [poleId])
+
+  /** Tout est fait : le pole a une forme dont on peut apprendre. */
+  const abouti = !!pole?.taches.length && pole.taches.every((t) => t.etat === 'done')
 
   const tacheChoisie = pole?.taches.find((t) => t.id === choisi)
   const agentChoisi = agents.find((a) => a.id === (tacheChoisie?.agent || 'default'))
@@ -660,6 +679,21 @@ function Atelier({ poleId, onQuitter }: Props) {
           <FlaskConical className="h-3.5 w-3.5" />
           Simuler
         </button>
+        {/* On n'apprend que d'un travail qui a abouti : une fiche tiree d'un
+            pole a moitie echoue serait proposee plus tard, en confiance, pour
+            rejouer une forme qui n'a jamais fonctionne. Le bouton n'existe
+            donc que lorsque toutes les taches sont faites. */}
+        {abouti && (
+          <button
+            onClick={mettreEnMemoire}
+            disabled={occupe}
+            className="btn-ghost gap-1.5 px-2 py-1.5 text-[11px] disabled:opacity-40"
+            title="Ecrire ce qui a marche dans le Coffre, pour le reproposer plus tard"
+          >
+            <BookMarked className="h-3.5 w-3.5" />
+            Mettre en memoire
+          </button>
+        )}
         {chantier?.actif ? (
           <button
             onClick={() => void api.arreterPole(poleId!).catch(() => null)}

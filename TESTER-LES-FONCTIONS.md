@@ -273,6 +273,37 @@ d'automatisation : on compte dessus.
 
 ---
 
+## 12. La mémoire qui apprend
+
+**Nouveau.** Un pôle réussi disparaît : la prochaine demande du même genre
+repart de zéro. Une compétence, ici, c'est **la forme d'un travail qui a
+abouti** — quels métiers, dans quel ordre, pour quel coût.
+
+- [ ] Ouvre le Studio sur un pôle **entièrement terminé**. Un bouton
+      **Mettre en mémoire** apparaît dans la barre du haut.
+- [ ] Sur un pôle inachevé ou bloqué, ce bouton **ne doit pas exister**.
+- [ ] Clique-le → « la fiche est dans le Coffre, dossier Skills ».
+- [ ] Ouvre `Documents\Hermes-<prénom>\Vault\Skills\` : une note markdown
+      avec un frontmatter `type: skill`, des `tags`, et un tableau des étapes
+      avec leurs durées réelles.
+- [ ] Ouvre-la dans Obsidian : elle doit s'y lire comme une note normale.
+
+Puis la partie qui « apprend » :
+
+- [ ] Retourne dans **Orchestration**, et commence à écrire une demande **du
+      même genre** (une douzaine de caractères suffisent).
+- [ ] Après une seconde, un encart bleu **« Déjà fait de ce genre »** apparaît
+      sous la boîte, avec le titre de la fiche et son nombre d'étapes.
+- [ ] Écris une demande **sans rapport** → l'encart doit disparaître.
+
+Le seuil est à **deux mots porteurs en commun** : un seul mot se partage par
+hasard. Et la proposition ne substitue **rien** — elle montre ce qui avait
+marché, le découpage reste celui d'Hermès. Rejouer automatiquement une forme
+sur une demande qui n'est pas la même donnerait un plan que personne n'a
+demandé.
+
+---
+
 ## Ce que je veux savoir en retour
 
 Par ordre d'utilité :

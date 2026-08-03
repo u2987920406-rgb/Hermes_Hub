@@ -735,7 +735,7 @@ Compteurs d'appels, de duree, de bascules. Notifications contextuelles.
 *Livrable* : une competence Rouge ne peut pas s'executer sans toi.
 *Preuve* : on tente de la lancer, elle attend.
 
-### Phase 6 - La memoire qui apprend *(pas commencee)*
+### Phase 6 - La memoire qui apprend *(faite)*
 
 Bouton "Valider et mettre en memoire". Fiche de competence en markdown +
 frontmatter dans le Coffre. Branchement de `hermes curator` et
@@ -745,7 +745,7 @@ propose une competence prouvee quand la demande s'y prete.
 *Livrable* : une competence prouvee devient reutilisable et visible dans Obsidian.
 *Preuve* : elle est proposee d'elle-meme a la demande suivante du meme genre.
 
-### Phase 7 - La planification guidee *(pas commencee)*
+### Phase 7 - La planification guidee *(faite)*
 
 "Tous les [jour] a [heure]" ecrivant dans `hermes cron` - **pas dans une horloge
 du Hub**, qui ne tourne que quand tu l'ouvres. Zone "Automatisations en cours" a
