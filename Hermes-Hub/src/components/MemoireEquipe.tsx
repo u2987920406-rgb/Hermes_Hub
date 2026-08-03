@@ -19,6 +19,7 @@
  */
 import { AlertTriangle, Check, Users } from 'lucide-react'
 import { useState } from 'react'
+import { Attente } from './Attente'
 import { api } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
 import type { MemoryFile } from '../types'
@@ -107,8 +108,9 @@ export function MemoireEquipe({ memoire, onFait }: { memoire: MemoryFile; onFait
         <button
           onClick={() => void envoyer()}
           disabled={occupe}
-          className="btn-primary flex-none px-2.5 py-1.5 text-[11px] disabled:opacity-40"
+          className="btn-primary flex-none gap-1.5 px-2.5 py-1.5 text-[11px] disabled:opacity-40"
         >
+          <Attente actif={occupe} />
           {occupe ? 'Envoi...' : 'Envoyer a toute l equipe'}
         </button>
       </div>

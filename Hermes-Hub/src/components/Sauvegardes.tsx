@@ -19,6 +19,7 @@
  */
 import { AlertTriangle, Archive, FolderOpen, HardDriveDownload, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { Attente } from './Attente'
 import { api } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
 import type { EtatSauvegardes, Sauvegarde } from '../types'
@@ -118,7 +119,11 @@ export function Sauvegardes() {
           disabled={!!occupe}
           className="btn-primary gap-1.5 text-xs disabled:opacity-40"
         >
-          <Archive className="h-3.5 w-3.5" />
+          {occupe === 'sauvegarde' ? (
+            <Attente actif />
+          ) : (
+            <Archive className="h-3.5 w-3.5" />
+          )}
           {occupe === 'sauvegarde' ? 'Compression en cours...' : 'Sauvegarder maintenant'}
         </button>
         {/* Le chemin s'affiche, il ne s'ouvre pas d'un clic : cela demanderait
@@ -180,7 +185,11 @@ export function Sauvegardes() {
               disabled={!!occupe}
               className="btn-ghost flex-none gap-1.5 px-2.5 py-1.5 text-[11px] disabled:opacity-40"
             >
-              <HardDriveDownload className="h-3.5 w-3.5" />
+              {occupe === s.nom ? (
+                <Attente actif />
+              ) : (
+                <HardDriveDownload className="h-3.5 w-3.5" />
+              )}
               {occupe === s.nom ? 'Restauration...' : 'Restaurer'}
             </button>
             <button

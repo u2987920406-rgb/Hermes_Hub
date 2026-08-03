@@ -1,5 +1,6 @@
 import { AlertTriangle, Play, Sparkles } from 'lucide-react'
 import { useState } from 'react'
+import { Attente } from '../components/Attente'
 import { PageHeader } from '../components/PageHeader'
 import { useHubStore } from '../store/useHubStore'
 
@@ -77,7 +78,7 @@ export function CleanView({ onMenu }: Props) {
                 className="mx-auto mb-6 h-24 w-24 object-contain"
               />
               <button onClick={launch} className="btn-primary w-full py-3" disabled={busy}>
-                <Play className="h-5 w-5" />
+                {busy ? <Attente actif /> : <Play className="h-5 w-5" />}
                 {busy ? 'Lancement...' : 'Lancer Clean Agent'}
               </button>
               <p className="mt-4 font-mono text-[10px] muted">hermes -p {profile}</p>

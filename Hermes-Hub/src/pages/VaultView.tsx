@@ -1,5 +1,6 @@
 import { BookOpen, ChevronRight, FilePlus, FolderOpen, Save, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { Attente } from '../components/Attente'
 import { Modal, ConfirmDialog } from '../components/Modal'
 import { PageHeader } from '../components/PageHeader'
 import { api } from '../lib/api'
@@ -189,7 +190,7 @@ export function VaultView({ onMenu, noteAOuvrir }: Props) {
                   className="btn-primary px-3 py-1.5 text-xs"
                   disabled={!dirty || saving}
                 >
-                  <Save className="h-3.5 w-3.5" />
+                  {saving ? <Attente actif /> : <Save className="h-3.5 w-3.5" />}
                   {saving ? 'Enregistrement...' : 'Enregistrer'}
                 </button>
               </div>

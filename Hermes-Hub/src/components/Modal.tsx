@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { useEffect, type ReactNode } from 'react'
+import { Attente } from './Attente'
 
 interface ModalProps {
   title: string
@@ -84,11 +85,12 @@ export function ConfirmDialog({
             Annuler
           </button>
           <button
-            className={danger ? 'btn-danger' : 'btn-primary'}
+            className={`${danger ? 'btn-danger' : 'btn-primary'} gap-1.5`}
             onClick={onConfirm}
             disabled={busy}
             autoFocus
           >
+            <Attente actif={!!busy} />
             {busy ? 'En cours...' : confirmLabel}
           </button>
         </div>

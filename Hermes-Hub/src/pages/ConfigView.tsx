@@ -19,6 +19,7 @@ import {
   Terminal as TerminalIcon,
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { Attente } from '../components/Attente'
 import { MemoireEquipe } from '../components/MemoireEquipe'
 import { ConfirmDialog } from '../components/Modal'
 import { PageHeader } from '../components/PageHeader'
@@ -525,7 +526,7 @@ export function ConfigView({ onMenu, versQuiJeSuis = false }: Props) {
                     disabled={reformulation}
                     title="Hermes propose une version condensee. Tu la valides avant qu'elle ne soit ecrite."
                   >
-                    <Sparkles className="h-4 w-4" />
+                    {reformulation ? <Attente actif /> : <Sparkles className="h-4 w-4" />}
                     {reformulation ? 'Hermes reflechit...' : 'Mettre au propre'}
                   </button>
                   {memoire.backup && (
@@ -832,7 +833,7 @@ export function ConfigView({ onMenu, versQuiJeSuis = false }: Props) {
                 {dirty ? 'Modifications non enregistrees' : 'Tout est enregistre'}
               </span>
               <button onClick={submit} className="btn-primary" disabled={!dirty || saving}>
-                <Save className="h-4 w-4" />
+                {saving ? <Attente actif /> : <Save className="h-4 w-4" />}
                 {saving ? 'Enregistrement...' : 'Enregistrer'}
               </button>
             </div>

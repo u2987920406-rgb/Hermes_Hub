@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { Attente } from '../components/Attente'
 import { Conversation } from '../components/Conversation'
 import { FenetreSimulation } from '../components/FenetreSimulation'
 import { Modal } from '../components/Modal'
@@ -1218,8 +1219,9 @@ function LigneAgent({ agent, onFait }: { agent: Agent; onFait: () => void }) {
               <button
                 onClick={() => void retirer()}
                 disabled={occupe}
-                className="btn-danger px-2 py-1 text-[11px] disabled:opacity-40"
+                className="btn-danger gap-1.5 px-2 py-1 text-[11px] disabled:opacity-40"
               >
+                <Attente actif={occupe} />
                 {occupe ? 'Retrait...' : 'Retirer'}
               </button>
             </div>

@@ -1,5 +1,6 @@
 import { FolderPlus } from 'lucide-react'
 import { useState } from 'react'
+import { Attente } from './Attente'
 import { Modal } from './Modal'
 import { useHubStore } from '../store/useHubStore'
 import { STANDARD_FILES } from '../types'
@@ -91,7 +92,12 @@ export function NewProjectModal({ onClose, onCreated }: Props) {
           <button type="button" className="btn-ghost sm:flex-none" onClick={onClose} disabled={busy}>
             Annuler
           </button>
-          <button type="submit" className="btn-primary sm:flex-1" disabled={busy || !name.trim()}>
+          <button
+            type="submit"
+            className="btn-primary gap-1.5 sm:flex-1"
+            disabled={busy || !name.trim()}
+          >
+            <Attente actif={busy} />
             {busy ? 'Creation et lancement...' : 'Creer et lancer Hermes'}
           </button>
         </div>

@@ -1,5 +1,6 @@
 import { ArrowLeft, FolderOpen, Play, Save, SlidersHorizontal, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Attente } from '../components/Attente'
 import { PageHeader } from '../components/PageHeader'
 import { api } from '../lib/api'
 import { relativeDate } from '../lib/dates'
@@ -290,7 +291,7 @@ export function ProjectDetail({ projectId, onBack, onMenu }: Props) {
                   className="btn-primary px-3 py-1.5 text-xs"
                   disabled={!dirty || saving}
                 >
-                  <Save className="h-3.5 w-3.5" />
+                  {saving ? <Attente actif /> : <Save className="h-3.5 w-3.5" />}
                   {saving ? 'Enregistrement...' : 'Enregistrer'}
                   <kbd className="ml-1 hidden rounded bg-white/20 px-1 text-[10px] sm:inline">
                     Ctrl+S

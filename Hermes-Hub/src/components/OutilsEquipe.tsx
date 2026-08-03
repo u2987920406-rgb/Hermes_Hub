@@ -18,6 +18,7 @@
  */
 import { AlertTriangle, Check, Plug, Plus, Trash2, Users, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { Attente } from './Attente'
 import { api } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
 import type { EtatOutils, Outil, PoseOutil } from '../types'
@@ -227,7 +228,7 @@ function LigneOutil({
               className="btn-primary gap-1.5 text-xs disabled:opacity-40"
               title="Le brancher aussi sur les agents qui ne l ont pas"
             >
-              <Users className="h-3.5 w-3.5" />
+              {occupe ? <Attente actif /> : <Users className="h-3.5 w-3.5" />}
               {occupe ? 'Branchement...' : 'Donner a toute l equipe'}
             </button>
           ))}
@@ -374,8 +375,9 @@ function NouvelOutil({
         <button
           onClick={() => void poser()}
           disabled={occupe || !pret}
-          className="btn-primary flex-none text-xs disabled:opacity-40"
+          className="btn-primary flex-none gap-1.5 text-xs disabled:opacity-40"
         >
+          <Attente actif={occupe} />
           {occupe ? 'Branchement...' : 'Brancher'}
         </button>
       </div>

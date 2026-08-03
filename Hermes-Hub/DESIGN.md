@@ -139,6 +139,7 @@ obligerait le Hub a connaitre un texte que l'installateur possede.
 | Le bandeau de titre d'un ecran | `entete-page` |
 | Une carte de projet | `carte-projet` |
 | Les notifications volantes | `notifications` |
+| Le rouage dans un bouton qui travaille, et son compteur | `attente-bouton` |
 | Une fenetre modale | `fenetre-modale` |
 | Le formulaire de creation d'un projet | `formulaire-nouveau-projet` |
 | La palette de commandes | `palette-commandes` |
@@ -159,6 +160,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 |---|---|
 | `accords-orchestration` | `src/pages/OrchestrationView.tsx` |
 | `agents-au-travail` | `src/components/Conversation.tsx` |
+| `attente-bouton` | `src/components/Attente.tsx` |
 | `automatisations` | `src/components/Automatisations.tsx` |
 | `avertissement-convocation` | `src/components/Conversation.tsx` |
 | `banc-essai` | `src/components/BancEssai.tsx` |

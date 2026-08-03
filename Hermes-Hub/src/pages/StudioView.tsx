@@ -58,6 +58,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Attente } from '../components/Attente'
 import { NoeudStudio } from '../components/NoeudStudio'
 import type { DonneesNoeud } from '../components/NoeudStudio'
 import { FenetreSimulation } from '../components/FenetreSimulation'
@@ -703,10 +704,11 @@ function Atelier({ poleId, onQuitter }: Props) {
             Gratuit : la simulation ne rejoue que ce qui est deja sur le disque. */}
         <button
           onClick={() => void simuler()}
-          className="btn-ghost gap-1.5 px-2 py-1.5 text-[11px]"
+          disabled={simuOccupee}
+          className="btn-ghost gap-1.5 px-2 py-1.5 text-[11px] disabled:opacity-40"
           title="Rejouer ce graphe sans appeler aucun modele"
         >
-          <FlaskConical className="h-3.5 w-3.5" />
+          {simuOccupee ? <Attente actif /> : <FlaskConical className="h-3.5 w-3.5" />}
           Simuler
         </button>
         {/* On n'apprend que d'un travail qui a abouti : une fiche tiree d'un
@@ -720,24 +722,26 @@ function Atelier({ poleId, onQuitter }: Props) {
             className="btn-ghost gap-1.5 px-2 py-1.5 text-[11px] disabled:opacity-40"
             title="Ecrire ce qui a marche dans le Coffre, pour le reproposer plus tard"
           >
-            <BookMarked className="h-3.5 w-3.5" />
+            {occupe ? <Attente actif /> : <BookMarked className="h-3.5 w-3.5" />}
             Mettre en memoire
           </button>
         )}
         {chantier?.actif ? (
           <button
             onClick={() => void agir(() => api.arreterPole(poleId!))}
-            className="btn-ghost gap-1.5 px-2 py-1.5 text-[11px]"
+            disabled={occupe}
+            className="btn-ghost gap-1.5 px-2 py-1.5 text-[11px] disabled:opacity-40"
           >
-            <Square className="h-3.5 w-3.5" />
+            {occupe ? <Attente actif /> : <Square className="h-3.5 w-3.5" />}
             Arreter
           </button>
         ) : (
           <button
             onClick={() => void agir(() => api.lancerPole(poleId!), 'Le pole est lance.')}
-            className="btn-primary gap-1.5 px-2.5 py-1.5 text-[11px]"
+            disabled={occupe}
+            className="btn-primary gap-1.5 px-2.5 py-1.5 text-[11px] disabled:opacity-40"
           >
-            <Play className="h-3.5 w-3.5" />
+            {occupe ? <Attente actif /> : <Play className="h-3.5 w-3.5" />}
             Lancer
           </button>
         )}
