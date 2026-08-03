@@ -100,6 +100,7 @@ ni alerte. Un accueil ne porte pas de rubrique vide.
 | L'encart et la bulle, dans Configuration > Memoire | `profils-memoire` | — | `ProfilsMemoire.tsx`, tableau `LECON` |
 | Une ligne de la bulle : un profil et son poids | `ligne-profil` | `--densite` | idem |
 | Les sept questions, quand `USER.md` est choisi | `questions-user` | — | `QuestionsUser.tsx`, tableau `CHAMPS` |
+| « 14 agents sur 15 ont une autre version », sous le fichier | `memoire-equipe` | — | `MemoireEquipe.tsx` — l'ambre signale un ecart, jamais une panne |
 | L'onglet Sauvegarde de la Configuration | `sauvegardes` | — | `Sauvegardes.tsx` |
 | Une sauvegarde dans la liste | `ligne-sauvegarde` | `--densite` | idem — l'ambre signale une archive **incomplete** |
 
@@ -188,6 +189,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `ligne-outil` | `src/components/OutilsEquipe.tsx` |
 | `ligne-profil` | `src/components/ProfilsMemoire.tsx` |
 | `ligne-sauvegarde` | `src/components/Sauvegardes.tsx` |
+| `memoire-equipe` | `src/components/MemoireEquipe.tsx` |
 | `menu-lateral` | `src/components/Sidebar.tsx` |
 | `nav-orchestration` | `src/pages/OrchestrationView.tsx` |
 | `noeud-organigramme` | `src/components/Organigramme.tsx` |

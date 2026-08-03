@@ -78,6 +78,32 @@ export interface MemoryFile {
   backup: boolean
   /** La version deposee par l'installateur existe. */
   origine: boolean
+  /** Qui, dans l'equipe, a cette version. `null` pour SOUL.md, qui ne se
+      partage pas : chaque agent a son propre caractere. */
+  equipe: EtatMemoireEquipe | null
+  /** Rendu par les ecritures seulement : ce que la derniere diffusion a fait. */
+  propagation?: Propagation | null
+}
+
+/**
+ * L'ecart entre ce qu'Hermes sait et ce que son equipe sait.
+ *
+ * Mesure sur un poste reel : `USER.md` rempli chez `default`, gabarit vide chez
+ * quatorze agents sur seize. Personne ne pouvait le voir - un agent mal
+ * renseigne ne tombe pas en panne, il repond a cote.
+ */
+export interface EtatMemoireEquipe {
+  partage: boolean
+  aJour: string[]
+  enRetard: string[]
+}
+
+export interface Propagation {
+  fichier: string
+  partage: boolean
+  /** Ceux qui viennent de la recevoir. Vide = tout le monde l'avait deja. */
+  portee: string[]
+  echecs: { agent: string; message: string }[]
 }
 
 export const FICHIERS_MEMOIRE = ['MEMORY.md', 'USER.md', 'SOUL.md'] as const

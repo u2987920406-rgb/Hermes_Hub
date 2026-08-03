@@ -18,7 +18,8 @@ import {
   Sparkles,
   Terminal as TerminalIcon,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { MemoireEquipe } from '../components/MemoireEquipe'
 import { ConfirmDialog } from '../components/Modal'
 import { PageHeader } from '../components/PageHeader'
 import { ProfilsMemoire } from '../components/ProfilsMemoire'
@@ -148,10 +149,9 @@ export function ConfigView({ onMenu, versQuiJeSuis = false }: Props) {
       .catch(() => setAutoStart(false))
   }, [])
 
-  // Relu a chaque ouverture de l'onglet : Hermes ecrit dans ces fichiers entre
-  // deux visites, on ne travaille jamais sur une version perimee.
-  useEffect(() => {
-    if (onglet !== 'memoire') return
+  /** Relire le fichier affiche. Quatre appelants : l'ouverture de l'onglet, un
+      profil applique, le formulaire de questions, et l'envoi a l'equipe. */
+  const relireMemoire = useCallback(() => {
     api
       .readMemory(fichier)
       .then((m) => {
@@ -159,7 +159,14 @@ export function ConfigView({ onMenu, versQuiJeSuis = false }: Props) {
         setTexteMemoire(m.content)
       })
       .catch(() => setMemoire(null))
-  }, [onglet, fichier])
+  }, [fichier])
+
+  // Relu a chaque ouverture de l'onglet : Hermes ecrit dans ces fichiers entre
+  // deux visites, on ne travaille jamais sur une version perimee.
+  useEffect(() => {
+    if (onglet !== 'memoire') return
+    relireMemoire()
+  }, [onglet, relireMemoire])
 
   const enregistrerMemoire = async () => {
     if (!memoire) return
@@ -454,35 +461,14 @@ export function ConfigView({ onMenu, versQuiJeSuis = false }: Props) {
             {/* L'encart et la bulle passent AVANT le champ : c'est la que se
                 decide ce qu'on ecrit. Sous le textarea, ils auraient servi a
                 ceux qui avaient deja fini. */}
-            <ProfilsMemoire
-              fichier={fichier}
-              onApplique={() => {
-                api
-                  .readMemory(fichier)
-                  .then((m) => {
-                    setMemoire(m)
-                    setTexteMemoire(m.content)
-                  })
-                  .catch(() => null)
-              }}
-            />
+            <ProfilsMemoire fichier={fichier} onApplique={relireMemoire} />
 
             {/* Les questions n'existent que pour USER.md : c'est le seul des
                 trois qu'on ne peut pas deviner. Les regles et le caractere sont
                 deja ecrits - on les montre, on ne les demande pas. */}
             {fichier === 'USER.md' && (
               <div className="mt-3">
-                <QuestionsUser
-                  onEnregistre={() => {
-                    api
-                      .readMemory(fichier)
-                      .then((m) => {
-                        setMemoire(m)
-                        setTexteMemoire(m.content)
-                      })
-                      .catch(() => null)
-                  }}
-                />
+                <QuestionsUser onEnregistre={relireMemoire} />
               </div>
             )}
 
@@ -497,6 +483,10 @@ export function ConfigView({ onMenu, versQuiJeSuis = false }: Props) {
                   spellCheck={false}
                 />
                 <p className="mt-1 break-all font-mono text-[10px] muted">{memoire.path}</p>
+
+                {/* Juste sous le fichier, avant les boutons : c'est un etat du
+                    fichier, pas une action de plus. */}
+                <MemoireEquipe memoire={memoire} onFait={relireMemoire} />
                 {proposition !== null && (
                   <div className="mt-3 rounded-lg border border-sky-300 bg-sky-50/60 p-3 dark:border-sky-500/30 dark:bg-sky-500/10">
                     <p className="text-xs font-medium">Proposition d'Hermes</p>

@@ -37,7 +37,8 @@ import {
 } from './graphe.js'
 import { lireCompteurs, oublierCompteurs } from './compteurs.js'
 import { creerAgent, decrireAgent, renommerAgent, retirerAgent } from './agents.js'
-import { brancherOutil, debrancherOutil, listerOutils, repartirOutil } from './outils.js'
+import { brancherOutil, debrancherOutil, equipeVisee, listerOutils, repartirOutil } from './outils.js'
+import { estPartage, etatPropagation, propager } from './memoire-equipe.js'
 import {
   listerSauvegardes,
   restaurer,
@@ -1001,6 +1002,31 @@ function lireMemoire(nom) {
     stamp: empreinte(chemin),
     backup: fs.existsSync(chemin + '.bak'),
     origine: fs.existsSync(cheminOrigine(chemin)),
+    // Qui l'a, et qui ne l'a pas. Se lit a chaque ouverture de l'ecran parce
+    // qu'un agent en retard ne tombe pas en panne : il repond a cote, poliment,
+    // et rien ne le signale. Meme raison que `manque` dans `listerOutils`.
+    equipe: estPartage(nom) ? etatPropagation(nom, equipeVisee()) : null,
+  }
+}
+
+/**
+ * Poser la version de `default` chez tous les agents, et le dire.
+ *
+ * Appelee apres CHAQUE ecriture - enregistrement, version d'origine, version
+ * precedente, application d'un profil. Une seule de ces portes laissee ouverte
+ * suffirait a recreer la panne : la memoire repartirait chez Hermes seul, et
+ * l'equipe garderait la version d'avant sans que rien ne le montre.
+ *
+ * N'interrompt jamais l'enregistrement : le fichier principal est deja ecrit
+ * quand on arrive ici, et un profil illisible ne doit pas faire croire que la
+ * sauvegarde a echoue.
+ */
+function diffuserMemoire(nom) {
+  if (!estPartage(nom)) return null
+  try {
+    return propager(nom, equipeVisee())
+  } catch (e) {
+    return { fichier: nom, partage: true, portee: [], echecs: [{ agent: '-', message: e.message }] }
   }
 }
 
@@ -1017,7 +1043,7 @@ function reinitialiserMemoire(nom) {
   }
   if (fs.existsSync(chemin)) fs.copyFileSync(chemin, chemin + '.bak')
   fs.copyFileSync(origine, chemin)
-  return lireMemoire(nom)
+  return { ...lireMemoire(nom), propagation: diffuserMemoire(nom) }
 }
 
 /**
@@ -1046,7 +1072,7 @@ function ecrireMemoire(nom, contenu, stamp) {
   fs.mkdirSync(path.dirname(chemin), { recursive: true })
   if (fs.existsSync(chemin)) fs.copyFileSync(chemin, chemin + '.bak')
   fs.writeFileSync(chemin, rangerMarkdown(contenu), 'utf8')
-  return lireMemoire(nom)
+  return { ...lireMemoire(nom), propagation: diffuserMemoire(nom) }
 }
 
 /** Revient a la version d'avant le dernier enregistrement. */
@@ -1058,7 +1084,7 @@ function restaurerMemoire(nom) {
     throw err
   }
   fs.copyFileSync(chemin + '.bak', chemin)
-  return lireMemoire(nom)
+  return { ...lireMemoire(nom), propagation: diffuserMemoire(nom) }
 }
 
 // -----------------------------------------------------------------------------
@@ -1726,7 +1752,7 @@ async function handleApi(req, res, url) {
       }
       if (rest[3] && rest[4] === 'appliquer' && method === 'POST') {
         appliquerProfil(nom, chemin, decodeURIComponent(rest[3]))
-        return sendJson(res, 200, lireMemoire(nom))
+        return sendJson(res, 200, { ...lireMemoire(nom), propagation: diffuserMemoire(nom) })
       }
       if (rest[3] && method === 'GET') {
         return sendJson(res, 200, lireProfil(nom, chemin, decodeURIComponent(rest[3])))
@@ -1746,6 +1772,12 @@ async function handleApi(req, res, url) {
     }
     if (rest[2] === 'reset' && method === 'POST') {
       return sendJson(res, 200, reinitialiserMemoire(nom))
+    }
+    // La reparation, a la main. Sans elle, un poste ou l'equipe a derive
+    // resterait en retard jusqu'a la prochaine sauvegarde - or quelqu'un qui a
+    // fini de remplir ses fichiers n'a plus rien a enregistrer.
+    if (rest[2] === 'propager' && method === 'POST') {
+      return sendJson(res, 200, { ...lireMemoire(nom), propagation: diffuserMemoire(nom) })
     }
     if (rest[2] === 'reformuler' && method === 'POST') {
       const body = await readBody(req)

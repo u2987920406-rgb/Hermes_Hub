@@ -90,6 +90,10 @@ export const api = {
     request<MemoryFile>(`/memory/${enc(file)}/restore`, { method: 'POST', body: body({}) }),
   resetMemory: (file: string) =>
     request<MemoryFile>(`/memory/${enc(file)}/reset`, { method: 'POST', body: body({}) }),
+  /** Poser la version d'Hermes chez tous les agents. Les ecritures le font
+      deja seules ; ceci repare un poste qui a derive avant la correction. */
+  propagerMemoire: (file: string) =>
+    request<MemoryFile>(`/memory/${enc(file)}/propager`, { method: 'POST', body: body({}) }),
   reformulateMemory: (file: string, content: string) =>
     request<{ file: string; proposition: string }>(`/memory/${enc(file)}/reformuler`, {
       method: 'POST',
