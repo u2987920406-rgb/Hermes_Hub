@@ -1039,10 +1039,27 @@ function TraceRefus({ tour, agent }: { tour: TourRefus; agent?: Agent }) {
       <AlertTriangle className="h-3.5 w-3.5 flex-none teinte-sens" />
       <span>
         {tour.motif === 'annuaire' ? (
+          /**
+           * Ce que le detecteur SAIT, et rien de plus.
+           *
+           * Il comptait les mentions et concluait « l annuaire recopie, pas une
+           * delegation », puis prescrivait « redemande-lui de choisir ». Le
+           * 03/08/2026, Hermes venait de creer cinq agents et les ENUMERAIT :
+           * il ne convoquait personne, et il n y avait rien a lui faire
+           * choisir. Le detecteur avait raison de ne reveiller personne, et
+           * tort sur la raison - il ne peut pas distinguer « voici mon equipe »
+           * de « venez tous », il ne voit que des arobases.
+           *
+           * On dit donc le FAIT - au-dela de trois, on ne reveille personne -
+           * et on laisse le lecteur juger, puisque lui a le texte sous les
+           * yeux. Un avertissement qui se trompe de diagnostic apprend a se
+           * faire ignorer, et le jour ou il vise juste il ne sera plus lu.
+           */
           <>
-            <b>{tour.nom}</b> a cite {tour.citees} agents d un coup : c est
-            l annuaire recopie, pas une delegation. Personne n a ete reveille -
-            redemande-lui de choisir, ou appelle-les toi-meme avec @nom.
+            <b>{tour.nom}</b> a cite {tour.citees} agents dans une seule reponse.
+            Au-dela de trois, le Hub n en reveille aucun : un modele qui en cite
+            autant recopie souvent l annuaire au lieu de deleguer. S il voulait
+            vraiment les faire travailler, appelle-les toi-meme avec @nom.
           </>
         ) : (
           <>
