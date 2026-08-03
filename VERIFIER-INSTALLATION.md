@@ -122,3 +122,52 @@ postes où l'icône manquait — il bascule sur :
 Avant, ce script mourait en silence : pas de fenêtre, pas de message, rien dans
 les journaux. C'était impossible à diagnostiquer à distance. Maintenant toute
 panne se termine par une boîte de dialogue qui nomme le fichier à lire.
+
+---
+
+## Pendant l'installation : la seule étape qui peut se figer
+
+**Observé le 03/08/2026, sur un second poste.** L'étape `[4/13]` télécharge
+Chromium pour Playwright — 172 Mo — puis l'extrait **sans rien afficher**.
+Elle s'est arrêtée net après `100% of 172.8 MiB` : plus aucun CPU, dossier
+`ms-playwright` figé à la même taille sur trois mesures, huit minutes de rien.
+
+Le remède est sans risque, et c'est la structure de l'installateur qui le rend
+sans risque :
+
+1. **Ferme la fenêtre** — pas `Ctrl+C`. Rien n'est perdu : les profils et la
+   mémoire ne sont écrits qu'à partir de l'étape 6.
+2. **Relance `installer.bat`.** L'étape 4 commence par tester si Hermès
+   *répond*. S'il répond, tout le bloc de téléchargement est **sauté** et la
+   reprise se fait directement à `[4b/13]`.
+
+Pour distinguer un blocage d'une simple lenteur, dans un **second** terminal :
+
+```powershell
+$p = "$env:LOCALAPPDATA\ms-playwright"
+"{0:N0} Mo" -f ((Get-ChildItem $p -Recurse -File -EA 0 | Measure-Object Length -Sum).Sum / 1MB)
+```
+
+Refais-la trente secondes plus tard. **Si le nombre a bougé, ça travaille** —
+laisse faire, sur une ligne lente ce téléchargement prend légitimement un quart
+d'heure. S'il est identique deux fois, c'est figé.
+
+> Réflexe à écarter d'abord : une console Windows **gèle le processus** dès
+> qu'un clic y sélectionne du texte. Si le titre commence par
+> « Sélectionner », appuie sur **Échap** — ça repart aussitôt.
+
+---
+
+## Après l'installation : ce qu'on peut jeter
+
+Si la machine avait déjà connu Hermès, le script en a mis l'ancienne copie de
+côté plutôt que de l'effacer :
+
+```
+%LOCALAPPDATA%\hermes\hermes-agent.broken-<date>-<heure>
+```
+
+Plusieurs centaines de mégaoctets de poids mort. Une fois l'installation
+vérifiée, ce dossier se supprime sans conséquence — **le code seul y vit**. Les
+profils, la mémoire, le tableau et les clés sont un cran au-dessus, dans
+`%LOCALAPPDATA%\hermes\`, et n'ont jamais été touchés.

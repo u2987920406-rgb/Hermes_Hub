@@ -142,10 +142,30 @@ if errorlevel 1 (
 REM == Etape 4: Installer uv puis Hermes ==
 echo.
 echo [4/13] Installation de Hermes Agent...
+REM ETAPE LA PLUS LONGUE, ET LA SEULE QUI PEUT SE FIGER. Le script de Nous
+REM telecharge Chromium pour Playwright - 172 Mo - puis l'extrait sans rien
+REM afficher. Observe le 03/08/2026 sur un second poste : arrete net apres
+REM « 100% of 172.8 MiB », plus aucun CPU, dossier ms-playwright fige a la
+REM meme taille sur trois mesures. Huit minutes sans rien.
+REM
+REM On ne pose PAS de chronometre qui tuerait le processus : sur une ligne
+REM lente ce meme telechargement prend legitimement un quart d'heure, et une
+REM extraction interrompue laisserait un Chromium a moitie pose que Playwright
+REM croirait installe. On prefere le dire a l'utilisateur, parce que le remede
+REM est sans risque - c'est le test ci-dessous qui le rend sans risque.
+echo   Etape la plus longue: jusqu'a 15 minutes selon la ligne.
+echo   Si l'affichage se fige plus de 5 minutes apres "100%% of 172.8 MiB":
+echo   ferme cette fenetre et relance l'installateur. Rien n'est perdu, et
+echo   le telechargement ne sera pas refait.
+echo.
 REM On teste que Hermes REPOND, pas seulement qu'il est dans le PATH : une
 REM suppression partielle laisse le shim hermes.exe en place alors que le
 REM paquet a disparu (ModuleNotFoundError). Avec "where hermes", l'installation
 REM etait alors sautee et l'installateur continuait sur une base cassee.
+REM
+REM C'est aussi ce test qui rend le conseil ci-dessus vrai : Hermes une fois
+REM installe, tout le bloc est saute au redemarrage. Verifie en vrai le
+REM 03/08/2026 - relance apres blocage, reprise directe a [4b/13].
 hermes --version >nul 2>&1
 if errorlevel 1 (
     echo   Installation de uv...
