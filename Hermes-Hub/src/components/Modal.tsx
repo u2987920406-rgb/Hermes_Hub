@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { useEffect, type ReactNode } from 'react'
 import { Attente } from './Attente'
+import { useEchap } from '../hooks/useEchap'
 
 interface ModalProps {
   title: string
@@ -10,20 +11,18 @@ interface ModalProps {
   maxWidth?: string
 }
 
-/** Shared shell: Escape closes, backdrop click closes, body scroll is locked. */
+/** Le cadre commun : Echap ferme, le fond ferme, la page ne defile plus
+    derriere. Echap passe par `useEchap` - meme geste, meme code, partout. */
 export function Modal({ title, icon, onClose, children, maxWidth = 'max-w-md' }: ModalProps) {
+  useEchap(true, onClose)
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', onKey)
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
-      document.removeEventListener('keydown', onKey)
       document.body.style.overflow = previous
     }
-  }, [onClose])
+  }, [])
 
   return (
     <div

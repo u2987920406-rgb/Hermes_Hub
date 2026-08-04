@@ -142,7 +142,7 @@ export interface Stats {
 export type View =
   | 'home'
   | 'orchestration'
-  /** Plein ecran, hors barre laterale : l'atelier, pas une vue de plus. */
+  /** Plein ecran, hors barre laterale : la ou l'on fabrique, pas une vue de plus. */
   | 'studio'
   | 'projects'
   | 'project'

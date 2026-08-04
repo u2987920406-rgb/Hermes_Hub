@@ -1,5 +1,10 @@
 /**
- * Le Studio - l'atelier, pas la vitrine.
+ * Le Studio - la ou l'on fabrique, pas la vitrine.
+ *
+ * ON NE L'APPELLE PLUS « l'atelier », ni ici ni ailleurs : « Atelier » est
+ * devenu le nom d'un MODE de la conversation, en face de « Discussion ». Deux
+ * choses qui portent le meme mot finissent par se confondre dans une phrase,
+ * et c'est toujours celle qu'on ecrit a la hate qui tranche mal.
  *
  * Le Hub reste le centre de controle leger ; ici on fabrique. D'ou une route
  * plein ecran, sans barre laterale : le graphe prend toute la place parce que
@@ -59,7 +64,8 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Attente } from '../components/Attente'
-import { LivrablePole } from '../components/LivrablePole'
+import { LigneAlerte } from '../components/LigneAlerte'
+import { LivrableScenario } from '../components/LivrableScenario'
 import { NoeudStudio } from '../components/NoeudStudio'
 import type { DonneesNoeud } from '../components/NoeudStudio'
 import { FenetreSimulation } from '../components/FenetreSimulation'
@@ -152,12 +158,12 @@ export function StudioView(props: Props) {
   // l'interieur.
   return (
     <ReactFlowProvider>
-      <Atelier {...props} />
+      <Studio {...props} />
     </ReactFlowProvider>
   )
 }
 
-function Atelier({ poleId, onQuitter }: Props) {
+function Studio({ poleId, onQuitter }: Props) {
   const [pole, setPole] = useState<Pole | null>(null)
   const [agents, setAgents] = useState<Agent[]>([])
   const [noeuds, setNoeuds] = useState<Node[]>([])
@@ -171,11 +177,11 @@ function Atelier({ poleId, onQuitter }: Props) {
   const [occupe, setOccupe] = useState(false)
 
   /**
-   * La simulation, ouverte depuis l'atelier.
+   * La simulation, ouverte depuis le Studio.
    *
-   * Elle vivait dans l'ecran Orchestration, atteinte par la vignette d'un pole
-   * - et depuis que la vignette mene ici, plus personne ne pouvait l'ouvrir.
-   * Sa place est de toute facon dans l'atelier : c'est ici qu'on remanie, donc
+   * Elle vivait dans l'ecran Orchestration, atteinte par la vignette d'un
+   * scenario - et depuis que la vignette mene ici, plus personne ne pouvait
+   * l'ouvrir. Sa place est de toute facon ici : c'est ici qu'on remanie, donc
    * ici qu'on veut eprouver avant de lancer.
    */
   const [simu, setSimu] = useState<Simulation | null>(null)
@@ -658,7 +664,7 @@ function Atelier({ poleId, onQuitter }: Props) {
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-semibold">{pole?.titre || 'Studio'}</p>
           <p className="truncate text-[10px] muted">
-            {pole ? `${pole.taches.length} taches` : 'Aucun pole ouvert'}
+            {pole ? `${pole.taches.length} taches` : 'Aucun scenario ouvert'}
             {chantier?.actif
               ? ' - en cours, le graphe est fige'
               : pole
@@ -683,7 +689,7 @@ function Atelier({ poleId, onQuitter }: Props) {
           <button
             onClick={ouvrirBrouillonLibre}
             className="btn-ghost gap-1.5 px-2 py-1.5 text-[11px]"
-            title="Ajouter une tache au pole"
+            title="Ajouter une tache au scenario"
           >
             <Plus className="h-3.5 w-3.5" />
             Tache
@@ -697,6 +703,15 @@ function Atelier({ poleId, onQuitter }: Props) {
           {voirPrevus ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
           Liens prevus
         </button>
+        {/* F13 - LE TROU QUE LE PLEIN ECRAN OUVRE, ET SON BOUCHON.
+            Le Studio sort du cadre commun : la barre laterale disparait, et
+            avec elle le compteur d'autorisations. Une demande qui attend
+            doit se voir dans les deux modes, sans quoi ouvrir le Studio
+            revient a s'aveugler au moment ou l'on regarde le plus
+            attentivement. Meme composant, meme volet, meme ordre d'urgence
+            que sur les trois autres ecrans - juste reduit a l'icone et au
+            compte, parce que la barre du scenario n'a pas la place du reste. */}
+        <LigneAlerte compact />
         <button onClick={() => void ranger()} className="btn-ghost gap-1.5 px-2 py-1.5 text-[11px]">
           <LayoutGrid className="h-3.5 w-3.5" />
           Ranger
@@ -781,11 +796,11 @@ function Atelier({ poleId, onQuitter }: Props) {
         {/* Le livrable prend la meme place que les reglages, et jamais en meme
             temps : choisir une tache est une question sur le detail, chercher
             le resultat est une question sur l'ensemble. Il ne parait pas du
-            tout tant que le pole n'a jamais tourne - `LivrablePole` rend null,
+            tout tant que le pole n'a jamais tourne - `LivrableScenario` rend null,
             plutot qu'une boite vide qui ferait croire a une perte. */}
         {!tacheChoisie && poleId && (
           <div className="absolute right-3 top-3 max-h-[calc(100%-1.5rem)] w-80 overflow-y-auto">
-            <LivrablePole poleId={poleId} actif={!!chantier?.actif} />
+            <LivrableScenario poleId={poleId} actif={!!chantier?.actif} />
           </div>
         )}
 
@@ -881,7 +896,7 @@ function Atelier({ poleId, onQuitter }: Props) {
               if (!poleId) return
               void agir(() => api.validerPole(poleId).then(() => setValidation(true)))
             }}
-            // Dans l'atelier, « Modifier » n'envoie nulle part : on y est deja.
+            // Dans le Studio, « Modifier » n'envoie nulle part : on y est deja.
             // La fenetre se ferme, et la souris reprend la main sur le graphe.
             onModifier={() => setSimuOuverte(false)}
             onRafraichir={() => {
@@ -956,7 +971,7 @@ function FicheNouvelle({
           ? brouillon.sens === 'avant'
             ? `A faire avant « ${voisine} »`
             : `A faire apres « ${voisine} »`
-          : 'Une tache de plus dans ce pole'}
+          : 'Une tache de plus dans ce scenario'}
       </p>
 
       <input
@@ -1025,7 +1040,7 @@ function Retirer({
         className="btn-ghost mt-3 w-full gap-1.5 px-2 py-1.5 text-[11px]"
       >
         <Trash2 className="h-3.5 w-3.5" />
-        Retirer du pole
+        Retirer du scenario
       </button>
     )
   }
@@ -1033,7 +1048,7 @@ function Retirer({
   return (
     <div className="mt-3 rounded-lg border border-red-200 p-2 dark:border-red-500/40">
       <p className="text-[11px] leading-relaxed">
-        Retirer cette tache du pole ? Elle est archivee sur le tableau, pas effacee - ce qu-elle a
+        Retirer cette tache du scenario ? Elle est archivee sur le tableau, pas effacee - ce qu-elle a
         deja produit reste consultable dans Hermes.
       </p>
       <div className="mt-2 flex justify-end gap-1.5">

@@ -24,7 +24,6 @@ import {
   Moon,
   Plus,
   Radio,
-  Search,
   Send,
   Square,
   Users,
@@ -35,6 +34,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { cleAccord, sansAccord } from '../lib/accords'
 import { api } from '../lib/api'
+import { ChampRecherche, aplatir } from './ChampRecherche'
 import { GENRES_OUTIL } from '../types'
 import type {
   Agent,
@@ -722,15 +722,14 @@ export function Conversation({
               </button>
             )}
 
-            <div className="relative min-w-[9rem] flex-1 sm:max-w-[16rem]">
-              <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 muted" />
-              <input
-                value={recherche}
-                onChange={(e) => setRecherche(e.target.value)}
-                placeholder="Chercher un nom ou un metier"
-                className="input h-8 w-full py-0 pl-7 text-[11px]"
-              />
-            </div>
+            <ChampRecherche
+              valeur={recherche}
+              onChange={setRecherche}
+              placeholder="Chercher un nom ou un metier"
+              quoi="Chercher un agent dans l annuaire"
+              compte={terme ? { trouves: visibles.length, total: agents.length } : undefined}
+              classe="flex-1 sm:max-w-[16rem]"
+            />
 
             {!terme && !equipeChoisie && (
               <button
@@ -1015,16 +1014,6 @@ function ajouterBloc(tours: Tour[], agent: string, bloc: BlocTour): Tour[] {
     return copie
   }
   return [...tours, { role: 'agent', agent, blocs: [bloc], fini: false }]
-}
-
-/** Chercher « mixage » doit trouver « Mixage », et « metier » doit trouver
-    « métier » : la casse et les accents ne sont pas des criteres. */
-function aplatir(texte: string) {
-  return texte
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .trim()
 }
 
 function jetonDe(agent?: Agent): CSSProperties {

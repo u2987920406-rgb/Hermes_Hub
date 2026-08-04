@@ -5,6 +5,12 @@
  * navigateur ne battrait que la fenetre ouverte, donc jamais la nuit - qui est
  * precisement le moment ou l'on veut qu'une automatisation parte.
  *
+ * CE QUI EN EST PARTI AU CHANTIER 2 : la variante `alertesSeules`, qui posait
+ * une bande au-dessus du fil de l'accueil. La ligne d'alerte partagee le fait
+ * maintenant sur les trois ecrans, avec les autorisations et les scenarios
+ * finis - et deux surfaces pour la meme nouvelle finissent par se contredire.
+ * Ce qui reste ici est la section entiere : programmer, suspendre, retirer.
+ *
  * LE BANDEAU D'ALERTE N'EST PAS UN ORNEMENT. Une tache programmee ne se
  * declenche que si la passerelle d'Hermes tourne en service. Sans elle, tout
  * paraît normal - la tache est la, sa prochaine echeance est calculee - et rien
@@ -17,7 +23,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { NouvelleAutomatisation } from './NouvelleAutomatisation'
 import { useHubStore } from '../store/useHubStore'
-import type { EtatAutomatisations } from '../types'
 
 /** « dans 3 h », « demain a 9h » - une date brute ne se lit pas d'un coup. */
 function quandArrive(iso: string | null) {
@@ -33,27 +38,14 @@ function quandArrive(iso: string | null) {
   return `dans ${Math.round(h / 24)} j`
 }
 
-interface Props {
-  /**
-   * Ne garder que ce qui alerte.
-   *
-   * L'accueil est devenu une conversation : au premier message, tout s'efface
-   * pour laisser le fil seul. Tout, sauf ceci. Une tache qui part chaque matin
-   * et rate en silence ne se decouvre autrement qu'en allant la chercher - et
-   * on ne cherche pas ce qu'on croit acquis. La section entiere revient au
-   * salut, ou « Nouvelle » ramene.
-   */
-  alertesSeules?: boolean
-}
-
-export function Automatisations({ alertesSeules = false }: Props) {
-  const [etat, setEtat] = useState<EtatAutomatisations | null>(null)
+export function Automatisations() {
+  // L'etat vient du magasin : la ligne d'alerte a besoin de la meme chose, et
+  // deux lectures separees du meme endpoint finiraient par ne plus dire la meme
+  // chose - celle-ci relit apres chaque geste, l'autre a l'ouverture d'un ecran.
+  const etat = useHubStore((s) => s.automatisations)
+  const charger = useHubStore((s) => s.rafraichirAutomatisations)
   const [occupe, setOccupe] = useState(false)
   const notifier = useHubStore((s) => s.notify)
-
-  const charger = useCallback(async () => {
-    setEtat(await api.automatisations().catch(() => null))
-  }, [])
 
   useEffect(() => {
     void charger()
@@ -79,35 +71,6 @@ export function Automatisations({ alertesSeules = false }: Props) {
   if (!etat) return null
 
   const vide = etat.automatisations.length === 0
-
-  if (alertesSeules) {
-    // Une suspendue ne partira pas : son echec d'hier n'a plus rien d'urgent,
-    // et le rappeler par-dessus une conversation serait du bruit.
-    const ratees = etat.automatisations.filter((a) => a.resultat === 'error' && !a.suspendue)
-    if (!etat.muettes && ratees.length === 0) return null
-
-    return (
-      <div data-zone="alerte-automatisation" className="space-y-1.5">
-        {etat.muettes && (
-          <div className="bandeau sens-alerte text-[11px]">
-            <AlertTriangle className="h-3.5 w-3.5 flex-none teinte-sens" />
-            <span>
-              Tes automatisations ne partiront pas : la passerelle d-Hermes ne tourne pas.
-              Dans un terminal, <code className="font-mono">hermes gateway install</code>.
-            </span>
-          </div>
-        )}
-        {ratees.map((a) => (
-          <div key={a.id} className="bandeau sens-danger text-[11px]">
-            <AlertTriangle className="h-3.5 w-3.5 flex-none teinte-sens" />
-            <span className="min-w-0 truncate">
-              « {a.nom} » : derniere execution en echec{a.erreur ? ` - ${a.erreur}` : ''}
-            </span>
-          </div>
-        ))}
-      </div>
-    )
-  }
 
   return (
     <section data-zone="automatisations">

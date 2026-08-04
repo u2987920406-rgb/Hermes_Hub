@@ -3,7 +3,7 @@
  *
  * L'apparence est celle de `Organigramme.tsx`, volontairement a l'identique :
  * memes classes, meme `data-etat`, meme `--agent`. Elle a ete jugee bonne, elle
- * ne bouge pas. Ce qui s'ajoute ici, c'est ce qu'un atelier demande et qu'une
+ * ne bouge pas. Ce qui s'ajoute ici, c'est ce que le Studio demande et qu'une
  * vue de consultation n'avait pas :
  *
  *   - des prises d'entree/sortie, pour relier a la souris ;

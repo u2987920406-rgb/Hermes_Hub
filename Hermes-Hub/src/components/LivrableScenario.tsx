@@ -34,7 +34,7 @@ function poids(octets: number) {
   return `${octets} o`
 }
 
-export function LivrablePole({ poleId, actif }: { poleId: string; actif: boolean }) {
+export function LivrableScenario({ poleId, actif }: { poleId: string; actif: boolean }) {
   const [livrable, setLivrable] = useState<Livrable | null>(null)
   const [occupe, setOccupe] = useState(false)
   const notifier = useHubStore((s) => s.notify)
@@ -67,7 +67,7 @@ export function LivrablePole({ poleId, actif }: { poleId: string; actif: boolean
   }
 
   return (
-    <section data-zone="livrable-pole" className="card p-4">
+    <section data-zone="livrable-scenario" className="card p-4">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-xs font-semibold">
           {livrable.fichiers.length === 0
@@ -90,7 +90,7 @@ export function LivrablePole({ poleId, actif }: { poleId: string; actif: boolean
 
       {livrable.fichiers.length === 0 ? (
         <p className="text-[11px] text-amber-600 dark:text-amber-400">
-          Le pole a tourne mais n a rien ecrit ici. Ses taches ont peut-etre rendu du texte plutot
+          Le scenario a tourne mais n a rien ecrit ici. Ses taches ont peut-etre rendu du texte plutot
           que des fichiers - ou elles ont ecrit ailleurs.
         </p>
       ) : (

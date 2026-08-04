@@ -1,16 +1,6 @@
-import {
-  BookOpen,
-  FolderOpen,
-  Home,
-  Network,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Search,
-  Settings,
-  Trash2,
-  X,
-} from 'lucide-react'
-import { useState } from 'react'
+import { BookOpen, FolderOpen, Home, Network, Search, Settings, Trash2, X } from 'lucide-react'
+import { useEffect } from 'react'
+import { BoutonRepli, useRepli } from './BoutonRepli'
 import { useHubStore } from '../store/useHubStore'
 import type { View } from '../types'
 
@@ -132,8 +122,8 @@ function NavButton({
   )
 }
 
-// Preference d'affichage pure : elle reste sur le poste, pas dans le workspace
-// partage avec Hermes.
+// La cle ne change pas : un repli deja choisi ne doit pas se defaire parce que
+// le code qui le retient a demenage dans `useRepli`.
 const CLE_REPLI = 'hub.sidebar.collapsed'
 
 export function Sidebar({ current, onNavigate, open, onClose, onRechercher }: SidebarProps) {
@@ -144,25 +134,29 @@ export function Sidebar({ current, onNavigate, open, onClose, onRechercher }: Si
   const version = useHubStore((s) => s.version)
   const launchHermes = useHubStore((s) => s.launchHermes)
 
-  const [collapsed, setCollapsed] = useState(() => {
-    try {
-      return localStorage.getItem(CLE_REPLI) === '1'
-    } catch {
-      return false
-    }
-  })
+  const [collapsed, toggle] = useRepli(CLE_REPLI)
 
-  const toggle = () => {
-    setCollapsed((prev) => {
-      const next = !prev
-      try {
-        localStorage.setItem(CLE_REPLI, next ? '1' : '0')
-      } catch {
-        /* navigation privee : le repli marche, il ne survit pas au rechargement */
+  /**
+   * Ctrl B replie la barre laterale.
+   *
+   * La convention que tout le monde a deja dans les doigts - donc rien a
+   * apprendre, et rien a inventer. L'ecoute vit ICI, aupres de l'etat qu'elle
+   * commande : la faire descendre depuis `App` obligerait a remonter le repli
+   * jusqu'a lui pour rien.
+   *
+   * Le raccourci s'affiche dans l'infobulle du bouton. Un raccourci qui ne
+   * s'affiche pas n'existe pas - c'est deja la regle du bouton Rechercher.
+   */
+  useEffect(() => {
+    const auClavier = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault()
+        toggle()
       }
-      return next
-    })
-  }
+    }
+    window.addEventListener('keydown', auClavier)
+    return () => window.removeEventListener('keydown', auClavier)
+  }, [toggle])
 
   return (
     <>
@@ -195,15 +189,14 @@ export function Sidebar({ current, onNavigate, open, onClose, onRechercher }: Si
             <h1 className="truncate text-base font-bold text-white">Hermes Hub</h1>
             {version && <p className="truncate text-[10px] text-slate-400">v{version}</p>}
           </div>
-          <button
-            onClick={toggle}
-            className="hidden rounded-lg p-1 text-slate-400 transition-colors hover:bg-white/10 hover:text-white lg:block"
-            title={collapsed ? 'Afficher les libelles' : 'Reduire le menu aux icones'}
-            aria-label={collapsed ? 'Afficher les libelles' : 'Reduire le menu aux icones'}
-            aria-expanded={!collapsed}
-          >
-            {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
-          </button>
+          <BoutonRepli
+            replie={collapsed}
+            onBasculer={toggle}
+            cote="gauche"
+            quoi="le menu"
+            raccourci="Ctrl B"
+            classe="hidden text-slate-400 hover:bg-white/10 hover:text-white lg:block"
+          />
           <button
             onClick={onClose}
             className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white lg:hidden"

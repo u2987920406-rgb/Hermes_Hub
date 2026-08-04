@@ -18,10 +18,14 @@
  * et l'historique n'a qu'une source. Deux fils pour un meme interlocuteur
  * auraient diverge sans que personne le remarque avant d'en avoir besoin.
  *
- * CE QUI SURVIT A L'EFFACEMENT : une automatisation tombee. Elle doit se voir
- * en ouvrant le Hub, pas se chercher - c'est la raison pour laquelle la section
- * vit sur l'accueil depuis le debut, et elle vaut encore quand l'accueil
- * devient un fil.
+ * CE QUI SURVIT A L'EFFACEMENT : plus rien, et c'est un progres. Une
+ * automatisation tombee traversait l'effacement par une bande posee au-dessus
+ * du fil - elle doit se voir en ouvrant le Hub, pas se chercher. Mais la
+ * **ligne d'alerte** du chantier 2 le fait desormais partout, et mieux : sur
+ * les trois ecrans au lieu de celui-ci seul, au meme endroit, avec les
+ * autorisations et les scenarios finis. Deux surfaces qui disent la meme chose
+ * finissent par se contredire, et la grammaire est formelle - **une seule
+ * ligne, jamais deux.**
  */
 import { BookOpen, FolderOpen, Landmark, Moon, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -63,9 +67,6 @@ export function HomeView({ onNavigate, onMenu }: Props) {
       })
       .catch(() => null)
   }, [])
-
-  /** Vrai tant qu'on est sur le salut. La conversation le dit elle-meme. */
-  const [surLeSalut, setSurLeSalut] = useState(true)
 
   // Le bouton fait defiler les themes : clair -> sombre -> antique -> clair.
   // L'icone montre le theme vers lequel on va, comme l'infobulle : montrer le
@@ -150,22 +151,11 @@ export function HomeView({ onNavigate, onMenu }: Props) {
         }
       />
 
-      {/* La seule chose qui traverse l'effacement. Elle ne rend rien quand tout
-          va bien, donc elle ne coute pas une ligne a l'ecran pour rien. */}
-      {!surLeSalut && (
-        <div className="flex-none px-4 pt-3 sm:px-6">
-          <div className="mx-auto w-full max-w-3xl">
-            <Automatisations alertesSeules />
-          </div>
-        </div>
-      )}
-
       <Conversation
         agents={agents}
         equipes={equipes}
         accueil={salut}
         accueilDessous={raccourcis}
-        onFilVide={setSurLeSalut}
       />
     </div>
   )

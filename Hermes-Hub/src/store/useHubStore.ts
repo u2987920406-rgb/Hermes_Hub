@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import { api, ApiError } from '../lib/api'
 import type {
+  AccordEnAttente,
   AppConfig,
+  EtatAutomatisations,
   Project,
   ProjectStatus,
   Skin,
@@ -11,6 +13,7 @@ import type {
   VaultFolder,
 } from '../types'
 import { THEMES } from '../types'
+import { ecrireTraces, lireTraces, TRACES_GARDEES, type ScenarioFini } from './alertes'
 
 export type ToastKind = 'success' | 'error' | 'info'
 
@@ -41,6 +44,42 @@ interface HubState {
    * indication comme quoi c'est bloque ».
    */
   accords: number
+  /**
+   * Les memes demandes, en clair.
+   *
+   * Le compte suffisait a la pastille du menu ; il ne suffit plus a la ligne
+   * d'alerte, qui doit dire **la chose la plus urgente en clair** - « Pablo
+   * demande a ecrire un fichier », pas « 1 ». Meme appel, meme relecture : on
+   * garde une seule source, sinon le compte et la liste finiraient par ne plus
+   * raconter la meme chose.
+   */
+  demandes: AccordEnAttente[]
+
+  /** Les scenarios finis qu'on n'a pas encore ecartes. Voir `ScenarioFini`. */
+  scenariosFinis: ScenarioFini[]
+  noterScenarioFini: (t: Omit<ScenarioFini, 'cle' | 'quand'>) => void
+  oublierScenario: (cle: string) => void
+
+  /** L'etat des taches programmees. Relu par la ligne d'alerte, qui doit savoir
+      si l'une est tombee - et par l'accueil, qui les affiche en entier. */
+  automatisations: EtatAutomatisations | null
+  rafraichirAutomatisations: () => Promise<void>
+
+  /**
+   * Une fausse autorisation, posee a la main - Configuration > Developpement.
+   *
+   * ELLE EXISTE POUR QU'ON PUISSE JUGER LA LIGNE D'ALERTE SANS ATTENDRE QU'UN
+   * AGENT DEMANDE QUELQUE CHOSE. C'est la porte du chantier 2 : « declencher
+   * une fausse autorisation et la voir apparaitre au meme endroit sur les trois
+   * ecrans, plein ecran compris ». Sans interrupteur, il faudrait lancer un
+   * vrai scenario et esperer qu'il demande a ecrire - une verification qui
+   * depend de la chance n'est pas une verification.
+   *
+   * Elle n'est retenue nulle part : un essai qui survivrait au rechargement
+   * finirait par etre pris pour une vraie demande.
+   */
+  alerteEssai: boolean
+  basculerAlerteEssai: () => void
 
   loading: boolean
   toasts: Toast[]
@@ -122,9 +161,40 @@ export const useHubStore = create<HubState>((set, get) => {
     skins: [],
     trash: [],
     accords: 0,
+    demandes: [],
+    scenariosFinis: lireTraces(),
+    automatisations: null,
+    alerteEssai: false,
 
     loading: false,
     toasts: [],
+
+    noterScenarioFini: (t) => {
+      set((s) => {
+        // La cle porte le titre ET l'instant : un meme scenario relance deux
+        // fois laisse deux traces, et c'est voulu - ce sont deux passages.
+        const trace: ScenarioFini = { ...t, cle: `${t.titre}#${Date.now()}`, quand: Date.now() }
+        const traces = [...s.scenariosFinis, trace].slice(-TRACES_GARDEES)
+        ecrireTraces(traces)
+        return { scenariosFinis: traces }
+      })
+    },
+
+    oublierScenario: (cle) => {
+      set((s) => {
+        const traces = s.scenariosFinis.filter((t) => t.cle !== cle)
+        ecrireTraces(traces)
+        return { scenariosFinis: traces }
+      })
+    },
+
+    rafraichirAutomatisations: async () => {
+      // Silencieux, comme les accords : une section qui ne repond pas ne doit
+      // pas jeter une notification a chaque battement.
+      set({ automatisations: await api.automatisations().catch(() => get().automatisations) })
+    },
+
+    basculerAlerteEssai: () => set((s) => ({ alerteEssai: !s.alerteEssai })),
 
     notify,
     dismiss: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
@@ -271,7 +341,8 @@ export const useHubStore = create<HubState>((set, get) => {
 
     rafraichirAccords: async () => {
       try {
-        set({ accords: (await api.accords()).total })
+        const { total, accords } = await api.accords()
+        set({ accords: total, demandes: accords })
       } catch {
         /* Le serveur repondra au prochain evenement. Voir le contrat plus haut. */
       }

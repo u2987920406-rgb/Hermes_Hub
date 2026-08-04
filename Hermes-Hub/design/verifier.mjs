@@ -1,7 +1,10 @@
 /**
  * LE GARDE-FOU DU DESIGN - `npm run design`
  *
- * Il fait deux choses, et le partage entre les deux est le coeur de l'affaire :
+ * Il fait quatre choses depuis le chantier 2. Les deux premieres tiennent
+ * l'index du design, les deux dernieres empechent le code d'empirer - elles
+ * vivent dans le meme script parce qu'elles se lancent dans le meme geste, et
+ * qu'une verification qu'il faut penser a appeler n'est pas une verification.
  *
  *   - il ECRIT ce qui est un fait : la liste des zones et ou elles vivent, la
  *     liste des molettes et leur valeur. Ces tableaux sont regeneres, donc ils
@@ -9,6 +12,10 @@
  *   - il VERIFIE ce qui est de la prose : les libelles, les renvois, les
  *     colonnes « sinon ». Un humain les ecrit une fois ; le script s'assure
  *     seulement qu'aucune zone n'a ete oubliee ni laissee derriere.
+ *   - il TIENT LE CLIQUET DES TAILLES : chaque fichier porte sa marque dans
+ *     `design/tailles.json`, et ne peut plus la depasser. Voir plus bas.
+ *   - il SIGNALE LES EXPORTS MORTS : ce que plus personne n'importe. Voir plus
+ *     bas aussi.
  *
  * Pourquoi ce partage plutot que tout generer : la valeur de l'index est dans
  * la phrase « une bulle d'agent qui parle », qu'aucun script ne saura ecrire.
@@ -83,6 +90,188 @@ function molettesDuCss() {
 }
 
 // -----------------------------------------------------------------------------
+// LE CLIQUET DES TAILLES
+//
+// `ARCHITECTURE.md` pose la regle - un fichier repond a une seule question, et
+// au-dela d'environ 400 lignes il en contient une deuxieme. Une regle sans
+// verification est un voeu : c'est precisement son absence qui a laisse trois
+// fichiers atteindre 1 500 lignes sans que personne ne le decide.
+//
+// Le cliquet n'exige AUCUN grand rangement. Il enregistre la taille de chaque
+// fichier et refuse seulement qu'elle augmente ; quand un fichier maigrit, sa
+// marque descend avec lui et ne remonte plus. On n'a donc jamais a ouvrir un
+// chantier de nettoyage : le code ne peut plus qu'aller dans le bon sens, au
+// rythme ou on le touche.
+//
+// Deux choix qui comptent :
+//
+//   - la marque d'un fichier qui a grossi n'est PAS mise a jour. Sans ca, un
+//     second `npm run design` avalerait en silence ce que le premier a refuse,
+//     et le garde-fou deviendrait un compteur ;
+//   - un fichier neuf entre avec sa taille du jour, sans rien casser. Ajouter
+//     ne demande la permission de personne - c'est la propriete qu'on ne veut
+//     surtout pas perdre.
+// -----------------------------------------------------------------------------
+const TAILLES = path.join(path.dirname(fileURLToPath(import.meta.url)), 'tailles.json')
+
+/** Une marge de deux lignes : un commentaire de plus n'est pas une regression,
+    et un garde-fou qui crie pour rien s'apprend a ignorer. */
+const JEU = 2
+
+function fichiersDeCode(dossier) {
+  const sortie = []
+  for (const e of fs.readdirSync(dossier, { withFileTypes: true })) {
+    const p = path.join(dossier, e.name)
+    if (e.isDirectory()) sortie.push(...fichiersDeCode(p))
+    else if (/\.tsx?$/.test(e.name)) sortie.push(p)
+  }
+  return sortie
+}
+
+function cliquetDesTailles() {
+  const anciennes = fs.existsSync(TAILLES)
+    ? JSON.parse(fs.readFileSync(TAILLES, 'utf8'))
+    : {}
+  const nouvelles = {}
+  const debordements = []
+
+  for (const f of fichiersDeCode(SRC)) {
+    const cle = path.relative(RACINE, f).replace(/\\/g, '/')
+    const lignes = fs.readFileSync(f, 'utf8').split('\n').length
+    const marque = anciennes[cle]
+
+    if (marque === undefined) {
+      nouvelles[cle] = lignes
+    } else if (lignes > marque + JEU) {
+      // On garde l'ancienne marque : le prochain passage reposera la meme
+      // question tant que le fichier n'aura pas maigri ou qu'on n'aura pas
+      // decide de relever la marque a la main, en le disant.
+      nouvelles[cle] = marque
+      debordements.push({ cle, marque, lignes })
+    } else {
+      nouvelles[cle] = Math.min(marque, lignes)
+    }
+  }
+
+  // Un fichier disparu quitte le fichier de marques : sinon il empecherait de
+  // recreer un jour un fichier du meme nom, avec une marque venue d'ailleurs.
+  const partis = Object.keys(anciennes).filter((c) => !(c in nouvelles))
+
+  fs.writeFileSync(
+    TAILLES,
+    JSON.stringify(Object.fromEntries(Object.entries(nouvelles).sort()), null, 2) + '\n',
+    'utf8',
+  )
+
+  return { debordements, partis, total: Object.keys(nouvelles).length }
+}
+
+// -----------------------------------------------------------------------------
+// LES EXPORTS MORTS
+//
+// Un export que personne n'importe. `ecrireEquipes` est reste inutilise depuis
+// le premier jour et `modifierAgent` n'a jamais eu de bouton : ce n'etait pas
+// de la negligence, rien ne signalait leur mort.
+//
+// La detection est volontairement grossiere - elle compare des NOMS, pas des
+// references. Elle rate donc un export reimporte sous un autre nom, et c'est
+// tres bien : un garde-fou qui se trompe dans le sens du silence se garde ;
+// celui qui se trompe dans le sens du cri se contourne, puis meurt.
+//
+// LUI AUSSI EST UN CLIQUET, et pour la meme raison que celui des tailles : le
+// depot en portait treize le jour ou la detection a ete ecrite. Exiger leur
+// disparition d'un coup aurait ouvert un chantier que personne n'avait decide -
+// et `types/index.ts`, qui en porte neuf, est justement le fichier qu'on a
+// promis de decouper domaine par domaine, le jour ou l'on y touche.
+//
+// `design/exports-morts.json` porte donc la dette du jour, chaque entree avec
+// SA RAISON. Un export mort de plus fait echouer la verification ; pour en
+// accepter un, il faut l'inscrire a la main dans ce fichier et ecrire pourquoi.
+// C'est le seul endroit du dispositif ou une machine ne peut pas trancher : un
+// export sans appelant est parfois une porte ouverte avant le geste qui
+// l'emprunte. Une tolerance sans raison ecrite est une tolerance qu'on ne saura
+// plus lever.
+// -----------------------------------------------------------------------------
+const DETTE = path.join(path.dirname(fileURLToPath(import.meta.url)), 'exports-morts.json')
+
+/** `export function X`, `export const X`, `export type X`, `export { A, B }`. */
+function exportsDuFichier(texte) {
+  const noms = new Set()
+  for (const m of texte.matchAll(
+    /^export\s+(?:declare\s+)?(?:async\s+)?(?:function|const|let|var|class|interface|type|enum)\s+([A-Za-z_$][\w$]*)/gm,
+  )) {
+    noms.add(m[1])
+  }
+  for (const m of texte.matchAll(/^export\s*\{([^}]*)\}/gm)) {
+    for (const brut of m[1].split(',')) {
+      const nom = brut.trim().split(/\s+as\s+/).pop()?.trim()
+      if (nom) noms.add(nom)
+    }
+  }
+  return noms
+}
+
+/** Tout ce qu'un fichier importe, nomme ou par defaut. */
+function importsDuFichier(texte) {
+  const noms = new Set()
+  for (const m of texte.matchAll(/import\s+(?:type\s+)?([^;]*?)\s+from\s+['"][^'"]+['"]/g)) {
+    const clause = m[1]
+    const defaut = clause.match(/^\s*([A-Za-z_$][\w$]*)\s*(?:,|$)/)
+    if (defaut) noms.add(defaut[1])
+    const accolades = clause.match(/\{([^}]*)\}/)
+    if (accolades) {
+      for (const brut of accolades[1].split(',')) {
+        const nom = brut.trim().replace(/^type\s+/, '').split(/\s+as\s+/)[0]?.trim()
+        if (nom) noms.add(nom)
+      }
+    }
+  }
+  return noms
+}
+
+function exportsMorts() {
+  const fichiers = fichiersDeCode(SRC).map((f) => ({
+    cle: path.relative(RACINE, f).replace(/\\/g, '/'),
+    texte: fs.readFileSync(f, 'utf8'),
+  }))
+
+  const importes = new Set()
+  for (const f of fichiers) for (const n of importsDuFichier(f.texte)) importes.add(n)
+
+  const trouves = []
+  for (const f of fichiers) {
+    // `main.tsx` est le point d'entree : personne ne l'importe, par definition.
+    if (f.cle.endsWith('src/main.tsx')) continue
+    for (const nom of exportsDuFichier(f.texte)) {
+      if (importes.has(nom)) continue
+      trouves.push({ nom, cle: f.cle })
+    }
+  }
+
+  // Premier passage : on inscrit la dette telle qu'on la trouve, avec une
+  // raison qui dit franchement qu'elle est heritee. Aucun jugement invente.
+  if (!fs.existsSync(DETTE)) {
+    const dette = Object.fromEntries(
+      trouves
+        .map((t) => [
+          t.nom,
+          `herite du chantier 2 (${t.cle}) - jamais importe : a trancher le jour ou l'on touche ce domaine`,
+        ])
+        .sort(),
+    )
+    fs.writeFileSync(DETTE, JSON.stringify(dette, null, 2) + '\n', 'utf8')
+  }
+
+  const dette = JSON.parse(fs.readFileSync(DETTE, 'utf8'))
+  return {
+    neufs: trouves.filter((t) => !(t.nom in dette)).map((t) => `${t.nom} (${t.cle})`),
+    // Ce qui a ete rendu vivant - ou supprime - depuis. La ligne peut partir.
+    guerris: Object.keys(dette).filter((n) => !trouves.some((t) => t.nom === n)),
+    dette,
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Ecriture
 // -----------------------------------------------------------------------------
 function remplacer(doc, balise, contenu) {
@@ -106,7 +295,7 @@ let doc = fs.readFileSync(DOC, 'utf8')
 const citees = new Set([...doc.matchAll(/`([a-z0-9-]+)`/g)].map((m) => m[1]))
 const oubliees = [...zones.keys()].filter((z) => !citees.has(z))
 const fantomes = [...citees].filter(
-  (c) => /^(bulle|fiche|ligne|vignette|noeud|ecran|carte|barre|rangee|trace|fil|nav|menu|entete|palette|fenetre|boite|organigramme|pastille|notifications)-?/.test(c) &&
+  (c) => /^(bulle|fiche|ligne|vignette|noeud|ecran|carte|barre|rangee|trace|fil|nav|menu|entete|palette|fenetre|boite|organigramme|pastille|notifications|volet|bouton|champ|alerte|livrable|raccourcis|destinataires|questions|profils|memoire|outils|sauvegardes|banc|brouillon)-?/.test(c) &&
     c.includes('-') &&
     !zones.has(c) &&
     !c.startsWith('--'),
@@ -137,9 +326,47 @@ fs.writeFileSync(DOC, doc, 'utf8')
 // -----------------------------------------------------------------------------
 // Verdict
 // -----------------------------------------------------------------------------
+const cliquet = cliquetDesTailles()
+const morts = exportsMorts()
+
 console.log(`${zones.size} zones, ${molettes.length} molettes - tableaux regeneres.`)
+console.log(`${cliquet.total} fichiers sous cliquet.`)
+if (cliquet.partis.length) {
+  console.log(`  ${cliquet.partis.length} fichier(s) disparu(s), marque retiree : ${cliquet.partis.join(', ')}`)
+}
+// La dette se rappelle a chaque passage, en une ligne : une exception qu'on ne
+// voit plus est une exception qui devient la regle. Le detail est dans
+// `design/exports-morts.json`, une raison par entree.
+const restants = Object.keys(morts.dette).length
+if (restants) console.log(`${restants} export(s) mort(s) portes en dette (design/exports-morts.json).`)
+if (morts.guerris.length) {
+  console.log(
+    `  ${morts.guerris.length} ligne(s) de dette a retirer, l'export n'est plus mort : ${morts.guerris.join(', ')}`,
+  )
+}
 
 const griefs = []
+if (cliquet.debordements.length) {
+  griefs.push(
+    `Ces fichiers depassent leur propre marque :\n    ` +
+      cliquet.debordements
+        .map((d) => `${d.cle} : ${d.lignes} lignes, marque a ${d.marque}`)
+        .join('\n    ') +
+      `\n  Le cliquet n'interdit pas d'ecrire, il interdit d'empirer. Sors ce qui\n` +
+      `  a grossi dans son propre fichier - la regle est au §3 d'ARCHITECTURE.md.\n` +
+      `  Si la croissance est justifiee, releve la marque dans design/tailles.json\n` +
+      `  a la main, et dis-le dans le commit.`,
+  )
+}
+if (morts.neufs.length) {
+  griefs.push(
+    `Ces exports ne sont importes nulle part, et ils sont neufs :\n    ` +
+      morts.neufs.join('\n    ') +
+      `\n  Soit ils sont morts et partent avec leur zone, leur route et leurs types,\n` +
+      `  soit c'est une porte ouverte avant son geste : inscris-les alors dans\n` +
+      `  design/exports-morts.json, avec la raison.`,
+  )
+}
 if (muets.length) {
   griefs.push(
     `Ces fichiers dessinent quelque chose sans nom de zone :\n    ` +

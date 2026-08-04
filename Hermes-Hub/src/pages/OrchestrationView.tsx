@@ -122,7 +122,7 @@ const VOLETS: { id: Volet; label: string; icon: typeof Users }[] = [
   { id: 'historique', label: 'Historique', icon: History },
   { id: 'conversation', label: 'Conversation', icon: MessageSquare },
   { id: 'agents', label: 'Agents et equipes', icon: Users },
-  { id: 'poles', label: 'Poles', icon: Network },
+  { id: 'poles', label: 'Scenarios', icon: Network },
 ]
 
 /** Ce qui est ouvert par-dessus : l'organigramme de l'equipe, ou celui d'un pole. */
@@ -454,8 +454,8 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
           <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 dark:text-amber-300">
             <AlertTriangle className="h-3.5 w-3.5 flex-none" />
             {accords.length === 1
-              ? 'Un agent attend ta reponse - le pole est arrete tant qu-elle ne vient pas.'
-              : `${accords.length} agents attendent ta reponse - les poles sont arretes.`}
+              ? 'Un agent attend ta reponse - le scenario est arrete tant qu-elle ne vient pas.'
+              : `${accords.length} agents attendent ta reponse - les scenarios sont arretes.`}
           </p>
           <div className="space-y-1.5">
             {accords.map((d) => (
@@ -1165,7 +1165,7 @@ function poleEnGraphe(
     }
   })
 
-  return { noeuds, liens: pole.liens, vide: 'Ce pole n a aucune tache.', numeroter: true }
+  return { noeuds, liens: pole.liens, vide: 'Ce scenario n a aucune tache.', numeroter: true }
 }
 
 // -----------------------------------------------------------------------------
@@ -1282,7 +1282,7 @@ function LigneAgent({ agent, onFait }: { agent: Agent; onFait: () => void }) {
                 <>
                   {' '}
                   Il tient encore <strong>{agent.taches} tache</strong>
-                  {agent.taches > 1 ? 's' : ''} : le pole qui les attend restera sans executant.
+                  {agent.taches > 1 ? 's' : ''} : le scenario qui les attend restera sans executant.
                 </>
               )}
             </p>
@@ -1351,7 +1351,7 @@ function Vignette({
     <div className="group relative">
     <button
       type="button"
-      data-zone="vignette-pole"
+      data-zone="vignette-scenario"
       onClick={onOuvrir}
       style={style}
       className="card lisere-agent-vignette relative w-full overflow-hidden p-0 text-left transition-shadow hover:shadow-md"
@@ -1390,7 +1390,7 @@ function Vignette({
       <button
         type="button"
         onClick={onSimuler}
-        title="Simuler ce pole sans rien lancer"
+        title="Simuler ce scenario sans rien lancer"
         className="btn-ghost absolute bottom-2 right-2 gap-1 px-1.5 py-1 text-[10px] opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
       >
         <Play className="h-3 w-3" />
@@ -1474,11 +1474,11 @@ function Pastille({ etat }: { etat: 'encours' | 'fini' | 'attente' }) {
 function AucunPole({ tableauPret }: { tableauPret: boolean }) {
   return (
     <div className="card p-5 text-center">
-      <p className="text-sm font-medium">Aucun pole pour l instant</p>
+      <p className="text-sm font-medium">Aucun scenario pour l instant</p>
       <p className="mx-auto mt-1 max-w-md text-xs muted">
         {tableauPret
-          ? "Un pole nait d une demande : Hermes la decompose en taches liees, et le groupe qui en resulte apparait ici. Ton equipe, elle, est deja la."
-          : 'Le tableau des taches ne peut pas etre lu, donc aucun pole ne peut apparaitre. Ton equipe reste consultable.'}
+          ? "Un scenario nait d une demande : Hermes la decompose en taches liees, et le groupe qui en resulte apparait ici. Ton equipe, elle, est deja la."
+          : 'Le tableau des taches ne peut pas etre lu, donc aucun scenario ne peut apparaitre. Ton equipe reste consultable.'}
       </p>
     </div>
   )

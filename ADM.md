@@ -200,6 +200,37 @@ En s'en remettant au fil, le salut serait resté affiché pendant l'aller-retour
 il aurait vacillé au lieu de s'effacer net. **Un état d'interface se règle sur
 le geste de l'utilisateur, pas sur l'accusé de réception.**
 
+### Une chose permanente se replie, une chose convoquée se ferme *(05/08/2026)*
+La règle qui départage `PanelLeftClose` de `X`, et elle suffit. Le plan est
+permanent dans le Studio → il se replie, par le même bouton, au même endroit,
+et il retrouve son état à la session suivante. Les réglages d'un nœud n'existent
+que parce qu'on a cliqué le nœud → ils se ferment, par `X` ou par Échap. **Un
+`X` sur une chose permanente est un mensonge** : elle reviendrait toute seule au
+clic suivant.
+
+Trois conséquences qui vivent dans le code : `useEchap` est le seul endroit qui
+écoute Échap, `useRepli` le seul qui retient un repli, et l'icône montre
+toujours **la destination, pas l'état courant** — comme le bouton de thème, et
+pour la même raison.
+
+### Le hamburger n'est pas un geste de petit écran *(05/08/2026)*
+C'est le geste de « pas de barre latérale ». Il ne vivait qu'en `lg:hidden`
+parce que c'était la seule situation où elle disparaissait ; le plein écran en
+crée une deuxième. Sans lui, agrandir revient à se couper de la navigation au
+moment où l'on regarde le plus attentivement.
+
+### « Scénario » à l'écran, `pole` dans le code *(05/08/2026)*
+« Pôle » est un mot du dedans *(F6)* : il ne dit rien à qui ouvre le Hub. À
+l'écran on dit **scénario**, partout. Dans le code, `pole` reste l'identifiant —
+c'est le mot du tableau d'Hermès, et le renommer traverserait le serveur, la
+ligne de commande et le disque pour un gain nul. Le vocabulaire coûte trois fois
+plus cher après : c'est pour ça qu'il est traité au chantier 2 et pas au 5.
+
+Et le Studio cesse d'être surnommé « l'atelier », y compris dans les
+commentaires : **« Atelier » devient le nom d'un mode** de la conversation, en
+face de « Discussion ». Deux choses qui portent le même mot finissent par se
+confondre dans une phrase.
+
 ### Une destination ou un geste, et ça décide de l'endroit *(04/08/2026)*
 Le lanceur du terminal a occupé une grande carte, puis une carte compacte, avant
 de finir dans la barre de menu. Le bon argument n'était pas la taille — kuchu
@@ -214,12 +245,75 @@ Corollaire tiré le même jour : Clean Agent est descendu dans Configuration >
 Développement. C'est un banc d'essai, et une carte à égalité avec la
 conversation lui donnait un rang qu'il n'a pas dans l'usage courant.
 
-### Ce qui survit à l'effacement, et pourquoi c'est une seule chose *(04/08/2026)*
-Une automatisation tombée reste visible une fois le salut parti — passerelle
+### ~~Ce qui survit à l'effacement, et pourquoi c'est une seule chose~~ *(04/08/2026)*
+~~Une automatisation tombée reste visible une fois le salut parti — passerelle
 absente, dernière exécution en échec, rien d'autre. **Une tâche qui part chaque
 matin et rate en silence ne se découvre autrement qu'en allant la chercher, or
 on ne cherche pas ce qu'on croit acquis.** Tout le reste revient en repartant
-d'une conversation neuve.
+d'une conversation neuve.~~
+
+**Remplacée par « Une seule ligne d'alerte, jamais deux » ci-dessous
+*(05/08/2026)*.** Le besoin était juste, l'endroit ne l'était pas : la bande ne
+vivait que sur l'accueil, donc pas là où l'on est le reste du temps.
+
+### Une seule ligne d'alerte, jamais deux *(05/08/2026)*
+Trois natures — une autorisation attend, une automatisation est tombée, un
+scénario a fini — et **une seule ligne pour les trois**, au même endroit sur
+tous les écrans, Studio compris. Elle montre la plus urgente en clair et compte
+le reste ; le volet, convoqué au clic, liste tout et mène chaque entrée à son
+endroit.
+
+L'ordre d'urgence n'est pas cosmétique : une autorisation bloque quelqu'un
+maintenant, une automatisation tombée a déjà échoué en silence, un scénario fini
+peut attendre. Empiler trois bandes les aurait rendues égales, et l'écran serait
+redevenu un tableau de bord — exactement ce que l'accueil a cessé d'être.
+
+**Elle ne remplace pas les notifications volantes.** Une notification raconte ce
+que *je viens de faire* ; cette ligne annonce ce qui *m'attend*. Les confondre
+ferait disparaître au bout de trois secondes une demande qui bloque un agent
+pour la nuit.
+
+### Un scénario fini laisse une trace, parce que l'événement ne repasse pas *(05/08/2026)*
+`chantier-fin` passe une fois dans le flux, et rien sur le disque ne dit ensuite
+« c'était fini ». Qui n'avait pas le Hub sous les yeux à cet instant-là ne le
+saurait jamais. C'est **le seul endroit du Hub qui retient un événement au lieu
+de réinterroger le serveur**, et c'est assumé : il n'y a rien à interroger. La
+trace vit dans `localStorage` — « j'ai vu » est une affaire de poste et de
+personne, pas du workspace partagé avec Hermès.
+
+---
+
+## Les gardes du code
+
+### Le cliquet, plutôt que le grand rangement *(05/08/2026)*
+`design/tailles.json` retient la taille de chaque fichier et `npm run design`
+refuse qu'elle augmente. Il n'exige **aucun** nettoyage : ce qui est déjà gros
+le reste, et chaque fois qu'un fichier maigrit sa marque descend avec lui, sans
+jamais remonter. On n'a donc pas à décider d'un chantier — le code ne peut plus
+qu'aller dans le bon sens, au rythme où on le touche.
+
+Deux détails qui font la différence entre un garde-fou et un compteur : la
+marque d'un fichier qui a grossi **n'est pas** mise à jour, sinon le second
+passage avalerait en silence ce que le premier a refusé ; et relever une marque
+à la main est permis, mais se dit dans le commit.
+
+*Éprouvé le jour même :* le cliquet a mordu cinq fois sur le chantier qui
+l'introduisait. Deux fois il avait raison et le code a été découpé
+(`store/alertes.ts`, `AlerteEssai.tsx`) ; trois fois la croissance était de la
+prose et les marques ont été relevées.
+
+### La dette d'exports morts est écrite, pas tolérée en silence *(05/08/2026)*
+Le détecteur d'exports que personne n'importe trouve treize entrées le jour où
+il est écrit — dont neuf dans `types/index.ts`, le fichier qu'on a justement
+promis de découper domaine par domaine. Exiger leur disparition d'un coup aurait
+ouvert un chantier que personne n'avait décidé. `design/exports-morts.json`
+porte donc cette dette, **une raison par entrée** ; un export mort de plus fait
+échouer la vérification.
+
+*Il a servi tout de suite :* trois exports écrits « au cas où » dans le même
+chantier ont été signalés le jour de leur naissance, et retirés. C'est
+exactement ce qu'on lui demandait — attraper la mort à la naissance plutôt qu'au
+troisième mois.
 
 ---
 

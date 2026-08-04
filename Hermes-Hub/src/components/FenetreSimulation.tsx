@@ -33,6 +33,7 @@ import {
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { cleAccord } from '../lib/accords'
+import { useEchap } from '../hooks/useEchap'
 import { BancEssai } from './BancEssai'
 import type {
   Chantier,
@@ -106,13 +107,8 @@ export function FenetreSimulation({
   // a la souris - c'est une taille de depart, pas une contrainte.
   const seulementErreur = !!erreur && !simulation && !chargement
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onFermer()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onFermer])
+  // Convoquee, donc elle se ferme - et ce qui se ferme se ferme par Echap.
+  useEchap(true, onFermer)
 
   return (
     <div
@@ -614,7 +610,7 @@ function PiedDePage({
               : '- en attente de la prochaine tache'}
           </>
         ) : deja ? (
-          'Ce pole est valide. Lancer reveille les agents un par un, dans l ordre du graphe.'
+          'Ce scenario est valide. Lancer reveille les agents un par un, dans l ordre du graphe.'
         ) : (
           'Valider ouvre la porte - aucun agent ne demarre a cet instant.'
         )}

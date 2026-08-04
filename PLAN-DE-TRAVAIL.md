@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 4 août 2026 à **23:26**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **00:30**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -65,6 +65,44 @@ Le point 1 de l'« Ensuite » du commit. Constats :
   Mémoire) affiche « 5 sur 6 » alors que le texte annonce sept questions —
   incohérence d'affichage mineure, non vérifiée plus loin.
 - **F1 est tranché** — voir §6.
+
+### Chantier 2 — fait le 5 août, écrit mais **pas encore regardé à l'écran**
+
+Les quatre blocs sont écrits, `npm run build` passe, `npm run design` est vert.
+**Ce qui manque est la seule chose qui compte : personne ne l'a encore vu
+tourner.** La porte s'ouvre avec l'interrupteur *Configuration >
+Développement > Alerte d'essai* — poser la fausse autorisation, puis parcourir
+Accueil, Projets, Orchestration et le Studio.
+
+| Le bloc | Ce qui a été fait |
+|---|---|
+| **Les gardes** | cliquet des tailles (`design/tailles.json`) et détecteur d'exports morts (`design/exports-morts.json`), branchés sur `npm run design` |
+| **La grammaire** | `useEchap` partout, `BoutonRepli` + `useRepli` (les deux côtés), `ChampRecherche`, **Ctrl B**, `menuToujours` sur l'en-tête |
+| **La ligne d'alerte** | une ligne, un volet, sur les trois écrans **et** dans la barre du Studio *(F12, C2, C5, F13)* |
+| **Le vocabulaire** | « scénario » à l'écran, `pole` dans le code ; le Studio n'est plus « l'atelier » *(F6)* |
+
+**Trois choses que le chantier a apprises, et qui ne se devinaient pas :**
+
+1. **Le cliquet a mordu cinq fois sur le chantier qui l'introduisait.** Deux
+   fois il avait raison : `useHubStore.ts` a rendu ses traces de scénarios
+   (`store/alertes.ts`) et `ConfigView.tsx` son bloc d'essai
+   (`AlerteEssai.tsx`). Trois fois la croissance était de la prose, et les
+   marques ont été relevées à la main.
+2. **Le détecteur d'exports a attrapé trois exports nés le jour même** —
+   `NatureAlerte`, `useAlertes`, `ScenarioFini`, exportés « au cas où » et
+   importés nulle part. Retirés. C'est exactement ce qu'on lui demandait.
+3. **Deux surfaces disaient déjà la même chose.** La bande « automatisation
+   tombée » de l'accueil faisait le travail de la ligne d'alerte, sur un seul
+   écran. Elle est partie, avec la variante `alertesSeules` — la grammaire est
+   formelle, *une seule ligne, jamais deux*.
+
+**Ce qui a été porté par la grammaire mais n'a pas encore de surface :** le
+`cote="droite"` de `BoutonRepli` et la recherche dans un contenu long. Les deux
+pièces existent et sont branchées à un appelant réel (la barre latérale,
+l'annuaire de la conversation) ; le panneau plan et le fil, qui en sont les
+vrais consommateurs, arrivent aux chantiers 3 et 4. **Dire où la vérification
+s'arrête :** rien de tout ceci n'a été joué à l'écran — seulement compilé,
+construit et vérifié par les gardes.
 
 ### Décidé, écrit, **pas commencé**
 
@@ -217,7 +255,7 @@ devrait marcher ».
 
 ---
 
-### Chantier 2 — Les fondations partagées
+### Chantier 2 — Les fondations partagées ✅ *écrit le 5 août, pas encore regardé*
 
 Ce qui sert aux **trois** écrans, et qu'il serait absurde d'écrire trois fois.
 

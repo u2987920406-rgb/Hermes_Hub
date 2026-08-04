@@ -20,6 +20,7 @@ import {
   Terminal as TerminalIcon,
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { AlerteEssai } from '../components/AlerteEssai'
 import { Attente } from '../components/Attente'
 import { MemoireEquipe } from '../components/MemoireEquipe'
 import { ConfirmDialog } from '../components/Modal'
@@ -606,6 +607,9 @@ export function ConfigView({ onMenu, versQuiJeSuis = false, onNavigate }: Props)
                 Ouvrir Clean Agent
               </button>
             )}
+
+
+            <AlerteEssai />
           </section>
           )}
 

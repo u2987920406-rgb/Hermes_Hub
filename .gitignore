@@ -13,3 +13,13 @@ Hermes-Hub/node_modules/
 # Divers Windows
 Thumbs.db
 desktop.ini
+
+# Reglages de Claude Code, laisses dehors le 05/08/2026 - ils s'appretaient a
+# entrer dans le commit du chantier 2 sans que personne l'ait decide.
+# `settings.local.json` porte des autorisations PAR POSTE : son nom le dit, et
+# un depot livre chez des clients n'a pas a transporter les permissions d'une
+# machine de developpement.
+# `launch.json` (bac a sable dev-v2, port 4319) est le seul des deux qui
+# meriterait d'etre versionne - a trancher dans son propre commit, pas dans
+# celui d'un chantier.
+.claude/

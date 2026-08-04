@@ -72,10 +72,10 @@ pour le nommer quand on veut demander une modification.
 | La ligne d'un outil, avec « qui l'a » | `ligne-outil` | `--densite` | idem — l'ambre signale un outil incomplet |
 | Le formulaire « Brancher un outil » | `nouvel-outil` | — | idem |
 | Une conversation dans l'historique | `ligne-historique` | `--densite` | tri : `ONGLETS` |
-| Une vignette de pole | `vignette-pole` | `--agent-lisere-vignette` | idem |
+| Une vignette de scenario | `vignette-scenario` | `--agent-lisere-vignette` | idem |
 | Une vignette d'equipe | `vignette-equipe` | `--agent-lisere-vignette` | idem |
 | Le champ « Decris ce que tu veux » | `boite-demande` | — | idem |
-| Les autorisations en attente, en haut du pole | `accords-orchestration` | — | idem |
+| Les autorisations en attente, en haut du scenario | `accords-orchestration` | — | idem |
 | La fenetre de simulation | `fenetre-simulation` | — | `FenetreSimulation.tsx` |
 | Le decompte pendant qu-Hermes decoupe | `decompte-decoupage` | — | idem, `PLAFOND_DECOUPAGE_S` |
 | Le banc d'essai, en bas de la simulation | `banc-essai` | — | `BancEssai.tsx` |
@@ -96,7 +96,6 @@ par les props `accueil` / `accueilDessous` de `Conversation.tsx`.
 | Le bandeau ambre « elles ne partiront pas » | — | — | idem : il ne parait QUE si des taches actives existent sans passerelle |
 | Une ligne d'automatisation, suspendue ou non | — | — | idem, attribut `data-suspendue` |
 | Le formulaire « Programmer une demande » | `nouvelle-automatisation` | — | `NouvelleAutomatisation.tsx` |
-| Une automatisation tombee, **une fois le salut parti** | `alerte-automatisation` | — | idem, prop `alertesSeules` |
 
 La section entiere s'efface quand il n'y a rien a dire - ni tache programmee,
 ni alerte. Un accueil ne porte pas de rubrique vide.
@@ -120,10 +119,12 @@ navigation au-dessus : pas de liseré de selection, pas d'etat actif, texte plus
 petit. Il n'y a pas d'ecran ou l'on « est ». Meme traitement que le bouton
 Rechercher, qui n'est pas une navigation non plus.
 
-`alerte-automatisation` est la seule chose qui traverse l'effacement, et c'est
-delibere : une tache qui part chaque matin et rate en silence ne se decouvre
-autrement qu'en allant la chercher - or on ne cherche pas ce qu'on croit acquis.
-Le reste revient en repartant d'une conversation neuve (« Nouvelle »).
+**Rien ne traverse plus l'effacement, et c'est un progres.** Une automatisation
+tombee le traversait par une bande posee au-dessus du fil : elle doit se voir en
+ouvrant le Hub, pas se chercher. C'est desormais le role de `ligne-alerte`, qui
+le fait sur les trois ecrans au lieu de celui-ci seul - voir « Les gestes
+partages ». Le reste revient en repartant d'une conversation neuve
+(« Nouvelle »).
 
 ### Le premier lancement, et la memoire
 
@@ -155,7 +156,7 @@ obligerait le Hub a connaitre un texte que l'installateur possede.
 | L'ecran entier, sans barre laterale | `studio` | — | `StudioView.tsx` |
 | Une case du canevas | `noeud-studio` | `--agent-lisere-noeud`, `--agent-point` | `NoeudStudio.tsx` |
 | La fiche « une tache de plus » | `brouillon-tache` | — | `StudioView.tsx` |
-| « 5 fichiers produits », a droite du canevas | `livrable-pole` | — | `LivrablePole.tsx` — absent tant que le pole n'a jamais tourne |
+| « 5 fichiers produits », a droite du canevas | `livrable-scenario` | — | `LivrableScenario.tsx` — absent tant que le scenario n'a jamais tourne |
 | Le panneau de reglages a droite | — | — | `StudioView.tsx`, cherche `<aside` |
 | Les traits entre les cases | — | — | pas de molette : la couleur vient de l'agent amont |
 
@@ -166,6 +167,24 @@ obligerait le Hub a connaitre un texte que l'installateur possede.
 | Le graphe entier | `organigramme` | `REGLAGES` (en JS, voir plus bas) | `Organigramme.tsx` |
 | Une case | `noeud-organigramme` | `--agent-lisere-noeud`, `--agent-point` | idem |
 | Une equipe qui deborde du bloc | — | baisser `REGLAGES.L` | la mise a l'echelle est automatique |
+
+### Les gestes partages
+
+Ajoutes au chantier 2. **Ils ne sont a personne et ils sont partout** : c'est
+tout leur interet, et c'est aussi ce qui les rend dangereux a retoucher - une
+valeur tournee ici se voit sur les trois ecrans a la fois.
+
+| Ce que tu vois | Zone a grep | Sinon |
+|---|---|---|
+| La ligne d'alerte, sous le bandeau de serveur | `ligne-alerte` | `LigneAlerte.tsx` — absente quand il n'y a rien a dire, et c'est voulu |
+| Le volet qui glisse a droite au clic sur la ligne | `volet-alertes` | `VoletAlertes.tsx` — convoque, donc il se ferme : `X` ou Echap |
+| Le bouton qui replie un panneau permanent | `bouton-repli` | `BoutonRepli.tsx` — jamais un `X` : une chose permanente se replie |
+| Un champ « chercher dans ce contenu » | `champ-recherche` | `ChampRecherche.tsx` — a ne pas confondre avec **Ctrl K**, qui cherche dans l'application |
+| Le bouton « poser une alerte d'essai » | `alerte-essai` | `AlerteEssai.tsx` — Configuration > Developpement, uniquement |
+
+La grammaire complete de ces gestes - qui se replie, qui se ferme, qui
+s'agrandit, et ou chacun doit apparaitre - est dans `GRAMMAIRE-PANNEAUX.md`,
+racine du depot. **Ce tableau dit ou c'est ; ce document-la dit pourquoi.**
 
 ### Le reste de l'application
 
@@ -197,7 +216,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `accords-orchestration` | `src/pages/OrchestrationView.tsx` |
 | `accueil-conversation` | `src/components/Conversation.tsx` |
 | `agents-au-travail` | `src/components/Conversation.tsx` |
-| `alerte-automatisation` | `src/components/Automatisations.tsx` |
+| `alerte-essai` | `src/components/AlerteEssai.tsx` |
 | `attente-bouton` | `src/components/Attente.tsx` |
 | `automatisations` | `src/components/Automatisations.tsx` |
 | `avertissement-convocation` | `src/components/Conversation.tsx` |
@@ -205,10 +224,12 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `bandeau-profil` | `src/components/PremiereFois.tsx` |
 | `barre-saisie` | `src/components/Conversation.tsx` |
 | `boite-demande` | `src/pages/OrchestrationView.tsx` |
+| `bouton-repli` | `src/components/BoutonRepli.tsx` |
 | `brouillon-tache` | `src/pages/StudioView.tsx` |
 | `bulle-agent` | `src/components/Conversation.tsx` |
 | `bulle-moi` | `src/components/Conversation.tsx` |
 | `carte-projet` | `src/components/ProjectCard.tsx` |
+| `champ-recherche` | `src/components/ChampRecherche.tsx` |
 | `decompte-decoupage` | `src/components/FenetreSimulation.tsx` |
 | `destinataires` | `src/components/Conversation.tsx` |
 | `developpement` | `src/pages/ConfigView.tsx` |
@@ -227,12 +248,13 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `fil-conversation` | `src/components/Conversation.tsx` |
 | `fin-du-tour` | `src/components/Conversation.tsx` |
 | `formulaire-nouveau-projet` | `src/components/NewProjectModal.tsx` |
+| `ligne-alerte` | `src/components/LigneAlerte.tsx` |
 | `ligne-banc` | `src/components/BancEssai.tsx` |
 | `ligne-historique` | `src/pages/OrchestrationView.tsx` |
 | `ligne-outil` | `src/components/OutilsEquipe.tsx` |
 | `ligne-profil` | `src/components/ProfilsMemoire.tsx` |
 | `ligne-sauvegarde` | `src/components/Sauvegardes.tsx` |
-| `livrable-pole` | `src/components/LivrablePole.tsx` |
+| `livrable-scenario` | `src/components/LivrableScenario.tsx` |
 | `memoire-equipe` | `src/components/MemoireEquipe.tsx` |
 | `menu-lateral` | `src/components/Sidebar.tsx` |
 | `nav-orchestration` | `src/pages/OrchestrationView.tsx` |
@@ -256,7 +278,8 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `trace-delegation` | `src/components/Conversation.tsx` |
 | `trace-refus` | `src/components/Conversation.tsx` |
 | `vignette-equipe` | `src/pages/OrchestrationView.tsx` |
-| `vignette-pole` | `src/pages/OrchestrationView.tsx` |
+| `vignette-scenario` | `src/pages/OrchestrationView.tsx` |
+| `volet-alertes` | `src/components/VoletAlertes.tsx` |
 <!-- ZONES:FIN -->
 
 ---

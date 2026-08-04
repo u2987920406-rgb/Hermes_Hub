@@ -1,0 +1,15 @@
+{
+  "Capacite": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
+  "EtapePlan": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
+  "EtatMemoireEquipe": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
+  "EtatOutil": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
+  "Propagation": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
+  "RoleAgent": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
+  "Route": "herite du chantier 2 (src/hooks/useRoute.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
+  "Tache": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
+  "Toast": "herite du chantier 2 (src/store/useHubStore.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
+  "ToastKind": "herite du chantier 2 (src/store/useHubStore.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
+  "TourMoi": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
+  "VagueSimulee": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
+  "applyTheme": "herite du chantier 2 (src/store/useHubStore.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine"
+}

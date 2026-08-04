@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CommandPalette } from './components/CommandPalette'
+import { LigneAlerte } from './components/LigneAlerte'
 import { NewProjectModal } from './components/NewProjectModal'
 import { BandeauProfil, PremiereFois } from './components/PremiereFois'
 import { Sidebar } from './components/Sidebar'
@@ -24,22 +25,40 @@ export default function App() {
   const ready = useHubStore((s) => s.ready)
   const connected = useHubStore((s) => s.connected)
   const rafraichirAccords = useHubStore((s) => s.rafraichirAccords)
+  const noterScenarioFini = useHubStore((s) => s.noterScenarioFini)
 
   /**
-   * Le compte des demandes en attente, tenu au niveau de l'application.
+   * Les demandes en attente, tenues au niveau de l'application.
    *
-   * Ici et pas dans un ecran : une question qui bloque un pole doit se voir
+   * Ici et pas dans un ecran : une question qui bloque un scenario doit se voir
    * depuis les Projets, le Coffre ou la Configuration - c'est-a-dire depuis
    * l'endroit ou l'on est justement parti. Un ecran qui la porte ne la montre
    * qu'a ceux qui l'ont deja trouvee.
    *
    * On ne compte pas les evenements, on RELIT le serveur a chacun : ils disent
    * bien quand une demande arrive, jamais de facon fiable quand elle s'en va.
+   *
+   * LA FIN D'UN SCENARIO, ELLE, NE SE RELIT PAS. `chantier-fin` ne passe qu'une
+   * fois et rien sur le disque ne dit ensuite « c'etait fini » : on l'attrape
+   * donc au vol pour en garder une trace (C5). C'est le seul endroit du Hub qui
+   * retient un evenement plutot que de reinterroger - et c'est assume, parce
+   * qu'il n'y a rien a interroger.
    */
   useEffect(() => {
     void rafraichirAccords()
-    return ecouterChat(() => void rafraichirAccords())
-  }, [rafraichirAccords])
+    return ecouterChat((e) => {
+      void rafraichirAccords()
+      if (e.type === 'chantier-fin') {
+        noterScenarioFini({
+          titre: e.titre,
+          faites: e.faites,
+          echouees: e.echouees,
+          restantes: e.restantes,
+          arrete: e.arrete,
+        })
+      }
+    })
+  }, [rafraichirAccords, noterScenarioFini])
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [newProject, setNewProject] = useState(false)
@@ -177,7 +196,7 @@ export default function App() {
 
   // Le Studio prend tout l'ecran : il sort du cadre a barre laterale au lieu
   // de s'y loger. C'est ce que dit le plan - le Hub est le centre de controle
-  // leger, le Studio est l'atelier, et un atelier ne se regarde pas par une
+  // leger, le Studio est la ou l'on fabrique, et cela ne se regarde pas par une
   // fenetre.
   //
   // Les notifications le suivent : elles vivaient dans le cadre commun, et le
@@ -209,6 +228,13 @@ export default function App() {
             Le serveur du Hub ne repond pas. Ferme cette page et relance le raccourci Hermes Hub.
           </div>
         )}
+        {/* Une seule ligne, toujours au meme endroit : sous le bandeau de
+            serveur injoignable, au-dessus de l'ecran. Elle est ici et pas dans
+            chaque ecran precisement pour qu'elle ne puisse pas se deplacer d'un
+            ecran a l'autre - c'est ce qui permet de la reconnaitre sans la
+            lire. Le Studio, qui sort de ce cadre, la repose lui-meme dans sa
+            barre de scenario. */}
+        <LigneAlerte />
         {/* Sans croix, et il ne part qu'en allant choisir. La case « ne plus
             afficher » de la fenetre n'eteint QUE la fenetre : ceux qui la
             cochent sont exactement ceux qu'on veut atteindre. */}
