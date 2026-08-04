@@ -16,6 +16,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { arbitrer } from './laissez-passer.js'
+import { lireMode } from './mode-conversation.js'
 import { estPanneModele, lireBascule, prochainGratuit } from './modeles.js'
 
 /**
@@ -293,8 +294,38 @@ export class PontAcp extends EventEmitter {
     // Sans option proposee, rien a arbitrer : on laisse Hermes decider seul.
     if (!toutes.length) return this.#repondre(msg.id, { outcome: { outcome: 'cancelled' } })
 
-    const { risque, genre, auto, options } = arbitrer(p.toolCall, toutes)
+    const { risque, genre, auto, options, refus } = arbitrer(p.toolCall, toutes)
     const titre = p.toolCall?.title || 'Hermes demande une autorisation'
+
+    /**
+     * LE MODE DISCUSSION : le Hub dit non, et il le DIT.
+     *
+     * Le refus est silencieux du cote d'Hermes - il recoit un « non » et
+     * continue son tour comme si l'outil avait echoue. S'il l'etait aussi du
+     * cote de l'ecran, on verrait un agent annoncer qu'il va ecrire un fichier,
+     * puis passer a autre chose sans explication : la lecture la plus naturelle
+     * serait « le Hub est casse ». Une erreur se dit, elle ne s'avale pas.
+     *
+     * L'evenement porte le titre de ce qui a ete refuse, pas seulement le fait
+     * du refus : savoir QUE quelque chose a ete bloque sans savoir QUOI ne
+     * permet pas de decider s'il faut repasser en Atelier.
+     */
+    if (refus) {
+      this.emettre({
+        type: 'autorisation-refusee',
+        demande: String(msg.id),
+        titre,
+        genre,
+        risque,
+        mode: lireMode().mode,
+      })
+      return this.#repondre(
+        msg.id,
+        refus.option
+          ? { outcome: { outcome: 'selected', optionId: refus.option } }
+          : { outcome: { outcome: 'cancelled' } },
+      )
+    }
 
     // Ce qui lit passe seul - et le dit. Un accord rendu en silence ferait
     // croire que l'agent n'a rien demande, et le jour ou le classement se

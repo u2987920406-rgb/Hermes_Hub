@@ -518,6 +518,37 @@ export class Equipage {
     return entree.pont.autoriser(demande, optionId)
   }
 
+  /**
+   * Ce que les agents eveilles declarent savoir faire : leurs modes ACP.
+   *
+   * ECRIT POUR UNE EXPERIENCE, ET LA QUESTION EST PRECISE. Le 05/08/2026, le
+   * mode Discussion a ete contourne : le Hub refusait bien la demande d'`edit`,
+   * et Hermes a ecrit le fichier par le terminal - un appel qui n'est jamais
+   * passe par `session/request_permission`. Refuser cote Hub ne suffit donc
+   * pas. Reste a savoir si le moteur d'Hermes offre lui-meme un mode ou rien
+   * ne s'ecrit : ce serait la seule garantie qui prenne AUSSI le terminal,
+   * parce qu'elle serait tenue en amont du Hub.
+   *
+   * **N'OUVRE AUCUNE SESSION.** Interroger reveillerait un agent pour repondre
+   * a une question d'inventaire, et un inventaire qui change ce qu'il compte
+   * ne vaut rien. On rend ce qu'on sait des ponts deja ouverts, et `null`
+   * quand il n'y en a pas - a l'appelant de dire « envoie un message d'abord »
+   * plutot que de le faire dans son dos.
+   */
+  modes() {
+    const agents = []
+    for (const [id, { pont }] of this.ponts) {
+      const s = pont.session
+      agents.push({
+        agent: id,
+        ouvert: !!s,
+        modes: s?.modes || [],
+        modeActuel: s?.modeActuel ?? null,
+      })
+    }
+    return { agents, aucunPontOuvert: agents.length === 0 }
+  }
+
   /** Ce qu'un flux qui arrive en cours de route doit savoir. */
   etat() {
     const agents = []

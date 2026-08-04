@@ -75,6 +75,7 @@ import {
   suspendreAutomatisation,
 } from './planification.js'
 import { ecrireReglage, lireReglage } from './laissez-passer.js'
+import { ecrireMode, lireMode } from './mode-conversation.js'
 import { annulerValidation, simuler, valider } from './simulation.js'
 import { comparer, listerVersions, lireVersion, marquerFavori, oublierVersion } from './versions.js'
 import { prevoirRetour, rejouer } from './retour.js'
@@ -2443,6 +2444,29 @@ async function handleApi(req, res, url) {
         const body = await readBody(req)
         const etat = ecrireReglage(body.actif === true)
         diffuser({ type: 'laissez-passer-reglage', ...etat })
+        return sendJson(res, 200, etat)
+      }
+    }
+
+    // Ce que le moteur d'Hermes declare savoir faire. Lecture pure, et elle ne
+    // reveille personne - voir `Equipage.modes()` pour pourquoi ca compte.
+    if (rest[1] === 'modes' && method === 'GET') {
+      return sendJson(res, 200, equipage.modes())
+    }
+
+    // Discussion ou Atelier. Voir `mode-conversation.js` pour ce que chacun
+    // promet - et surtout pour pourquoi la promesse est tenue ICI, par un refus
+    // du Hub, plutot que par une consigne qu'un modele peut ignorer.
+    //
+    // Diffuse, comme la bascule : deux onglets ouverts sur le meme Hub ne
+    // peuvent pas afficher des garanties contraires. Celle-ci moins que toute
+    // autre - c'est une promesse, pas une preference d'affichage.
+    if (rest[1] === 'mode-conversation') {
+      if (method === 'GET') return sendJson(res, 200, lireMode())
+      if (method === 'POST') {
+        const body = await readBody(req)
+        const etat = ecrireMode(String(body.mode || ''))
+        diffuser({ type: 'mode-conversation-reglage', ...etat })
         return sendJson(res, 200, etat)
       }
     }
