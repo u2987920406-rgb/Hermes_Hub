@@ -50,6 +50,12 @@ Le point 1 de l'« Ensuite » du commit. Constats :
   pas bloquant, à reprendre si l'identité de l'accueil est retouchée.
   **Reconfirmé par un autre chemin le 4 août :** l'expérience V1, passée en CLI
   sans aucun contexte de Hub, a écrit *« L'utilisateur (Raf) »* de lui-même.
+  **Et la moitié du problème était déjà connue depuis le 31 juillet :**
+  `USER.md` ne contient que `raf` / `fr` / `concis` — métier, niveau technique,
+  projets et objectifs sont vierges. Un tri de la mémoire d'Hermès l'avait noté
+  et reporté (fiche `tri-memoire-hermes.md`, carnet de maintenance). Le jour où
+  l'identité de l'accueil se retouche, les deux se traitent ensemble : un nom
+  affiché juste ne sert à rien si le profil derrière est vide.
 - **Formulaire « Sept questions, une fois pour toutes »** (Configuration >
   Mémoire) affiche « 5 sur 6 » alors que le texte annonce sept questions —
   incohérence d'affichage mineure, non vérifiée plus loin.
