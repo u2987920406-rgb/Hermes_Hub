@@ -1,6 +1,6 @@
 # Hermès Hub — à lire en ouvrant ce dépôt
 
-> ⏱ **Écrit** le 4 août 2026 à **20:18** · **révisé** le 4 août 2026 à **23:45**
+> ⏱ **Écrit** le 4 août 2026 à **20:18** · **révisé** le 4 août 2026 à **23:40**
 > détail : `git log --follow -- CLAUDE.md`
 >
 > **Convention d'horodatage du dépôt.** Tout document porte, sous son titre,
@@ -71,11 +71,41 @@ quand on en a besoin. Le dépôt est la mémoire.
   en tournant une valeur, sans ouvrir un seul composant.
 - **Vérifier avant de ranger.** Un document qu'on déplace ou qu'on versionne doit
   d'abord être confronté aux plus récents : ranger et valider sont deux gestes
-  différents, et le premier fait passer le second pour acquis. Le 4 août,
-  `VISION-STUDIO.md` est entré dans le dépôt parce qu'il était mal rangé — il
-  contredisait le plan sur quatre points, dont un qui aurait fait retirer au
-  produit sa seule façon de créer un scénario. C'est kuchu qui l'a demandé, pas
-  moi.
+  différents, et le premier fait passer le second pour acquis. Le protocole est
+  juste en dessous, et il n'est pas facultatif.
+
+---
+
+## Un document qui arrive — le protocole d'entrée
+
+Un plan, une vision, une spec, un compte rendu : **rien n'entre dans ce dépôt
+sans passer ces cinq pas.** Ils viennent du 4 août 2026, où `VISION-STUDIO.md`
+est entré parce qu'il était mal rangé — et où la confrontation complète a montré
+que **sur ses onze décisions, une seule tenait encore.**
+
+1. **Le dater avant de le bouger.** Relever son heure d'écriture *avant* tout
+   déplacement : sous Windows, un `Move` écrase la date de création et la
+   remplace par celle de la dernière écriture. Une fois déplacé, l'information
+   est perdue pour de bon. Poser le bloc `⏱ **Achevé** le <date> à <heure>`.
+2. **Le confronter, pas le ranger.** Point par point, contre les quatre qui font
+   autorité : `PLAN-DE-TRAVAIL.md`, `maquette-parcours.html`,
+   `GRAMMAIRE-PANNEAUX.md`, `FRICTIONS-PARCOURS.md`. **Pas contre un seul** — le
+   4 août, la comparaison au plan seul avait trouvé quatre écarts et laissé
+   croire le reste propre ; il y en avait six de plus.
+3. **Marquer sur place** ce qui est périmé — barré, avec ce qui l'a remplacé.
+   Un avertissement en tête n'arrête personne : on saute au paragraphe qui
+   intéresse. Une ligne barrée, si.
+4. **Remonter les orphelins** au §6 de `PLAN-DE-TRAVAIL.md` — ce qui n'est ni
+   vrai ni faux, mais que plus rien ne porte. Laissé dans un document périmé,
+   c'est enterré.
+5. **Dire où la vérification s'arrête.** C'est le seul pas qu'aucune machine ne
+   tiendra jamais, et c'est celui qui a fonctionné : « j'ai comparé au plan
+   seulement » a suffi à déclencher la confrontation complète.
+
+**Ce qui est automatique et ce qui ne l'est pas.** La barrière de commit refuse
+un `.md` neuf à la racine sans bloc `⏱` : un document ne peut plus entrer sans
+sa date. Elle ne peut rien dire du reste — une machine garantit qu'un document
+**porte une date**, jamais qu'il **dit vrai**.
 
 Le protocole design complet, l'atelier de réglages et la règle de `diffuser()`
 sont dans **`Hermes-Hub/CLAUDE.md`**. Les décisions durables sont dans

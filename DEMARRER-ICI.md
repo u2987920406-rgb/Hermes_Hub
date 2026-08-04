@@ -1,6 +1,6 @@
 # Démarrer une séance sur Hermès Hub
 
-> ⏱ **Achevé** le 4 août 2026 à **14:42** · **révisé** le 4 août 2026 à **22:35**
+> ⏱ **Achevé** le 4 août 2026 à **14:42** · **révisé** le 4 août 2026 à **22:33**
 > détail : `git log --follow -- DEMARRER-ICI.md`
 > **Le document le plus récent l'emporte.** Compare cette ligne avant d'appliquer.
 

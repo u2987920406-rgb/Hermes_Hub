@@ -1,6 +1,6 @@
 # Hermes Hub — le Studio et l'Orchestration
 
-> ⏱ **Achevé** le 2 août 2026 à **13:38** · **révisé** le 4 août 2026 à **23:55**
+> ⏱ **Achevé** le 2 août 2026 à **13:38** · **révisé** le 4 août 2026 à **23:26**
 > détail : `git log --follow -- VISION-STUDIO.md`
 > **`PLAN-DE-TRAVAIL.md` est postérieur de deux jours (4 août, 16:20) et
 > l'emporte.** C'est exactement ce que cet horodatage sert à voir d'un coup d'œil.

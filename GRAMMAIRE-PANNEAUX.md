@@ -1,6 +1,6 @@
 # La grammaire des panneaux et des gestes
 
-> ⏱ **Achevé** le 4 août 2026 à **14:12** · **révisé** le 4 août 2026 à **23:45**
+> ⏱ **Achevé** le 4 août 2026 à **14:12** · **révisé** le 4 août 2026 à **23:13**
 > détail : `git log --follow -- GRAMMAIRE-PANNEAUX.md`
 > **Le document le plus récent l'emporte.** Compare cette ligne avant d'appliquer.
 > *Sous la règle d'horodatage : il arbitre le vocabulaire d'interaction des trois
