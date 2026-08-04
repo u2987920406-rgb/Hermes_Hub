@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 4 août 2026 à **22:35**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 4 août 2026 à **23:55**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -374,6 +374,28 @@ Deux questions, aucune bloquante.
 
 *F1 (la fenêtre du premier lancement) a été tranché le 4 août : on garde la
 fenêtre modale telle quelle — voir §1, « Joué pour de vrai le 4 août ».*
+
+### Deux orphelins remontés de `VISION-STUDIO.md`, le 4 août à 23:55
+
+La confrontation complète de ce document aux quatre du 4 août a montré qu'**une
+seule de ses onze décisions traverse intacte**. Deux ne sont pas contredites —
+elles ont perdu ce qui les portait, et ce sont donc des décisions à **reprendre**,
+pas des acquis :
+
+3. **Le mode réflexion du Studio** — « le graphe montre où ça a bloqué, le
+   journal où ça a dérapé, fermé par défaut ». Il n'apparaît **nulle part** dans
+   la maquette, la grammaire ni les frictions. Et son argument reposait sur la
+   paire graphe / journal : le journal n'ayant plus de surface, la moitié tombe.
+   *À trancher au chantier 4 : garde-t-on un mode diagnostic, et sur quoi ?*
+4. **La relecture par l'orchestrateur** — « il propose, il ne modifie jamais,
+   chaque remarque est un bouton à accepter ». Le principe reste juste ; son
+   bouton a disparu avec la décision « un seul Lancer » *(F11)*.
+   *À trancher au chantier 4 : une relecture revient-elle, et par quelle porte ?*
+
+Et un troisième point qui n'est pas ouvert mais **déplacé**, noté ici pour qu'on
+ne le recrée pas au mauvais endroit : le **journal de livraisons** n'a plus de
+colonne. Ce qui en reste est le bilan **« Annoncé / rendu »** dans le panneau
+Plan en fin de scénario — c'est C8, et la maquette le montre déjà.
 
 ---
 

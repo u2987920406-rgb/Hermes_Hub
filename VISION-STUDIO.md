@@ -1,11 +1,35 @@
 # Hermes Hub — le Studio et l'Orchestration
 
-> ⏱ **Achevé** le 2 août 2026 à **13:38** · **révisé** le 4 août 2026 à **22:35**
+> ⏱ **Achevé** le 2 août 2026 à **13:38** · **révisé** le 4 août 2026 à **23:55**
 > détail : `git log --follow -- VISION-STUDIO.md`
 > **`PLAN-DE-TRAVAIL.md` est postérieur de deux jours (4 août, 16:20) et
 > l'emporte.** C'est exactement ce que cet horodatage sert à voir d'un coup d'œil.
 
-> # ⚠ DOCUMENT DU 2 AOÛT — QUATRE DE SES DÉCISIONS SONT PÉRIMÉES
+> # ⚠ DOCUMENT DU 2 AOÛT — UNE SEULE DE SES ONZE DÉCISIONS TIENT ENCORE INTACTE
+>
+> **Confrontation complète menée le 4 août à 23:55**, contre les quatre documents
+> du jour : `PLAN-DE-TRAVAIL.md`, `GRAMMAIRE-PANNEAUX.md`, `FRICTIONS-PARCOURS.md`
+> et la maquette validée. Le premier passage n'avait comparé qu'au plan et n'avait
+> vu que quatre écarts ; le second en a trouvé six de plus.
+>
+> | Décision | Verdict |
+> |---|---|
+> | #1 journal de livraisons | **déplacé** — plus de journal, le bilan vit dans le panneau Plan |
+> | #2 latence acceptée | **dépassé** — l'attente se conduit, elle ne s'accepte pas |
+> | #3 mode réflexion | **orphelin** — introuvable dans les documents du jour |
+> | #4 trois boutons | **périmé** — un seul Lancer |
+> | #5 l'orchestrateur propose | **orphelin** — son déclencheur a disparu avec #4 |
+> | #6 le coût sans argent | ✅ **tient** |
+> | #7 un verbe par surface | **périmé à moitié** — deux verbes sur quatre ont bougé |
+> | #8 retirer la boîte | **ordre imposé depuis** |
+> | #9 aucun état intermédiaire | **périmé** — il y en a un, voulu |
+> | #10 nœud et journal, même colonne | **périmé** — contredit par la grammaire ET la maquette |
+> | #11 renommage repoussé | **périmé à moitié** |
+>
+> **Ce qui garde toute sa valeur, c'est l'ANALYSE** — pourquoi le Studio devient
+> l'atelier central, pourquoi « Orchestration » était quatre surfaces empilées
+> sous une entrée de menu. Ce sont les conclusions qui ont vieilli, pas le
+> raisonnement qui y menait.
 >
 > **`PLAN-DE-TRAVAIL.md` gagne partout où les deux se contredisent.** Il est du
 > 4 août, il est tenu à jour, et c'est lui qui porte l'ordre des chantiers.
@@ -112,10 +136,30 @@ Accueil → CONVERSATION → STUDIO → SUIVI → PROJETS / COFFRE
    « Passé à Marc » **est** une flèche du graphe. Le journal se **reconstruit**
    depuis le tableau — il survit à la séance sans stockage nouveau, et la
    question de faisabilité ACP tombe.
-2. **Latence acceptée.** Simultané si possible, un retard n'est pas grave.
+   **⚠ DÉPLACÉ (4 août) — le principe survit, sa surface a disparu.** Il n'y a
+   plus de journal dans le Studio : la maquette validée n'en montre aucun. Ce
+   qui reste de l'idée, c'est le bilan **« Annoncé / rendu »** en fin de
+   scénario, dans le **panneau Plan** — `veille.md` et `veille-2026-08-04.pdf`
+   cochés en face de ce qui avait été promis. C'est le couplage **C8**, au
+   chantier 4. Ne cherche pas à recréer une colonne journal : elle n'a plus de
+   place, voir #10.
+2. ~~**Latence acceptée.** Simultané si possible, un retard n'est pas grave.~~
+   **⚠ DÉPASSÉ (4 août) — l'attente se CONDUIT, elle ne s'accepte pas.**
+   `GRAMMAIRE-PANNEAUX.md` §6 bis renverse la phrase : *« le problème n'est pas
+   la durée, c'est le vide. Quatre minutes pendant lesquelles il se passe
+   visiblement quelque chose sont supportables ; vingt secondes de néant ne le
+   sont pas. »* Six règles de conduite, une chronologie en cinq moments, et
+   trois frictions qui en sortent (F18, F19, F20). **C'est ce texte-là qui
+   s'applique**, pas cette ligne.
 3. **Le mode réflexion est un outil de diagnostic**, pas un gadget :
    **le graphe montre où ça a BLOQUÉ, le journal où ça a DÉRAPÉ.** Une tâche
    peut réussir en livrant n'importe quoi. **Fermé par défaut.**
+   **⚠ ORPHELIN (4 août) — à re-trancher avant de l'écrire.** Le mode réflexion
+   n'apparaît nulle part dans les documents du 4 août : ni la maquette, ni la
+   grammaire, ni les vingt frictions. Il n'est donc pas contredit — il n'est
+   plus porté par rien. Et son argument reposait sur la **paire** graphe /
+   journal : le journal ayant perdu sa surface (#1, #10), la moitié de la
+   justification tombe avec elle.
 4. ~~**Trois boutons** : Simuler (gratuit, rejoue les vagues) → Faire relire par
    l'orchestrateur → Lancer pour de vrai.~~
    **⚠ PÉRIMÉ (4 août) — un seul bouton Lancer.** Deux validations pour un même
@@ -123,11 +167,24 @@ Accueil → CONVERSATION → STUDIO → SUIVI → PROJETS / COFFRE
    Chantier 4.
 5. **L'orchestrateur PROPOSE, il ne modifie jamais.** Chaque remarque est un
    bouton à accepter, et l'acceptation passe par les quatre verbes serveur.
-6. **Le coût = temps, requêtes, RAM. Pas d'argent** (peut-être plus tard si des
+   **⚠ ORPHELIN (4 août) — le principe est sain, son déclencheur a disparu.**
+   « Faire relire par l'orchestrateur » était le deuxième des trois boutons de
+   #4 ; il n'en reste qu'un. La garantie — proposer sans écrire, et ne passer
+   que par `ajouterTache` / `relier` / `delier` / `supprimerTache` — reste la
+   bonne règle **le jour où une relecture reviendra**. Elle n'a plus de porte.
+6. ✅ **Le coût = temps, requêtes, RAM. Pas d'argent** (peut-être plus tard si des
    API payantes sont branchées).
+   *Vérifié le 4 août : rien dans les documents du jour ne le remet en cause.*
+   **C'est la seule des onze décisions qui traverse intacte.**
 7. **Un verbe par surface.** Conversation = décrire ; Studio = construire,
    simuler, relire, lancer, lire ; Orchestration = surveiller ; Projets et
    Coffre = récupérer.
+   **⚠ PÉRIMÉ À MOITIÉ (4 août) — deux verbes sur quatre ont bougé.**
+   *Conversation* ne se contente plus de décrire : au chantier 3, une demande y
+   **devient un scénario** — carte de plan, boutons Valider / Modifier /
+   Refuser. *Orchestration* ne se contente plus de surveiller : au chantier 5,
+   on y **compose une équipe, on corrige la description d'un agent, on modifie
+   une automatisation.** Studio et Projets / Coffre tiennent.
 8. **La barre « Décris ce que tu veux » disparaît** de l'écran Orchestration,
    remplacée par un bouton qui mène à la Conversation — une porte, pas un champ.
    **⚠ ORDRE IMPOSÉ DEPUIS (4 août) — pas avant que le chat sache proposer un
@@ -142,9 +199,21 @@ Accueil → CONVERSATION → STUDIO → SUIVI → PROJETS / COFFRE
    chantier 3 est : depuis le chat, une demande devient **un scénario écrit sur
    le disque, en attente**, sans qu'aucun agent ait été réveillé. C'est ce qui
    permet les boutons Valider / Modifier / Refuser.
-10. **Le panneau du nœud et le journal sont la MÊME colonne.** Rien de
+10. ~~**Le panneau du nœud et le journal sont la MÊME colonne.** Rien de
     sélectionné → journal complet. Un nœud sélectionné → réglages en haut, son
-    fil en bas. Sinon quatre zones se disputent l'écran.
+    fil en bas. Sinon quatre zones se disputent l'écran.~~
+    **⚠ PÉRIMÉ (4 août) — contredit par les DEUX documents qui font autorité.**
+    `GRAMMAIRE-PANNEAUX.md` §3 donne au Studio **trois** zones : Plan à gauche,
+    graphe au centre, **panneau du Nœud à droite — qui se FERME** par `X`. Et la
+    maquette le confirme : `panneauNoeud()` porte l'icône *fermer*, le plan porte
+    *replier*.
+    La règle qui départage est explicite et incompatible avec ce point :
+    **« une chose permanente se replie, une chose convoquée se ferme. »** Une
+    colonne qui serait tantôt le journal (permanent) tantôt les réglages d'un
+    nœud (convoqué) mélangerait les deux familles — exactement la faute que la
+    grammaire nomme comme la plus commune. Et le souci des « quatre zones qui se
+    disputent l'écran » est réglé autrement : la ligne d'alerte a **son propre
+    volet**, qui glisse depuis la droite et ne dispute la place à rien.
 11. **Le renommage est repoussé.** kuchu n'aime pas « Chantiers / Atelier ».
     **Studio reste Studio.** Si on renomme « Orchestration » un jour, le mot
     générique retenu est **« Suivi »**. Une étiquette, non urgent.
