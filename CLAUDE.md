@@ -1,5 +1,19 @@
 # Hermès Hub — à lire en ouvrant ce dépôt
 
+> ⏱ **Écrit** le 4 août 2026 à **20:18** · **révisé** le 4 août 2026 à **22:35**
+> détail : `git log --follow -- CLAUDE.md`
+>
+> **Convention d'horodatage du dépôt.** Tout document porte, sous son titre, la
+> date **et l'heure** de son achèvement et de sa dernière révision. Raison : une
+> version postérieure implique un changement, donc une comparaison — et sans
+> heure, deux documents du même jour ne se départagent pas. C'est ce qui a permis
+> de voir, le 4 août, que `VISION-STUDIO.md` contredisait le plan sur quatre
+> points.
+>
+> ⚠ **Ne te fie pas aux dates de création Windows** : elles ont toutes été
+> écrasées par les déplacements du 4 août et affichent l'heure de la dernière
+> écriture. L'horodatage fiable est celui de ces blocs, plus `git log --follow`.
+
 Tu es à la racine du projet. **Interface web locale qui pilote une équipe
 d'agents IA** via la ligne de commande `hermes` — serveur Node sans aucune
 dépendance, interface React construite par Vite. Elle est faite pour être
@@ -47,6 +61,13 @@ quand on en a besoin. Le dépôt est la mémoire.
 - **Lis `Hermes-Hub/DESIGN.md` avant de toucher à l'interface.** C'est la seule
   règle du dépôt qui n'a pas d'exception. La plupart des retouches se résolvent
   en tournant une valeur, sans ouvrir un seul composant.
+- **Vérifier avant de ranger.** Un document qu'on déplace ou qu'on versionne doit
+  d'abord être confronté aux plus récents : ranger et valider sont deux gestes
+  différents, et le premier fait passer le second pour acquis. Le 4 août,
+  `VISION-STUDIO.md` est entré dans le dépôt parce qu'il était mal rangé — il
+  contredisait le plan sur quatre points, dont un qui aurait fait retirer au
+  produit sa seule façon de créer un scénario. C'est kuchu qui l'a demandé, pas
+  moi.
 
 Le protocole design complet, l'atelier de réglages et la règle de `diffuser()`
 sont dans **`Hermes-Hub/CLAUDE.md`**. Les décisions durables sont dans

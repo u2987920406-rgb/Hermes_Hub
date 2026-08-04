@@ -1,5 +1,9 @@
 # Démarrer une séance sur Hermès Hub
 
+> ⏱ **Achevé** le 4 août 2026 à **14:42** · **révisé** le 4 août 2026 à **22:35**
+> détail : `git log --follow -- DEMARRER-ICI.md`
+> **Le document le plus récent l'emporte.** Compare cette ligne avant d'appliquer.
+
 > Ce fichier ne contient **aucun état** — volontairement. Un mémo d'avancement
 > tenu à la main pourrit dès que la séance s'arrête mal, c'est-à-dire pile quand
 > on en a besoin. Ici, seulement : où lire, quelles règles, et par quoi ouvrir.

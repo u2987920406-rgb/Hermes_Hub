@@ -1,5 +1,9 @@
 # Orchestration et Studio — ce qu'ils devraient être
 
+> ⏱ **Achevé** le 4 août 2026 à **12:58** · **révisé** le 4 août 2026 à **22:35**
+> (horodatage seul, contenu inchangé) · détail : `git log --follow -- PLAN-ORCHESTRATION-STUDIO.md`
+> **Le document le plus récent l'emporte.** Compare cette ligne avant d'appliquer.
+
 > Proposition du 4 août 2026, après le basculement de la conversation sur
 > l'accueil. À relire, à trancher, puis à replier dans `PLAN-V2.md` — ce
 > document est un brouillon d'arbitrage, pas une source de vérité.

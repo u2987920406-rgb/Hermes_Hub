@@ -1,5 +1,9 @@
 # La grammaire des panneaux et des gestes
 
+> ⏱ **Achevé** le 4 août 2026 à **14:12** · **révisé** le 4 août 2026 à **22:35**
+> (horodatage seul, contenu inchangé) · détail : `git log --follow -- GRAMMAIRE-PANNEAUX.md`
+> **Le document le plus récent l'emporte.** Compare cette ligne avant d'appliquer.
+
 > 4 août 2026. Établi **depuis le code existant**, pas inventé : presque tout ce
 > qui suit est déjà quelque part dans le Hub. Le problème n'est pas qu'il manque
 > des gestes, c'est qu'aucun document ne dit lesquels existent — d'où le
