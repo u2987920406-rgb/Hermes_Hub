@@ -380,3 +380,19 @@ Deux autres, plus anciennes, qui n'ont pas bougé de la séance :
   bouton. C'était noté « le plus urgent » de la phase 9 ;
 - les **clés et modèles depuis le Hub** — un client dont la clé expire doit
   ouvrir un terminal.
+
+Trois de plus, ouvertes le 4 août au soir en rangeant ce plan dans le dépôt :
+
+- **`Fil-Rouge` n'est versionné nulle part.** Le kit de méthode et ses huit
+  exemples vivent sur le Bureau, sur ce disque et nulle part ailleurs. C'est du
+  travail réutilisable hors d'Hermès — il mériterait son propre petit dépôt ;
+- **trois documents sont restés hors du dépôt** — `RAPPORT-BUG-ACP.md`,
+  `ANNULER-RUSTINE-ACP.md`, `TRI-MEMOIRE-HERMES.md`. Ils ne relèvent pas de
+  cette refonte, et les faire entrer aurait élargi un commit qui devait rester
+  lisible. À décider séparément ;
+- **une tension à trancher un jour :** `CLAUDE.md` dit « ne cherche aucun fichier
+  de reprise, le dépôt est la mémoire », et ce document porte justement de
+  l'état, écrit à la main. Ça tient tant qu'il est tenu à jour ; ça pourrit si
+  une séance s'arrête mal — exactement le cas que la règle visait. Si l'état
+  descendait entièrement dans les lignes `Ensuite :`, ce fichier n'aurait plus
+  qu'à porter l'ordre des chantiers, qui lui ne périme pas.
