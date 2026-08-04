@@ -1,14 +1,22 @@
 # Hermès Hub — à lire en ouvrant ce dépôt
 
-> ⏱ **Écrit** le 4 août 2026 à **20:18** · **révisé** le 4 août 2026 à **22:35**
+> ⏱ **Écrit** le 4 août 2026 à **20:18** · **révisé** le 4 août 2026 à **23:45**
 > détail : `git log --follow -- CLAUDE.md`
 >
-> **Convention d'horodatage du dépôt.** Tout document porte, sous son titre, la
-> date **et l'heure** de son achèvement et de sa dernière révision. Raison : une
-> version postérieure implique un changement, donc une comparaison — et sans
-> heure, deux documents du même jour ne se départagent pas. C'est ce qui a permis
-> de voir, le 4 août, que `VISION-STUDIO.md` contredisait le plan sur quatre
-> points.
+> **Convention d'horodatage du dépôt.** Tout document porte, sous son titre,
+> `⏱ **Achevé** le <date> à <heure>`. La date d'écriture est la seule que
+> `git log` ne saura jamais donner : il enregistre le **commit**, et sept
+> documents écrits le 4 août entre 11h et 16h ont été commités d'un bloc à
+> 17:31. Sans heure, deux documents du même jour ne se départagent pas — c'est
+> ce qui a permis de voir que `VISION-STUDIO.md` contredisait le plan.
+>
+> **Cinq documents portent en plus `**révisé**`, et eux seuls sont tenus par la
+> barrière de commit** : s'ils changent sans que cette ligne bouge, le commit est
+> refusé. Ce sont ceux qui **arbitrent** — `PLAN-DE-TRAVAIL.md`,
+> `VISION-STUDIO.md`, `DEMARRER-ICI.md`, `GRAMMAIRE-PANNEAUX.md`, et ce fichier.
+> Les autres gardent leur date d'achèvement sans la contrainte : marquer tout le
+> monde ferait payer une taxe à chaque commit, et une barrière qu'on contourne
+> par réflexe est morte.
 >
 > ⚠ **Ne te fie pas aux dates de création Windows** : elles ont toutes été
 > écrasées par les déplacements du 4 août et affichent l'heure de la dernière

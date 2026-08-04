@@ -1,8 +1,8 @@
 # Monter un projet, de zéro au produit — la méthode
 
-> ⏱ **Achevé** le 4 août 2026 à **13:56** · **révisé** le 4 août 2026 à **22:35**
-> (horodatage seul, contenu inchangé) · détail : `git log --follow -- METHODE-PROJET.md`
-> **Le document le plus récent l'emporte.** Compare cette ligne avant d'appliquer.
+> ⏱ **Achevé** le 4 août 2026 à **13:56** · révisions : `git log --follow -- METHODE-PROJET.md`
+> **Le document le plus récent l'emporte.** Compare cette date avant d'appliquer.
+> *Méthode réutilisable, pas décision de produit : hors règle d'horodatage.*
 > *Une copie de ce fichier vit dans `Bureau\Methodes\Fil-Rouge\` — dépôt
 > `fil-rouge-methode`. Les deux divergeront : celui-ci sert le projet, l'autre
 > sert n'importe quel projet.*

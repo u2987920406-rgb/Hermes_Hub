@@ -1,8 +1,8 @@
 # Le parcours joué avec un œil neuf — points de friction
 
-> ⏱ **Achevé** le 4 août 2026 à **11:13** · **révisé** le 4 août 2026 à **22:35**
-> (horodatage seul, contenu inchangé) · détail : `git log --follow -- FRICTIONS-PARCOURS.md`
-> **Le document le plus récent l'emporte.** Compare cette ligne avant d'appliquer.
+> ⏱ **Achevé** le 4 août 2026 à **11:13** · révisions : `git log --follow -- FRICTIONS-PARCOURS.md`
+> **Le document le plus récent l'emporte.** Compare cette date avant d'appliquer.
+> *Constat, pas arbitrage : ce document n'est pas sous la règle d'horodatage.*
 
 > 4 août 2026. Je suis un client qui vient d'installer Hermès Hub. Je n'ai lu
 > aucun plan, je ne connais pas le vocabulaire, et je veux juste faire faire
