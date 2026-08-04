@@ -60,8 +60,13 @@ barre et la nouvelle se pose en dessous.
 | Où | Ce que c'est |
 |---|---|
 | `../bac-a-sable-v2/` | workspace et tableau kanban d'essai. **Hors du dépôt**, volontairement |
-| `Bureau\Fil-Rouge\` | la méthode de projet et ses huit exemples — **dépôt séparé**, `fil-rouge-methode` |
-| `Bureau\Fil-Rouge\design-universel\` | le kit d'apparence réglable, **extrait d'ici** — dépôt séparé, `design-universel-kit`. `templates.js` y renvoie quand le Hub prépare un projet neuf |
+| `Bureau\Hermes\Maintenance\` | le carnet des réglages de cette machine — **dépôt séparé**, `hermes-maintenance`. Y vit la fiche `rustine-acp.md`, sans laquelle un `hermes update` fait revenir un gel silencieux |
+| `Bureau\Hermes\Sauvegardes\` | ⚠ contient `local.py.AVANT-rustine`, seul exemplaire du fichier d'origine. **Ne pas supprimer** |
+| `Bureau\Methodes\Fil-Rouge\` | la méthode de projet et ses huit exemples — **dépôt séparé**, `fil-rouge-methode` |
+| `Bureau\Methodes\Fil-Rouge\design-universel\` | le kit d'apparence réglable, **extrait d'ici** — dépôt séparé, `design-universel-kit`. `templates.js` y renvoie quand le Hub prépare un projet neuf |
+
+Le Bureau a été rangé le 4 août 2026 : quatre entrées au lieu de onze, et un
+`LISEZ-MOI.md` à chaque niveau. Ces chemins-là sont les bons.
 
 **Le dossier qui contient ce dépôt n'est pas le projet.** Ouvre toujours
 `Hermes-Installer`, jamais son parent : un dossier qui porte plusieurs projets

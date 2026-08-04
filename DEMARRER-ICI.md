@@ -22,6 +22,7 @@ ce qui est livré aux clients.
 | 1 | `PLAN-DE-TRAVAIL.md` | **l'état exact, les six chantiers, l'ordre.** Commence toujours par lui |
 | 2 | `git log -1` — **ici même**, ce dossier est la racine du dépôt | le point de reprise réel, dans la ligne « Ensuite : » |
 | 3 | `PLAN-ORCHESTRATION-STUDIO.md` | le **pourquoi** de chaque décision, et la mémoire à trois étages (§8) |
+| 3 bis | `VISION-STUDIO.md` | la vision du Studio et de l'Orchestration, partiellement arbitrée. **Entré dans le dépôt le 4 août** — il dormait sur le Bureau |
 | 4 | `maquette-parcours.html` | **la maquette validée. Elle fait foi en cas de doute** |
 | 5 | `FRICTIONS-PARCOURS.md` | les 20 frictions et 8 couplages, numérotés |
 | 6 | `GRAMMAIRE-PANNEAUX.md` | replier / fermer / agrandir, et la conduite de l'attente |
