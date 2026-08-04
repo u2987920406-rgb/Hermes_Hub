@@ -45,10 +45,18 @@ const config: Config = {
           from: { opacity: '0', transform: 'translateY(12px) scale(0.98)' },
           to: { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
+        // Un panneau qui vient du bord droit. `slide-up` faisait monter le
+        // volet des alertes depuis le bas, ce qui contredisait le seul geste
+        // qu'il devait apprendre - il vient de la droite, il repart a droite.
+        'glisse-droite': {
+          from: { opacity: '0', transform: 'translateX(16px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.18s ease-out',
         'slide-up': 'slide-up 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+        'glisse-droite': 'glisse-droite 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
       },
     },
   },

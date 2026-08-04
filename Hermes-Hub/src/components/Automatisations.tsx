@@ -18,7 +18,7 @@
  * d'automatisation du tout : on compte dessus. On le dit donc, fort, et
  * seulement quand ca compte : des taches actives et rien pour les declencher.
  */
-import { AlarmClock, CircleSlash, Pause, Play, Trash2, AlertTriangle } from 'lucide-react'
+import { AlarmClock, CircleSlash, Pause, Play, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { NouvelleAutomatisation } from './NouvelleAutomatisation'
@@ -80,24 +80,6 @@ export function Automatisations() {
         <span className="flex-1" />
         <NouvelleAutomatisation onFait={() => void charger()} />
       </div>
-
-      {etat.muettes && (
-        <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-500/40 dark:bg-amber-500/10">
-          <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-amber-600 dark:text-amber-400" />
-          <div className="min-w-0 text-[11px] leading-relaxed">
-            <p className="font-semibold text-amber-800 dark:text-amber-300">
-              Ces automatisations ne partiront pas.
-            </p>
-            <p className="mt-0.5">
-              La passerelle d-Hermes ne tourne pas : les taches programmees ne se
-              declenchent que si elle est installee en service. Dans un terminal :
-            </p>
-            <code className="mt-1 block rounded bg-white px-2 py-1 font-mono text-[10px] dark:bg-navy-900">
-              hermes gateway install
-            </code>
-          </div>
-        </div>
-      )}
 
       {vide && (
         <p className="text-[11px] muted">

@@ -68,6 +68,11 @@ export const TEINTES: Record<NatureAlerte, string> = {
 /** L'ordre d'urgence. Il commande ce que la ligne montre, et rien d'autre. */
 const RANG: Record<NatureAlerte, number> = { autorisation: 0, automatisation: 1, scenario: 2 }
 
+/** Le compte, dans les deux modes. Une seule ecriture : les deux pastilles
+    doivent rester identiques a l'oeil, sinon on croit lire deux choses. */
+const PASTILLE =
+  'flex-none rounded-full bg-slate-200 px-1.5 text-[10px] font-semibold tabular-nums dark:bg-navy-700'
+
 /**
  * Assembler les trois sources en une liste triee.
  *
@@ -200,12 +205,17 @@ export function LigneAlerte({ compact = false }: Props) {
       >
         <Icone className={`h-3.5 w-3.5 flex-none ${TEINTES[tete.nature]}`} />
         {!compact && <span className="min-w-0 truncate">{tete.texte}</span>}
-        {autres > 0 && (
-          <span className="flex-none rounded-full bg-slate-200 px-1.5 text-[10px] font-semibold tabular-nums dark:bg-navy-700">
-            +{autres}
-          </span>
+        {/* LA MEME PASTILLE, DEUX SENS - parce que ce qui l'entoure change. En
+            plein, la plus urgente est ecrite juste a cote : on compte donc les
+            AUTRES. En compact il n'y a pas de texte de tete, et « +2 » se
+            lisait « deux » quand il y en avait trois - on y met le TOTAL.
+            Trouve a l'ecran : avec une seule alerte les deux formes donnent
+            « 1 », et c'est le cas qu'on essaie en premier. */}
+        {compact ? (
+          <span className={PASTILLE}>{alertes.length}</span>
+        ) : (
+          autres > 0 && <span className={PASTILLE}>+{autres}</span>
         )}
-        {compact && autres === 0 && <span className="tabular-nums">1</span>}
         {!compact && <ChevronRight className="ml-auto h-3.5 w-3.5 flex-none muted" />}
       </button>
 

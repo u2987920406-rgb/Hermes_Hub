@@ -51,7 +51,7 @@ export function VoletAlertes({ alertes, onFermer }: Props) {
       aria-label="Ce qui demande ton attention"
     >
       <aside
-        className="flex h-full w-full max-w-sm animate-slide-up flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-navy-800 dark:bg-navy-900"
+        className="flex h-full w-full max-w-sm animate-glisse-droite flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-navy-800 dark:bg-navy-900"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-shrink-0 items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-navy-800">
