@@ -32,7 +32,7 @@ import {
   X,
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { cleAccord, sansAccord } from '../lib/accords'
 import { api } from '../lib/api'
 import { GENRES_OUTIL } from '../types'
@@ -60,6 +60,22 @@ interface Props {
   onFilOuvert?: () => void
   /** Remonte l'etat d'eveil pour que les autres volets le voient. */
   onEveilChange?: (eveilles: string[]) => void
+  /**
+   * Ce qui tient la place du fil tant qu'on n'a rien dit - le champ venant
+   * alors se poser dessous, au milieu de l'ecran plutot qu'en bas.
+   *
+   * C'est l'accueil du Hub : « Bonjour <prenom> » et le champ, rien d'autre.
+   * La prop existe pour que cet ecran-la n'ait PAS sa propre conversation :
+   * deux fils pour un meme interlocuteur finiraient par diverger, et on ne
+   * retrouverait pas depuis Orchestration ce qu'on a demande depuis l'accueil.
+   * Absente ailleurs - la conversation garde alors sa carte « Parle a ton
+   * equipe », qui n'a pas de sens quand un salut occupe deja l'ecran.
+   */
+  accueil?: ReactNode
+  /** Ce qui se pose SOUS le champ dans ce meme moment : les raccourcis. */
+  accueilDessous?: ReactNode
+  /** Previent l'ecran hote qu'on est encore au salut, ou qu'on l'a quitte. */
+  onFilVide?: (vide: boolean) => void
 }
 
 export function Conversation({
@@ -68,6 +84,9 @@ export function Conversation({
   filAOuvrir,
   onFilOuvert,
   onEveilChange,
+  accueil,
+  accueilDessous,
+  onFilVide,
 }: Props) {
   const [tours, setTours] = useState<Tour[]>([])
   const [saisie, setSaisie] = useState('')
@@ -93,6 +112,17 @@ export function Conversation({
   const [filVu, setFilVu] = useState<string | null>(null)
   /** L'annuaire complet, replie par defaut : la place appartient au fil. */
   const [deplie, setDeplie] = useState(false)
+
+  /**
+   * Le salut a-t-il cede la place ?
+   *
+   * On ne peut pas s'en remettre au seul fil : le message n'y entre qu'au
+   * RETOUR du serveur, qui l'inscrit et le renvoie. L'accueil resterait donc
+   * affiche pendant l'aller-retour, et on verrait le salut vaciller au lieu de
+   * s'effacer net. On bascule a l'envoi, et on ne revient au salut qu'en
+   * repartant d'une conversation neuve.
+   */
+  const [demarre, setDemarre] = useState(false)
 
   const bas = useRef<HTMLDivElement>(null)
   const champ = useRef<HTMLTextAreaElement>(null)
@@ -359,6 +389,8 @@ export function Conversation({
   const envoyer = async () => {
     const texte = composer()
     if (!saisie.trim() || envoi) return
+    // Le salut s'efface ici, pas au retour du serveur : voir `demarre`.
+    setDemarre(true)
     setEnvoi(true)
     setErreur(null)
     try {
@@ -443,6 +475,9 @@ export function Conversation({
     setFilVu(null)
     filVuRef.current = null
     setTours([])
+    // Un fil neuf rend le salut - et avec lui l'accueil du Hub entier, qui n'a
+    // pas d'autre porte : « Nouvelle » est ce qui y ramene.
+    setDemarre(false)
   }
 
   /** Ouvrir un fil neuf sans rien effacer : le prochain message repart de zero,
@@ -500,12 +535,38 @@ export function Conversation({
   // --- rendu -----------------------------------------------------------------
   const filOuvert = fils.find((f) => f.id === filVu) || null
 
+  /**
+   * Le salut, au milieu, a la place du fil.
+   *
+   * Trois conditions, chacune sa raison : `accueil` parce que seul l'ecran
+   * d'accueil en fournit un ; `demarre` parce qu'on bascule des l'envoi et non
+   * au retour du serveur ; `filVu` parce qu'une conversation qu'on relit n'est
+   * jamais un accueil, meme quand elle est vide.
+   *
+   * Le centrage ne deplace pas la barre de saisie : elle reste ou elle est
+   * ecrite, et ce sont les deux espaces qui l'encadrent qui la poussent au
+   * milieu. Un composant qui se recopie pour changer de place finit par diverger
+   * de lui-meme - une correction sur un exemplaire, oubliee sur l'autre.
+   */
+  const centre = Boolean(accueil) && !demarre && !filVu && tours.length === 0
+
+  // L'ecran hote a besoin de le savoir pour ce qu'il garde a l'oeil de son
+  // cote : une automatisation tombee doit rester lisible une fois le salut parti.
+  useEffect(() => {
+    onFilVide?.(centre)
+  }, [centre, onFilVide])
+
   return (
     <div className="flex flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Une seule ligne de contexte : ce qu'on regarde, et de quoi repartir
             a zero. L'historique lui-meme vit dans le menu, a cote de la
-            Conversation - pas dans un tiroir qui mange la largeur du fil. */}
+            Conversation - pas dans un tiroir qui mange la largeur du fil.
+
+            Elle s'absente du salut : « En direct » n'annonce rien tant que
+            rien n'a ete dit, et une barre de plus au-dessus d'un ecran qu'on
+            veut nu se remarque d'autant. */}
+        {!centre && (
         <div className="flex flex-none items-center gap-2 border-b border-slate-200 px-4 py-1.5 dark:border-navy-800">
           {filOuvert ? (
             <>
@@ -536,10 +597,24 @@ export function Conversation({
             </>
           )}
         </div>
+        )}
 
+      {/* Le salut prend la place du fil, colle en bas de son espace - donc
+          juste au-dessus du champ. */}
+      {centre ? (
+        <div
+          data-zone="accueil-conversation"
+          className="flex flex-1 flex-col justify-end overflow-y-auto px-4 pt-6 sm:px-6"
+        >
+          <div className="mx-auto w-full max-w-3xl">{accueil}</div>
+        </div>
+      ) : (
       <div data-zone="fil-conversation" className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
         <div className="mx-auto max-w-3xl space-y-4">
-          {tours.length === 0 && <Accueil agents={agents} onMentionner={mentionner} />}
+          {/* La carte « Parle a ton equipe » n'a pas lieu d'etre quand un salut
+              occupe deja l'ecran - et elle apparaitrait le temps de l'aller-retour
+              du premier message, juste apres que tout se soit efface. */}
+          {tours.length === 0 && !accueil && <Accueil agents={agents} onMentionner={mentionner} />}
 
           {tours.map((tour, i) =>
             tour.role === 'moi' ? (
@@ -574,14 +649,31 @@ export function Conversation({
           <div ref={bas} />
         </div>
       </div>
+      )}
 
-      {/* La barre de saisie : l'equipe, puis le champ. */}
+      {/* La barre de saisie : l'equipe, puis le champ.
+
+          Sur le salut, elle perd son filet et son fond : posee au milieu de
+          l'ecran, un trait au-dessus d'elle la ferait lire comme le bas d'une
+          page vide plutot que comme le centre de l'attention. */}
       <div
         data-zone="barre-saisie"
-        className="flex-none border-t border-slate-200 bg-white px-4 py-3 dark:border-navy-800 dark:bg-navy-900 sm:px-6"
+        className={
+          centre
+            ? 'flex-none px-4 pt-4 sm:px-6'
+            : 'flex-none border-t border-slate-200 bg-white px-4 py-3 dark:border-navy-800 dark:bg-navy-900 sm:px-6'
+        }
       >
-        <div className="mx-auto max-w-3xl space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
+        {/* Sur le salut, l'ordre s'inverse : le champ d'abord, l'annuaire
+            ensuite. Pose au-dessus, il tombait entre « Que veux-tu faire ? » et
+            la ou l'on ecrit - donc exactement sur le chemin du regard, et une
+            loupe placee la se lit comme la chose a faire en premier. */}
+        <div
+          className={
+            centre ? 'mx-auto flex max-w-3xl flex-col gap-2' : 'mx-auto max-w-3xl space-y-2'
+          }
+        >
+          <div className={`flex flex-wrap items-center gap-2 ${centre ? 'order-last' : ''}`}>
             {/**
              * Le menu d'equipes ne parait qu'avec la rangee qu'il filtre.
              *
@@ -675,7 +767,10 @@ export function Conversation({
            * qui tient sur une ligne.
            */}
           {rangeeVisible && (
-            <div data-zone="rangee-agents" className="flex flex-wrap items-center gap-1.5">
+            <div
+              data-zone="rangee-agents"
+              className={`flex flex-wrap items-center gap-1.5 ${centre ? 'order-last' : ''}`}
+            >
               {visibles.map((a) => (
                 <PastilleAgent
                   key={a.id}
@@ -782,6 +877,15 @@ export function Conversation({
           </div>
         </div>
       </div>
+
+      {/* L'autre moitie de l'espace. Elle porte les raccourcis, et elle est ce
+          qui met le champ au milieu : deux espaces egaux de part et d'autre,
+          plutot qu'une marge calculee qui se decale a chaque hauteur d'ecran. */}
+      {centre && (
+        <div className="flex-1 overflow-y-auto px-4 pb-4 pt-5 sm:px-6">
+          <div className="mx-auto w-full max-w-3xl">{accueilDessous}</div>
+        </div>
+      )}
       </div>
     </div>
   )

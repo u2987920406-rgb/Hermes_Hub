@@ -152,7 +152,13 @@ export default function App() {
       case 'trash':
         return <TrashView onMenu={() => setMenuOpen(true)} />
       case 'config':
-        return <ConfigView onMenu={() => setMenuOpen(true)} versQuiJeSuis={versQuiJeSuis} />
+        return (
+          <ConfigView
+            onMenu={() => setMenuOpen(true)}
+            versQuiJeSuis={versQuiJeSuis}
+            onNavigate={(view) => go(view)}
+          />
+        )
       default:
         return <HomeView onNavigate={go} onMenu={() => setMenuOpen(true)} />
     }

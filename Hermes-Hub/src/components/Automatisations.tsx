@@ -33,7 +33,20 @@ function quandArrive(iso: string | null) {
   return `dans ${Math.round(h / 24)} j`
 }
 
-export function Automatisations() {
+interface Props {
+  /**
+   * Ne garder que ce qui alerte.
+   *
+   * L'accueil est devenu une conversation : au premier message, tout s'efface
+   * pour laisser le fil seul. Tout, sauf ceci. Une tache qui part chaque matin
+   * et rate en silence ne se decouvre autrement qu'en allant la chercher - et
+   * on ne cherche pas ce qu'on croit acquis. La section entiere revient au
+   * salut, ou « Nouvelle » ramene.
+   */
+  alertesSeules?: boolean
+}
+
+export function Automatisations({ alertesSeules = false }: Props) {
   const [etat, setEtat] = useState<EtatAutomatisations | null>(null)
   const [occupe, setOccupe] = useState(false)
   const notifier = useHubStore((s) => s.notify)
@@ -66,6 +79,35 @@ export function Automatisations() {
   if (!etat) return null
 
   const vide = etat.automatisations.length === 0
+
+  if (alertesSeules) {
+    // Une suspendue ne partira pas : son echec d'hier n'a plus rien d'urgent,
+    // et le rappeler par-dessus une conversation serait du bruit.
+    const ratees = etat.automatisations.filter((a) => a.resultat === 'error' && !a.suspendue)
+    if (!etat.muettes && ratees.length === 0) return null
+
+    return (
+      <div data-zone="alerte-automatisation" className="space-y-1.5">
+        {etat.muettes && (
+          <div className="bandeau sens-alerte text-[11px]">
+            <AlertTriangle className="h-3.5 w-3.5 flex-none teinte-sens" />
+            <span>
+              Tes automatisations ne partiront pas : la passerelle d-Hermes ne tourne pas.
+              Dans un terminal, <code className="font-mono">hermes gateway install</code>.
+            </span>
+          </div>
+        )}
+        {ratees.map((a) => (
+          <div key={a.id} className="bandeau sens-danger text-[11px]">
+            <AlertTriangle className="h-3.5 w-3.5 flex-none teinte-sens" />
+            <span className="min-w-0 truncate">
+              « {a.nom} » : derniere execution en echec{a.erreur ? ` - ${a.erreur}` : ''}
+            </span>
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <section data-zone="automatisations">

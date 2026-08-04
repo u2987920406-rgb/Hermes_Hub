@@ -34,8 +34,10 @@ interface NavItem {
   bordure: string
 }
 
-// Clean Agent n'est pas ici : on y entre par sa carte sur l'accueil, deux
-// portes d'entree pour le meme ecran alourdissaient le menu pour rien.
+// Clean Agent n'est pas ici : c'est un outil d'essai, il vit dans
+// Configuration > Developpement. Le terminal Hermes non plus, mais pour la
+// raison inverse - ce n'est pas une destination, c'est un geste : voir le
+// bouton dedie plus bas, pose avec la Corbeille et les reglages.
 const NAV: NavItem[] = [
   { id: 'home', label: 'Accueil', icon: Home, accent: 'text-sky-300', bordure: 'border-sky-400' },
   {
@@ -140,6 +142,7 @@ export function Sidebar({ current, onNavigate, open, onClose, onRechercher }: Si
   const trash = useHubStore((s) => s.trash)
   const accords = useHubStore((s) => s.accords)
   const version = useHubStore((s) => s.version)
+  const launchHermes = useHubStore((s) => s.launchHermes)
 
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -256,6 +259,36 @@ export function Sidebar({ current, onNavigate, open, onClose, onRechercher }: Si
         </nav>
 
         <div className="space-y-1 border-t border-white/10 p-2">
+          {/**
+           * Le terminal Hermes : un geste, pas une destination.
+           *
+           * Il occupait une grande carte sur l'accueil, ce qui le rendait
+           * inaccessible des qu'on avait commence a parler - or c'est
+           * precisement en travaillant qu'on veut une ligne de commande. Ici il
+           * suit partout, et il ne prend qu'une ligne.
+           *
+           * Deliberement PLUS DISCRET que les entrees au-dessus : pas de liseré
+           * de selection, pas d'etat actif - il n'y a pas d'ecran ou l'on
+           * « est ». Meme logique que le bouton Rechercher, qui n'est pas une
+           * navigation non plus et porte donc son propre traitement.
+           */}
+          <button
+            onClick={() => void launchHermes({})}
+            title="Ouvrir Hermes dans un terminal"
+            className={`flex w-full items-center gap-3 rounded-lg py-2 text-xs text-slate-400 transition-colors hover:bg-white/5 hover:text-white ${
+              collapsed ? 'px-4 lg:justify-center lg:px-0' : 'px-4'
+            }`}
+          >
+            <img
+              src="./hermes-master.png"
+              alt=""
+              className="h-5 w-5 flex-shrink-0 object-contain opacity-80"
+            />
+            <span className={`flex-1 text-left ${collapsed ? 'lg:hidden' : ''}`}>
+              Terminal Hermes
+            </span>
+          </button>
+
           <NavButton
             item={CORBEILLE}
             active={current === CORBEILLE.id}

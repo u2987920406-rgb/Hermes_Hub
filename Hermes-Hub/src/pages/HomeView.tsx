@@ -1,17 +1,36 @@
-import {
-  BookOpen,
-  CheckCircle2,
-  FolderOpen,
-  Landmark,
-  Moon,
-  Play,
-  Sparkles,
-  Sun,
-} from 'lucide-react'
+/**
+ * L'accueil EST la conversation.
+ *
+ * Il portait un tableau de bord : deux grandes cartes, quatre compteurs, les
+ * projets recents. Rien de faux, mais rien qui reponde a la question qu'on se
+ * pose en ouvrant le Hub - **ce qu'on veut, c'est demander quelque chose.** Un
+ * ecran qui commence par recapituler oblige a choisir une porte avant d'avoir
+ * pu formuler sa demande.
+ *
+ * Alors « Bonjour <prenom> », le champ dessous, et au premier message tout
+ * s'efface : il ne reste que le fil. Les compteurs et les projets n'ont pas
+ * disparu du produit, ils ont perdu leur place ici - la barre laterale les
+ * donne en un clic, et une ligne de raccourcis garde les deux gestes qui n'y
+ * figurent pas.
+ *
+ * CE N'EST PAS UNE DEUXIEME CONVERSATION. C'est celle d'Orchestration, meme
+ * composant, meme fil, memes agents : ce qu'on demande ici se retrouve la-bas,
+ * et l'historique n'a qu'une source. Deux fils pour un meme interlocuteur
+ * auraient diverge sans que personne le remarque avant d'en avoir besoin.
+ *
+ * CE QUI SURVIT A L'EFFACEMENT : une automatisation tombee. Elle doit se voir
+ * en ouvrant le Hub, pas se chercher - c'est la raison pour laquelle la section
+ * vit sur l'accueil depuis le debut, et elle vaut encore quand l'accueil
+ * devient un fil.
+ */
+import { BookOpen, FolderOpen, Landmark, Moon, Sun } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Automatisations } from '../components/Automatisations'
+import { Conversation } from '../components/Conversation'
 import { PageHeader } from '../components/PageHeader'
+import { api } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
-import type { Theme, View } from '../types'
+import type { Agent, Equipe, Theme, View } from '../types'
 import { THEMES } from '../types'
 
 interface Props {
@@ -22,9 +41,31 @@ interface Props {
 export function HomeView({ onNavigate, onMenu }: Props) {
   const stats = useHubStore((s) => s.stats)
   const config = useHubStore((s) => s.config)
-  const projects = useHubStore((s) => s.projects)
-  const launchHermes = useHubStore((s) => s.launchHermes)
   const setTheme = useHubStore((s) => s.setTheme)
+
+  /**
+   * L'equipe, lue une fois a l'ouverture.
+   *
+   * Meme source qu'Orchestration - `api.orchestration()` rend les profils
+   * d'Hermes et les equipes constituees. En cas d'echec on n'affiche pas
+   * d'erreur : la conversation marche sans annuaire, elle s'adresse alors a
+   * Hermes seul, et c'est deja le geste courant.
+   */
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [equipes, setEquipes] = useState<Equipe[]>([])
+
+  useEffect(() => {
+    api
+      .orchestration()
+      .then((o) => {
+        setAgents(o.agents)
+        setEquipes(o.equipes)
+      })
+      .catch(() => null)
+  }, [])
+
+  /** Vrai tant qu'on est sur le salut. La conversation le dit elle-meme. */
+  const [surLeSalut, setSurLeSalut] = useState(true)
 
   // Le bouton fait defiler les themes : clair -> sombre -> antique -> clair.
   // L'icone montre le theme vers lequel on va, comme l'infobulle : montrer le
@@ -34,21 +75,66 @@ export function HomeView({ onNavigate, onMenu }: Props) {
   const ICONES: Record<Theme, typeof Sun> = { light: Sun, dark: Moon, antique: Landmark }
   const IconeTheme = ICONES[suivant.value]
 
-  const recent = projects.slice(0, 4)
+  const salut = (
+    <div className="text-center">
+      <img
+        src="./hermes-master.png"
+        alt=""
+        className="mx-auto mb-4 h-16 w-16 object-contain sm:h-20 sm:w-20"
+      />
+      <h1 className="text-2xl font-bold sm:text-3xl">
+        {config?.userName ? `Bonjour ${config.userName}` : 'Bonjour'}
+      </h1>
+      <p className="mt-2 text-sm muted">Que veux-tu faire aujourd&apos;hui ?</p>
+    </div>
+  )
 
-  const tiles = [
-    { label: 'Projets', value: stats?.projects ?? 0, icon: FolderOpen, tone: 'text-sky-600 bg-sky-100 dark:bg-sky-500/15 dark:text-sky-300' },
-    // Meme code couleur que les pastilles des cartes projet (voir statusClasses).
-    { label: 'En cours', value: stats?.active ?? 0, icon: Play, tone: 'text-sky-600 bg-sky-100 dark:bg-sky-500/15 dark:text-sky-300' },
-    { label: 'Termines', value: stats?.done ?? 0, icon: CheckCircle2, tone: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-300' },
-    { label: 'Notes du coffre', value: stats?.notes ?? 0, icon: BookOpen, tone: 'text-gold-600 bg-gold-300/40 dark:bg-gold-500/15 dark:text-gold-300' },
-  ]
+  /**
+   * Deux liens, et c'est tout.
+   *
+   * Les deux portes qui vivaient ici - terminal Hermes et Clean Agent - sont
+   * parties, et chacune pour sa raison. **Le terminal a rejoint la barre de
+   * menu** : c'est un geste qu'on peut vouloir depuis n'importe quel ecran, pas
+   * seulement en arrivant, et une carte sur l'accueil ne le rend accessible
+   * qu'au premier instant. **Clean Agent a rejoint Configuration >
+   * Developpement** : c'est un outil d'essai, il servait a eprouver Hermes hors
+   * contexte, et une porte de cette taille sur l'accueil lui donnait un rang
+   * qu'il n'a pas dans l'usage courant.
+   *
+   * Restent Projets et Coffre, qui doublent la barre laterale a dessein : ils
+   * portent un compte, qui etait tout ce que les quatre compteurs disaient
+   * d'utile.
+   */
+  const raccourcis = (
+    <>
+      <div
+        data-zone="raccourcis-accueil"
+        className="flex flex-wrap items-center justify-center gap-2"
+      >
+        <button onClick={() => onNavigate('projects')} className="btn-ghost px-3 py-1.5 text-xs">
+          <FolderOpen className="mr-1.5 inline h-3.5 w-3.5" />
+          Projets
+          {stats ? <span className="ml-1.5 tabular-nums opacity-60">{stats.projects}</span> : null}
+        </button>
+        <button onClick={() => onNavigate('vault')} className="btn-ghost px-3 py-1.5 text-xs">
+          <BookOpen className="mr-1.5 inline h-3.5 w-3.5" />
+          Coffre
+          {stats ? <span className="ml-1.5 tabular-nums opacity-60">{stats.notes}</span> : null}
+        </button>
+      </div>
+
+      {/* Ce qui tournera sans toi. La section s'efface d'elle-meme s'il n'y a
+          rien a dire - un accueil ne porte pas de rubrique vide. */}
+      <div className="mt-8">
+        <Automatisations />
+      </div>
+    </>
+  )
 
   return (
     <div data-zone="ecran-accueil" className="flex flex-1 flex-col overflow-hidden">
       <PageHeader
-        title={config?.userName ? `Bonjour ${config.userName}` : 'Bonjour'}
-        subtitle="Que veux-tu faire aujourd'hui ?"
+        title="Accueil"
         onMenu={onMenu}
         actions={
           <button
@@ -64,112 +150,23 @@ export function HomeView({ onNavigate, onMenu }: Props) {
         }
       />
 
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-        <div className="mx-auto w-full max-w-5xl space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <button
-              onClick={() => launchHermes({})}
-              className="card group flex items-center gap-4 p-6 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg sm:flex-col sm:text-center"
-            >
-              <img
-                src="./hermes-master.png"
-                alt=""
-                className="h-16 w-16 flex-shrink-0 object-contain transition-transform group-hover:scale-105 sm:h-20 sm:w-20"
-              />
-              <div className="min-w-0">
-                <h3 className="text-base font-bold sm:text-lg">Discuter avec Hermes</h3>
-                <p className="mt-1 text-xs muted sm:text-sm">
-                  Ouvre un terminal pour discuter avec Hermes
-                </p>
-                <p className="exemple mt-2 text-[11px] italic leading-relaxed">
-                  ex : «&nbsp;revue du coffre memoire, gestion des agents, question hors projet,
-                  simplement discuter d'une idee...&nbsp;»
-                </p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => onNavigate('clean')}
-              className="card group flex items-center gap-4 p-6 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg sm:flex-col sm:text-center"
-            >
-              <img
-                src="./hermes-clean.png"
-                alt=""
-                className="h-16 w-16 flex-shrink-0 object-contain transition-transform group-hover:scale-105 sm:h-20 sm:w-20"
-              />
-              <div className="min-w-0">
-                <h3 className="text-base font-bold sm:text-lg">Clean Agent</h3>
-                <p className="mt-1 text-xs muted sm:text-sm">
-                  Session vierge, sans memoire ni contexte : Hermes brut, pour tester
-                </p>
-                <p className="exemple mt-2 text-[11px] italic leading-relaxed">
-                  ex : «&nbsp;verifier le comportement d'Hermes par defaut, essayer une idee sans
-                  laisser de trace, reproduire un bug hors contexte...&nbsp;»
-                </p>
-              </div>
-            </button>
+      {/* La seule chose qui traverse l'effacement. Elle ne rend rien quand tout
+          va bien, donc elle ne coute pas une ligne a l'ecran pour rien. */}
+      {!surLeSalut && (
+        <div className="flex-none px-4 pt-3 sm:px-6">
+          <div className="mx-auto w-full max-w-3xl">
+            <Automatisations alertesSeules />
           </div>
-
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {tiles.map(({ label, value, icon: Icon, tone }) => (
-              <div key={label} className="card flex items-center gap-3 p-4">
-                <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${tone}`}>
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-xs muted">{label}</p>
-                  <p className="text-xl font-bold">{value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Ce qui tournera sans toi, avant ce que tu as fait toi-meme : une
-              automatisation en echec doit se voir en ouvrant le Hub, pas se
-              chercher. La section s'efface d'elle-meme s'il n'y a rien a dire. */}
-          <Automatisations />
-
-          <section>
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Projets recents</h3>
-              <button
-                onClick={() => onNavigate('projects')}
-                className="text-xs font-medium text-sky-600 hover:underline dark:text-sky-400"
-              >
-                Tout voir
-              </button>
-            </div>
-
-            {recent.length === 0 ? (
-              <div className="card p-8 text-center">
-                <FolderOpen className="mx-auto mb-3 h-10 w-10 text-slate-300 dark:text-navy-700" />
-                <p className="text-sm muted">Aucun projet pour le moment.</p>
-                <button onClick={() => onNavigate('projects')} className="btn-primary mt-4">
-                  Creer mon premier projet
-                </button>
-              </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {recent.map((project) => (
-                  <button
-                    key={project.id}
-                    onClick={() => onNavigate('project', project.id)}
-                    className="card flex items-center gap-3 p-4 text-left transition-shadow hover:shadow-md"
-                  >
-                    <Sparkles className="h-4 w-4 flex-shrink-0 text-gold-500" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{project.name}</p>
-                      <p className="truncate text-xs muted">
-                        {project.description || 'Aucune description.'}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
         </div>
-      </div>
+      )}
+
+      <Conversation
+        agents={agents}
+        equipes={equipes}
+        accueil={salut}
+        accueilDessous={raccourcis}
+        onFilVide={setSurLeSalut}
+      />
     </div>
   )
 }

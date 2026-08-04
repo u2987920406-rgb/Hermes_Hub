@@ -83,15 +83,47 @@ pour le nommer quand on veut demander une modification.
 
 ### L'accueil
 
+L'accueil **est** la conversation : « Bonjour <prenom> », le champ dessous, et
+au premier message tout s'efface pour laisser le fil seul. Ce n'est pas un
+deuxieme chat - c'est celui d'Orchestration, meme composant et meme fil, ouvert
+par les props `accueil` / `accueilDessous` de `Conversation.tsx`.
+
 | Ce que tu vois | Zone a grep | Molettes | Sinon |
 |---|---|---|---|
-| « Automatisations en cours », sous les compteurs | `automatisations` | — | `Automatisations.tsx` |
+| Le salut « Bonjour X » et le champ au milieu | `accueil-conversation` | — | `Conversation.tsx`, condition `centre` — le contenu vient de `HomeView.tsx` |
+| Projets et Coffre, en petit sous le champ | `raccourcis-accueil` | — | `HomeView.tsx` |
+| « Automatisations en cours », sous les raccourcis | `automatisations` | — | `Automatisations.tsx` |
 | Le bandeau ambre « elles ne partiront pas » | — | — | idem : il ne parait QUE si des taches actives existent sans passerelle |
 | Une ligne d'automatisation, suspendue ou non | — | — | idem, attribut `data-suspendue` |
 | Le formulaire « Programmer une demande » | `nouvelle-automatisation` | — | `NouvelleAutomatisation.tsx` |
+| Une automatisation tombee, **une fois le salut parti** | `alerte-automatisation` | — | idem, prop `alertesSeules` |
 
 La section entiere s'efface quand il n'y a rien a dire - ni tache programmee,
 ni alerte. Un accueil ne porte pas de rubrique vide.
+
+Le champ ne se recopie pas pour changer de place : `barre-saisie` reste ou elle
+est ecrite, et ce sont les deux espaces qui l'encadrent qui la poussent au
+milieu. La bascule se fait a l'ENVOI, pas au retour du serveur - sinon le salut
+vacillerait pendant l'aller-retour au lieu de s'effacer net.
+
+**Ce que l'accueil ne porte PLUS, et ou c'est parti.** Deux grandes cartes y
+vivaient - terminal Hermes et Clean Agent - et chacune est partie pour sa propre
+raison :
+
+| Ce qui est parti | Ou c'est maintenant | Pourquoi |
+|---|---|---|
+| Terminal Hermes | barre de menu, au-dessus de la Corbeille (`menu-lateral`) | Ce n'est pas une destination, c'est un GESTE - et un geste qu'on veut depuis n'importe quel ecran. Sur l'accueil il devenait inatteignable des qu'on avait commence a parler, c'est-a-dire au moment ou une ligne de commande sert. |
+| Clean Agent | `Configuration > Developpement` | C'est un banc d'essai - eprouver Hermes hors contexte, reproduire un bug. Une carte a egalite avec la conversation lui donnait un rang qu'il n'a pas dans l'usage courant. |
+
+Le bouton du terminal est **volontairement plus discret** que les entrees de
+navigation au-dessus : pas de liseré de selection, pas d'etat actif, texte plus
+petit. Il n'y a pas d'ecran ou l'on « est ». Meme traitement que le bouton
+Rechercher, qui n'est pas une navigation non plus.
+
+`alerte-automatisation` est la seule chose qui traverse l'effacement, et c'est
+delibere : une tache qui part chaque matin et rate en silence ne se decouvre
+autrement qu'en allant la chercher - or on ne cherche pas ce qu'on croit acquis.
+Le reste revient en repartant d'une conversation neuve (« Nouvelle »).
 
 ### Le premier lancement, et la memoire
 
@@ -104,6 +136,7 @@ ni alerte. Un accueil ne porte pas de rubrique vide.
 | Les sept questions, quand `USER.md` est choisi | `questions-user` | — | `QuestionsUser.tsx`, tableau `CHAMPS` |
 | « 14 agents sur 15 ont une autre version », sous le fichier | `memoire-equipe` | — | `MemoireEquipe.tsx` — l'ambre signale un ecart, jamais une panne |
 | L'onglet Sauvegarde de la Configuration | `sauvegardes` | — | `Sauvegardes.tsx` |
+| L'onglet Developpement, qui mene a Clean Agent | `developpement` | — | `ConfigView.tsx`, liste `SECTIONS` |
 | Une sauvegarde dans la liste | `ligne-sauvegarde` | `--densite` | idem — l'ambre signale une archive **incomplete** |
 
 Deux drapeaux, et leur separation EST le dispositif : la case « ne plus
@@ -162,7 +195,9 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | Zone | Fichier |
 |---|---|
 | `accords-orchestration` | `src/pages/OrchestrationView.tsx` |
+| `accueil-conversation` | `src/components/Conversation.tsx` |
 | `agents-au-travail` | `src/components/Conversation.tsx` |
+| `alerte-automatisation` | `src/components/Automatisations.tsx` |
 | `attente-bouton` | `src/components/Attente.tsx` |
 | `automatisations` | `src/components/Automatisations.tsx` |
 | `avertissement-convocation` | `src/components/Conversation.tsx` |
@@ -176,6 +211,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `carte-projet` | `src/components/ProjectCard.tsx` |
 | `decompte-decoupage` | `src/components/FenetreSimulation.tsx` |
 | `destinataires` | `src/components/Conversation.tsx` |
+| `developpement` | `src/pages/ConfigView.tsx` |
 | `ecran-accueil` | `src/pages/HomeView.tsx` |
 | `ecran-clean` | `src/pages/CleanView.tsx` |
 | `ecran-coffre` | `src/pages/VaultView.tsx` |
@@ -213,6 +249,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `premiere-fois` | `src/components/PremiereFois.tsx` |
 | `profils-memoire` | `src/components/ProfilsMemoire.tsx` |
 | `questions-user` | `src/components/QuestionsUser.tsx` |
+| `raccourcis-accueil` | `src/pages/HomeView.tsx` |
 | `rangee-agents` | `src/components/Conversation.tsx` |
 | `sauvegardes` | `src/components/Sauvegardes.tsx` |
 | `studio` | `src/pages/StudioView.tsx` |

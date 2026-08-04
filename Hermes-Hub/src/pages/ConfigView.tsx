@@ -16,6 +16,7 @@ import {
   Settings,
   SlidersHorizontal,
   Sparkles,
+  FlaskConical,
   Terminal as TerminalIcon,
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
@@ -28,7 +29,7 @@ import { QuestionsUser } from '../components/QuestionsUser'
 import { Sauvegardes } from '../components/Sauvegardes'
 import { api } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
-import type { AppConfig, Diagnostics, MemoryFile, Theme } from '../types'
+import type { AppConfig, Diagnostics, MemoryFile, Theme, View } from '../types'
 import { FICHIERS_MEMOIRE, THEMES } from '../types'
 
 interface Props {
@@ -41,6 +42,9 @@ interface Props {
    * trois secondes se perd en trois clics.
    */
   versQuiJeSuis?: boolean
+  /** Pour atteindre Clean Agent, qui est un ecran a part entiere : la section
+      Developpement y mene, elle ne le refait pas en plus petit. */
+  onNavigate?: (view: View) => void
 }
 
 const EDITABLE: { key: keyof AppConfig; label: string; hint: string; placeholder?: string }[] = [
@@ -65,6 +69,7 @@ type Onglet =
   | 'apparence'
   | 'diagnostic'
   | 'sauvegarde'
+  | 'developpement'
   | 'emplacements'
   | 'apropos'
 
@@ -77,6 +82,11 @@ const SECTIONS: { id: Onglet; label: string; icon: typeof Settings }[] = [
   // Juste apres Diagnostic, et pas en dernier : c'est la qu'on arrive quand
   // quelque chose ne va pas, et c'est la qu'on doit trouver de quoi revenir.
   { id: 'sauvegarde', label: 'Sauvegarde', icon: Archive },
+  // Clean Agent vivait sur l'accueil, en carte, a egalite avec la conversation.
+  // Il n'a pas ce rang dans l'usage : c'est un banc d'essai - eprouver le
+  // comportement par defaut, reproduire un bug hors contexte. Il descend donc
+  // ici, aupres du Diagnostic, ou l'on va quand on cherche a comprendre.
+  { id: 'developpement', label: 'Developpement', icon: FlaskConical },
   { id: 'emplacements', label: 'Emplacements', icon: FolderOpen },
   { id: 'apropos', label: 'A propos', icon: Info },
 ]
@@ -119,7 +129,7 @@ function Ligne({
   )
 }
 
-export function ConfigView({ onMenu, versQuiJeSuis = false }: Props) {
+export function ConfigView({ onMenu, versQuiJeSuis = false, onNavigate }: Props) {
   const config = useHubStore((s) => s.config)
   const skins = useHubStore((s) => s.skins)
   const version = useHubStore((s) => s.version)
@@ -563,6 +573,41 @@ export function ConfigView({ onMenu, versQuiJeSuis = false }: Props) {
           )}
 
           {onglet === 'sauvegarde' && <Sauvegardes />}
+
+          {onglet === 'developpement' && (
+          <section data-zone="developpement" className="card p-5">
+            <h3 className="mb-1 text-sm font-semibold">Clean Agent</h3>
+            <p className="mb-4 text-[11px] muted">
+              Une session d-Hermes sans memoire, sans profil et sans contexte : le
+              comportement brut, celui que verrait un poste neuf. C-est un banc d-essai -
+              verifier ce que fait Hermes par defaut, reproduire un bug hors contexte,
+              tenter une idee sans laisser de trace dans le coffre.
+            </p>
+
+            <div className="mb-4 flex items-start gap-2 rounded-lg border border-slate-200 p-3 text-[11px] dark:border-navy-700">
+              <FlaskConical className="mt-0.5 h-4 w-4 flex-none text-teal-500" />
+              <div className="min-w-0">
+                <p>
+                  Profil utilise : <b>{config?.cleanProfile || 'clean'}</b>
+                </p>
+                {/* Ce profil est pose par l'installateur et doit rester neutre :
+                    le dire ici evite qu-on le prenne pour un profil de travail
+                    qu-on pourrait personnaliser. */}
+                <p className="mt-0.5 muted">
+                  Pose par l-installateur, et volontairement laisse vierge : il ne se
+                  personnalise pas, sans quoi il cesserait d-etre un terrain neutre.
+                </p>
+              </div>
+            </div>
+
+            {onNavigate && (
+              <button onClick={() => onNavigate('clean')} className="btn-primary">
+                <Sparkles className="mr-1.5 inline h-4 w-4" />
+                Ouvrir Clean Agent
+              </button>
+            )}
+          </section>
+          )}
 
           {onglet === 'apparence' && (
           <section className="card p-5">

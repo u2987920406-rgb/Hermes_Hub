@@ -175,6 +175,54 @@ faire.
 
 ---
 
+## L'accueil
+
+### L'accueil EST la conversation *(04/08/2026)*
+Demandé par kuchu : « Bonjour <prénom> » au milieu, et au premier message tout
+s'efface. L'ancien écran récapitulait — deux cartes, quatre compteurs, projets
+récents — alors que **ce qu'on veut en ouvrant le Hub, c'est demander quelque
+chose.** Un écran qui commence par récapituler oblige à choisir une porte avant
+d'avoir pu formuler sa demande.
+
+### Le même fil aux deux endroits, jamais deux *(04/08/2026)*
+L'accueil n'a PAS sa propre conversation : c'est celle d'Orchestration, même
+composant, même fil, même historique, ouvert par les props `accueil` /
+`accueilDessous`. **Deux fils pour un même interlocuteur auraient divergé sans
+que personne le remarque avant d'en avoir besoin.** Même raison pour le champ,
+qui ne se recopie pas pour changer de place : il reste où il est écrit, ce sont
+les deux espaces qui l'encadrent qui le poussent au milieu. Un composant qui se
+duplique pour changer de position finit par diverger de lui-même — une
+correction posée sur un exemplaire, oubliée sur l'autre.
+
+### On bascule à l'envoi, pas au retour du serveur *(04/08/2026)*
+Le message n'entre dans le fil que lorsque le serveur l'inscrit et le renvoie.
+En s'en remettant au fil, le salut serait resté affiché pendant l'aller-retour :
+il aurait vacillé au lieu de s'effacer net. **Un état d'interface se règle sur
+le geste de l'utilisateur, pas sur l'accusé de réception.**
+
+### Une destination ou un geste, et ça décide de l'endroit *(04/08/2026)*
+Le lanceur du terminal a occupé une grande carte, puis une carte compacte, avant
+de finir dans la barre de menu. Le bon argument n'était pas la taille — kuchu
+demandait « plus discret, plus petit » — mais que **ce n'est pas une
+destination, c'est un geste**, et un geste qu'on veut depuis n'importe quel
+écran. En carte sur l'accueil il devenait inatteignable dès qu'on avait commencé
+à parler, c'est-à-dire au moment précis où une ligne de commande sert. Il porte
+donc le traitement du bouton Rechercher, qui n'est pas une navigation non plus :
+ni liseré de sélection, ni état actif — il n'y a pas d'écran où l'on « est ».
+
+Corollaire tiré le même jour : Clean Agent est descendu dans Configuration >
+Développement. C'est un banc d'essai, et une carte à égalité avec la
+conversation lui donnait un rang qu'il n'a pas dans l'usage courant.
+
+### Ce qui survit à l'effacement, et pourquoi c'est une seule chose *(04/08/2026)*
+Une automatisation tombée reste visible une fois le salut parti — passerelle
+absente, dernière exécution en échec, rien d'autre. **Une tâche qui part chaque
+matin et rate en silence ne se découvre autrement qu'en allant la chercher, or
+on ne cherche pas ce qu'on croit acquis.** Tout le reste revient en repartant
+d'une conversation neuve.
+
+---
+
 ## Les pièges appris à la dure
 
 ### Rediriger la sortie d'une commande ne la rend pas muette, ça la rend aveugle
