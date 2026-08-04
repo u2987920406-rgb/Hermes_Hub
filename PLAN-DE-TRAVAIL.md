@@ -385,7 +385,14 @@ Trois de plus, ouvertes le 4 août au soir en rangeant ce plan dans le dépôt :
 
 - **`Fil-Rouge` n'est versionné nulle part.** Le kit de méthode et ses huit
   exemples vivent sur le Bureau, sur ce disque et nulle part ailleurs. C'est du
-  travail réutilisable hors d'Hermès — il mériterait son propre petit dépôt ;
+  travail réutilisable hors d'Hermès — il mériterait son propre petit dépôt.
+  **Mais plus par un simple `git init` :** `design-universel/` a rejoint
+  `Fil-Rouge/` le 4 août au soir, et c'est **déjà un dépôt** — celui-là même
+  qu'Hermès a engendré, `design-universel-kit`. Versionner `Fil-Rouge` sans rien
+  dire y enfermerait un dépôt dans un dépôt, exactement le piège du matin même,
+  retourné. Il faut donc l'exclure par `.gitignore`, ou le déclarer en
+  sous-module — et le choisir, pas le subir. Le `.zip` de séance (167 ko) reste
+  dehors dans les deux cas ;
 - **trois documents sont restés hors du dépôt** — `RAPPORT-BUG-ACP.md`,
   `ANNULER-RUSTINE-ACP.md`, `TRI-MEMOIRE-HERMES.md`. Ils ne relèvent pas de
   cette refonte, et les faire entrer aurait élargi un commit qui devait rester
