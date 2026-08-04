@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hermes Hub — maquette du parcours</title>
+<style>
+/* Palette reelle du Hub : tailwind.config.ts + index.css */
+:root{
+  --navy-950:#0c1122; --navy-900:#161f38; --navy-800:#1f2b4d; --navy-700:#2b3c66;
+  --navy-600:#384d82; --navy-400:#6b83b8; --navy-200:#c6d0e7;
+  --gold-300:#f7e0a4; --gold-400:#f0cb72; --gold-500:#c99c34; --gold-600:#a67f22;
+  --ciel:#0ea5e9; --emeraude:#10b981; --violet:#8b5cf6; --ambre:#f59e0b;
+  --rose:#ec4899; --ardoise:#64748b; --rouge:#dc2626;
+  --fond:#f8fafc; --carte:#ffffff; --texte:#161f38; --doux:#64748b;
+  --bord:#e2e8f0; --surlignage:#f1f5f9;
+}
+body.sombre{
+  --fond:#0c1122; --carte:#161f38; --texte:#f1f5f9; --doux:#94a3b8;
+  --bord:#2b3c66; --surlignage:#1f2b4d;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,'Segoe UI',system-ui,sans-serif;background:#334155;color:var(--texte);
+  height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:13px}
+
+/* ---------- chrome de la maquette (hors produit) ---------- */
+.mock{background:#1e293b;color:#cbd5e1;padding:8px 12px;display:flex;gap:6px;align-items:center;
+  flex:none;overflow-x:auto;border-bottom:2px solid #475569}
+.mock b{color:#f8fafc;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-right:6px;white-space:nowrap}
+.mock button{background:#334155;color:#cbd5e1;border:1px solid #475569;border-radius:6px;
+  padding:5px 10px;font:inherit;font-size:11px;cursor:pointer;white-space:nowrap}
+.mock button:hover{background:#475569;color:#fff}
+.mock button.on{background:var(--gold-500);color:#0c1122;border-color:var(--gold-400);font-weight:600}
+.mock .sep{flex:1}
+
+/* ---------- cadre application ---------- */
+.app{flex:1;display:flex;overflow:hidden;background:var(--fond);color:var(--texte)}
+
+/* barre laterale */
+.side{width:212px;flex:none;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,var(--navy-950),var(--navy-900) 55%,var(--navy-800));
+  border-right:1px solid rgba(255,255,255,.08);transition:width .18s}
+.app.plein .side{display:none}
+.side-tete{display:flex;align-items:center;gap:10px;padding:14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--gold-300),var(--gold-600));
+  display:flex;align-items:center;justify-content:center;color:var(--navy-950);flex:none}
+.side-tete h1{font-size:13px;color:#fff;font-weight:700}
+.side-tete p{font-size:9px;color:#94a3b8}
+.side-chercher{margin:8px;padding:7px 10px;display:flex;align-items:center;gap:8px;border-radius:8px;
+  border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#cbd5e1;font-size:12px;cursor:pointer}
+.side-chercher kbd{margin-left:auto;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:1px 4px;font-size:9px;color:#94a3b8}
+.side nav{padding:6px;display:flex;flex-direction:column;gap:2px}
+.nav-i{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;color:#cbd5e1;
+  border-left:3px solid transparent;cursor:pointer;font-size:12.5px;font-weight:500}
+.nav-i:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-i.actif{background:rgba(255,255,255,.1);color:#fff;border-left-color:var(--ciel)}
+.side-bas{margin-top:auto;padding:6px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:2px}
+.nav-geste{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:8px;color:#94a3b8;font-size:11.5px;cursor:pointer}
+.nav-geste:hover{background:rgba(255,255,255,.05);color:#fff}
+.side-pied{padding:12px;border-top:1px solid rgba(255,255,255,.08);font-size:9.5px;color:#64748b}
+.pastille-v{width:7px;height:7px;border-radius:50%;background:var(--emeraude);display:inline-block;margin-right:6px}
+
+/* zone principale */
+main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.entete{flex:none;display:flex;align-items:center;gap:10px;padding:11px 18px;background:var(--carte);
+  border-bottom:1px solid var(--bord)}
+.entete h2{font-size:14.5px;font-weight:600}
+.entete .droite{margin-left:auto;display:flex;gap:4px;align-items:center}
+.ico{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  color:var(--doux);cursor:pointer;border:none;background:none;flex:none}
+.ico:hover{background:var(--surlignage);color:var(--texte)}
+
+/* LIGNE D'ALERTE — une seule, jamais deux */
+.alerte{flex:none;display:flex;align-items:center;gap:9px;margin:10px 18px 0;padding:8px 12px;
+  border-radius:9px;border:1px solid #fecaca;background:#fef2f2;color:#991b1b;font-size:12px;cursor:pointer}
+body.sombre .alerte{background:rgba(220,38,38,.12);border-color:rgba(220,38,38,.4);color:#fca5a5}
+.alerte .compte{margin-left:auto;font-size:10.5px;background:rgba(0,0,0,.08);border-radius:99px;padding:2px 8px}
+.alerte:hover{filter:brightness(.98)}
+
+/* ---------- accueil ---------- */
+.accueil{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.salut{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:24px 18px 0}
+.salut .rond{width:66px;height:66px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--gold-300),var(--gold-600));
+  display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.salut h1{font-size:27px;font-weight:700}
+.salut p{color:var(--doux);margin-top:6px;font-size:13px}
+.barre-saisie{flex:none;padding:16px 18px 0}
+.champ{max-width:640px;margin:0 auto;display:flex;gap:8px;align-items:flex-end}
+.champ textarea{flex:1;border:1px solid var(--bord);border-radius:9px;padding:10px 12px;font:inherit;
+  background:var(--carte);color:var(--texte);resize:none;height:42px}
+.envoyer{width:42px;height:42px;border-radius:9px;border:none;background:var(--gold-500);color:var(--navy-950);
+  cursor:pointer;display:flex;align-items:center;justify-content:center}
+/* INTERRUPTEUR Discussion / Atelier — la limite, posée et visible */
+.modes{max-width:640px;margin:0 auto 9px;display:flex;gap:9px;align-items:center}
+.seg{display:flex;flex:none;border:1px solid var(--bord);border-radius:8px;overflow:hidden;background:var(--carte)}
+.seg button{border:none;background:none;font:inherit;font-size:11.5px;padding:5px 13px;cursor:pointer;color:var(--doux)}
+.seg button.on{background:var(--navy-900);color:#fff;font-weight:600}
+body.sombre .seg button.on{background:var(--gold-500);color:var(--navy-950)}
+.garantie{font-size:10.5px;color:var(--doux);line-height:1.35;flex:1;min-width:0}
+.rappel{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--doux);
+  border:1px solid var(--bord);border-radius:8px;padding:4px 9px;background:var(--carte);cursor:pointer}
+.rappel .led{width:22px;height:12px;border-radius:99px;background:var(--bord);position:relative;transition:.15s}
+.rappel .led::after{content:'';position:absolute;top:2px;left:2px;width:8px;height:8px;border-radius:50%;
+  background:#fff;transition:.15s}
+.rappel.on .led{background:var(--gold-500)}
+.rappel.on .led::after{left:12px}
+.bascule{border:1px solid var(--gold-400);background:rgba(201,156,52,.09);border-radius:9px;padding:9px 12px;
+  font-size:11.5px;display:flex;align-items:center;gap:9px}
+.sous-champ{max-width:640px;margin:8px auto 0;display:flex;gap:8px;align-items:center;color:var(--doux);font-size:11px}
+.mini-champ{border:1px solid var(--bord);border-radius:7px;padding:4px 8px;background:var(--carte);flex:1;max-width:200px}
+.apres{flex:1;padding:18px;overflow:auto}
+.raccourcis{max-width:640px;margin:0 auto;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.puce{border:1px solid var(--bord);background:var(--carte);border-radius:8px;padding:6px 11px;font-size:11.5px;
+  display:flex;align-items:center;gap:6px;cursor:pointer}
+.puce:hover{border-color:var(--navy-400)}
+.puce .n{color:var(--doux);font-variant-numeric:tabular-nums}
+
+/* fil */
+.fil{flex:1;overflow:auto;padding:16px 18px}
+.fil-in{max-width:660px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.bulle-moi{align-self:flex-end;background:var(--ciel);color:#fff;padding:9px 14px;border-radius:14px;max-width:78%}
+.bulle-ag{display:flex;gap:9px}
+.pt{width:9px;height:9px;border-radius:50%;flex:none;margin-top:5px}
+.bulle-ag .nom{font-weight:700;font-size:12px}
+.bulle-ag .met{font-size:10px;color:var(--doux)}
+.attente{display:flex;align-items:center;gap:8px;color:var(--doux);font-size:12px;font-style:italic}
+.spin{width:13px;height:13px;border:2px solid var(--bord);border-top-color:var(--ciel);border-radius:50%;
+  animation:t .8s linear infinite}
+@keyframes t{to{transform:rotate(360deg)}}
+
+/* CARTE DE PLAN — qui / quoi / comment / resultat attendu */
+.carte-plan{border:1px solid var(--gold-400);border-radius:12px;background:var(--carte);overflow:hidden}
+.carte-plan .tete{padding:11px 14px;background:linear-gradient(90deg,rgba(201,156,52,.14),transparent);
+  border-bottom:1px solid var(--bord);display:flex;align-items:center;gap:8px}
+.carte-plan .tete b{font-size:13px}
+.etiq{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:var(--doux);font-weight:700;
+  margin-bottom:4px;display:block}
+.carte-plan section{padding:11px 14px;border-bottom:1px solid var(--bord)}
+.qui{display:flex;flex-wrap:wrap;gap:6px}
+.jeton{display:flex;align-items:center;gap:5px;border:1px solid var(--bord);border-radius:99px;
+  padding:2px 9px 2px 6px;font-size:11px}
+.etapes{display:flex;flex-direction:column;gap:5px}
+.etape-l{display:flex;gap:8px;font-size:12px;align-items:baseline}
+.etape-l .num{color:var(--doux);font-size:10px;min-width:12px;font-variant-numeric:tabular-nums}
+.rendu{display:flex;flex-direction:column;gap:3px;font-size:12px}
+.rendu code{background:var(--surlignage);border-radius:4px;padding:1px 6px;font-size:11px}
+.carte-plan .pied{padding:10px 14px;display:flex;gap:8px;align-items:center}
+.btn{border-radius:8px;padding:7px 13px;font:inherit;font-size:12px;cursor:pointer;border:1px solid var(--bord);
+  background:var(--carte);color:var(--texte)}
+.btn.or{background:var(--gold-500);color:var(--navy-950);border-color:var(--gold-500);font-weight:600}
+.btn.or:hover{background:var(--gold-400)}
+.btn:hover{border-color:var(--navy-400)}
+.note{font-size:10.5px;color:var(--doux);margin-left:auto;text-align:right;max-width:210px;line-height:1.35}
+
+/* ---------- studio ---------- */
+.studio{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--fond)}
+.barre-scenario{flex:none;display:flex;align-items:center;gap:9px;padding:9px 14px;background:var(--carte);
+  border-bottom:1px solid var(--bord)}
+.barre-scenario .titre{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:6px}
+.etat{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--doux)}
+.etat .b{width:7px;height:7px;border-radius:50%;background:var(--ardoise)}
+.etat.court .b{background:var(--ciel);animation:pl 1.4s ease-in-out infinite}
+.etat.fini .b{background:var(--emeraude)}
+@keyframes pl{50%{opacity:.35}}
+.corps{flex:1;display:flex;overflow:hidden;position:relative}
+
+/* panneau PLAN, a gauche, permanent -> il se replie */
+.plan{width:255px;flex:none;background:var(--carte);border-right:1px solid var(--bord);
+  display:flex;flex-direction:column;overflow:hidden;transition:width .18s}
+.corps.replie .plan{width:0;border-right:0}
+.plan-tete{flex:none;display:flex;align-items:center;gap:6px;padding:9px 11px;border-bottom:1px solid var(--bord)}
+.plan-tete b{font-size:12px;flex:1}
+.plan-corps{flex:1;overflow:auto;padding:9px}
+.ligne{display:flex;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer;align-items:flex-start;
+  border-left:3px solid transparent}
+.ligne:hover,.ligne.vif{background:var(--surlignage);border-left-color:var(--agent,var(--ciel))}
+.ligne .n{font-size:10px;color:var(--doux);min-width:11px;font-variant-numeric:tabular-nums;padding-top:2px}
+.ligne .t{font-size:11.5px;line-height:1.35;flex:1}
+.ligne .t .qui{font-weight:600;font-size:10.5px;color:var(--doux);display:block}
+.ligne .coche{font-size:11px;color:var(--emeraude);opacity:0}
+.ligne.fait .coche{opacity:1}
+.ligne.fait .t{color:var(--doux)}
+.plan-bloc{margin-top:10px;border-top:1px solid var(--bord);padding:10px 8px 0}
+.trou{margin:9px 8px 0;border:1px solid #fcd34d;background:#fffbeb;border-radius:8px;padding:8px 9px;font-size:10.5px;line-height:1.4}
+body.sombre .trou{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.4)}
+.trou b{display:block;margin-bottom:3px}
+.trou button{display:block;margin-top:7px;font-size:10.5px;border:1px solid var(--bord);background:var(--carte);
+  border-radius:6px;padding:3px 8px;cursor:pointer;color:var(--texte)}
+
+/* graphe */
+.graphe{flex:1;position:relative;overflow:hidden;
+  background-image:radial-gradient(circle,var(--bord) 1px,transparent 1px);background-size:19px 19px}
+.noeud{position:absolute;width:132px;background:var(--carte);border:2px solid var(--bord);border-radius:11px;
+  padding:8px 9px;cursor:pointer;transition:.18s;opacity:.62}
+.noeud .h{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.noeud .h .p{width:8px;height:8px;border-radius:50%;background:var(--agent)}
+.noeud .h b{font-size:11.5px}
+.noeud .tache{font-size:10px;color:var(--doux);line-height:1.3}
+.noeud .ordre{position:absolute;top:4px;right:6px;font-size:9px;color:var(--doux)}
+.noeud.eveille{opacity:1;border-color:var(--agent);box-shadow:0 4px 18px -8px var(--agent)}
+.noeud.court{opacity:1;border-color:var(--agent);box-shadow:0 0 0 3px color-mix(in srgb,var(--agent) 22%,transparent)}
+.noeud.fini{opacity:1;border-color:var(--emeraude)}
+.noeud.stop{opacity:1;border-color:var(--rouge);box-shadow:0 0 0 3px rgba(220,38,38,.15)}
+.noeud.vif{transform:scale(1.05)}
+svg.liens{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.outils-graphe{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;background:var(--carte);
+  border:1px solid var(--bord);border-radius:8px;padding:3px}
+.mini{position:absolute;right:10px;bottom:10px;width:96px;height:62px;background:var(--carte);
+  border:1px solid var(--bord);border-radius:7px;opacity:.85}
+
+/* panneau NOEUD, a droite, convoque -> il se ferme */
+.noeud-p{width:212px;flex:none;background:var(--carte);border-left:1px solid var(--bord);padding:11px}
+.noeud-p .t{display:flex;align-items:center;gap:6px;margin-bottom:9px}
+.noeud-p .t b{font-size:12px;flex:1}
+.champ-l{font-size:9.5px;color:var(--doux);text-transform:uppercase;letter-spacing:.07em;margin:9px 0 3px}
+.champ-v{border:1px solid var(--bord);border-radius:7px;padding:6px 8px;font-size:11.5px;background:var(--fond)}
+
+/* carte d'autorisation dans le studio */
+.autor{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);width:376px;background:var(--carte);
+  border:2px solid var(--rouge);border-radius:12px;box-shadow:0 18px 40px -14px rgba(0,0,0,.4);z-index:5;overflow:hidden}
+.autor .t{padding:9px 12px;background:rgba(220,38,38,.09);display:flex;align-items:center;gap:7px;
+  font-size:12px;font-weight:600;color:#991b1b}
+body.sombre .autor .t{color:#fca5a5}
+.autor .c{padding:11px 12px;font-size:11.5px;line-height:1.45}
+.autor .c code{background:var(--surlignage);padding:1px 5px;border-radius:4px;font-size:11px}
+.autor .p{padding:9px 12px;display:flex;gap:7px;border-top:1px solid var(--bord)}
+
+/* confrontation annonce / rendu */
+.bilan{margin:9px 8px 0;border:1px solid var(--bord);border-radius:9px;overflow:hidden}
+.bilan .l{display:flex;gap:7px;padding:6px 9px;font-size:11px;align-items:center}
+.bilan .l+.l{border-top:1px solid var(--bord)}
+.bilan .l.ok{background:rgba(16,185,129,.09)}
+.bilan .l.ko{background:rgba(220,38,38,.09)}
+
+/* ---------- orchestration : organigramme de competences ---------- */
+.orch{flex:1;display:flex;overflow:hidden}
+.orch-nav{width:178px;flex:none;background:var(--carte);border-right:1px solid var(--bord);padding:8px}
+.orch-nav p{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--doux);padding:6px 8px}
+.orch-nav .i{padding:7px 10px;border-radius:7px;font-size:12px;cursor:pointer;display:flex;gap:8px;align-items:center}
+.orch-nav .i.actif{background:rgba(14,165,233,.12);color:#0369a1;font-weight:600}
+body.sombre .orch-nav .i.actif{color:#7dd3fc}
+.orch-corps{flex:1;overflow:auto;padding:18px}
+.dom{max-width:720px;margin:0 auto 14px}
+.dom h3{font-size:12px;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.comps{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:9px}
+.comp{border:1px solid var(--bord);border-radius:9px;background:var(--carte);padding:9px 10px}
+.comp b{font-size:11.5px;display:block}
+.comp .porteur{font-size:10.5px;color:var(--doux);margin-top:4px;display:flex;align-items:center;gap:5px}
+.comp.creux{border-style:dashed;border-color:#fcd34d;background:#fffbeb}
+body.sombre .comp.creux{background:rgba(245,158,11,.08)}
+.comp.creux .porteur{color:#b45309}
+.comp.creux button{margin-top:6px;font-size:10.5px;border:1px solid var(--bord);background:var(--carte);
+  border-radius:6px;padding:3px 8px;cursor:pointer;color:var(--texte)}
+
+/* volet lateral, convoque depuis la ligne d'alerte */
+.voile{position:fixed;inset:0;background:rgba(12,17,34,.35);opacity:0;pointer-events:none;transition:.18s;z-index:40}
+.voile.on{opacity:1;pointer-events:auto}
+.volet{position:fixed;top:0;right:0;bottom:0;width:322px;background:var(--carte);z-index:41;
+  transform:translateX(100%);transition:transform .2s cubic-bezier(.16,1,.3,1);
+  border-left:1px solid var(--bord);display:flex;flex-direction:column}
+.volet.on{transform:translateX(0)}
+.volet .t{padding:12px 14px;border-bottom:1px solid var(--bord);display:flex;align-items:center;gap:8px}
+.volet .t b{flex:1;font-size:13px}
+.volet .c{flex:1;overflow:auto;padding:9px}
+.entree{display:flex;gap:9px;padding:9px 10px;border-radius:8px;cursor:pointer;align-items:flex-start}
+.entree:hover{background:var(--surlignage)}
+.entree .tx{flex:1;font-size:11.5px;line-height:1.4}
+.entree .tx b{display:block;font-size:11.5px}
+.entree .tx span{color:var(--doux);font-size:10.5px}
+
+.repere{position:absolute;background:#1e293b;color:#f8fafc;font-size:10px;padding:3px 7px;border-radius:5px;
+  z-index:30;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.3);white-space:nowrap}
+.repere::after{content:'';position:absolute;width:7px;height:7px;background:#1e293b;transform:rotate(45deg)}
+svg{flex:none}
+</style>
+</head>
+<body>
+
+<div class="mock">
+  <b>Maquette</b>
+  <button data-e="1" class="on">1 · Accueil</button>
+  <button data-e="2">2 · Le plan proposé</button>
+  <button data-e="3">3 · Studio, prêt</button>
+  <button data-e="4">4 · Ça tourne</button>
+  <button data-e="5">5 · Autorisation</button>
+  <button data-e="6">6 · Annoncé / rendu</button>
+  <button data-e="7">7 · Compétences</button>
+  <span class="sep"></span>
+  <button id="theme">Sombre</button>
+  <button id="reperes">Repères</button>
+</div>
+
+<div class="app" id="app">
+
+  <!-- ============ BARRE LATERALE ============ -->
+  <aside class="side" id="side">
+    <div class="side-tete">
+      <div class="logo"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+      <div><h1>Hermes Hub</h1><p>v2.0.0-beta.1</p></div>
+    </div>
+    <div class="side-chercher">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      Rechercher <kbd>Ctrl K</kbd>
+    </div>
+    <nav>
+      <div class="nav-i actif" id="nav-accueil">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Accueil</div>
+      <div class="nav-i"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg> Projets</div>
+      <div class="nav-i" id="nav-orch"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3M12 12V8"/></svg> Orchestration</div>
+      <div class="nav-i"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f0cb72" stroke-width="2"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg> Coffre mémoire</div>
+    </nav>
+    <div class="side-bas">
+      <div class="nav-geste">
+        <div class="logo" style="width:18px;height:18px"><svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+        Terminal Hermes</div>
+      <div class="nav-geste"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14"/></svg> Corbeille</div>
+      <div class="nav-geste"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M4.2 4.2l2.1 2.1m11.4 11.4 2.1 2.1M2 12h3m14 0h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg> Configuration</div>
+    </div>
+    <div class="side-pied"><span class="pastille-v"></span>Serveur connecté</div>
+  </aside>
+
+  <main id="main"></main>
+</div>
+
+<div class="voile" id="voile"></div>
+<aside class="volet" id="volet">
+  <div class="t">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4m0 4h.01"/></svg>
+    <b>Ce qui t'attend</b>
+    <button class="ico" id="fermer-volet" aria-label="Fermer">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="c">
+    <div class="entree"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" style="margin-top:2px;flex:none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <div class="tx"><b>Pablo demande à écrire un fichier</b><span>Veille IA · étape 5 · arrêté depuis 12 s</span></div></div>
+    <div class="entree"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" style="margin-top:2px;flex:none"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+      <div class="tx"><b>Revue du lundi a rendu 3 fichiers</b><span>terminé il y a 2 h · ouvrir le plan</span></div></div>
+    <div class="entree"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" style="margin-top:2px;flex:none"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3 2 6m20 0-3-3"/></svg>
+      <div class="tx"><b>Veille du matin : dernière exécution en échec</b><span>automatisation · hier 9 h 00</span></div></div>
+  </div>
+</aside>
+
+<script>
+const AGENTS = {
+  leo:{n:'Leo', m:'veille web', c:'var(--ciel)'},
+  iris:{n:'Iris', m:'extraction', c:'var(--emeraude)'},
+  milo:{n:'Milo', m:'extraction', c:'var(--violet)'},
+  nour:{n:'Nour', m:'synthèse', c:'var(--ambre)'},
+  pablo:{n:'Pablo', m:'mise en page', c:'var(--rose)'},
+}
+const ETAPES = [
+  {id:'leo',   t:'Parcourir les 5 sites et relever les nouveautés', x:22,  y:34},
+  {id:'iris',  t:'Extraire les annonces des sites 1 à 3',           x:196, y:6},
+  {id:'milo',  t:'Extraire les annonces des sites 4 et 5',          x:196, y:118},
+  {id:'nour',  t:'Synthétiser en un tableau comparatif',            x:370, y:62},
+  {id:'pablo', t:'Mettre en page et exporter en PDF',               x:544, y:62},
+]
+const LIENS = [['leo','iris'],['leo','milo'],['iris','nour'],['milo','nour'],['nour','pablo']]
+
+const I = {
+  retour:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 19-7-7 7-7M19 12H5"/></svg>',
+  loupe:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+  replier:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18m7-12-3 3 3 3"/></svg>',
+  developper:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18m4-12 3 3-3 3"/></svg>',
+  agrandir:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>',
+  reduire:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v6H3m12 12v-6h6M3 9l7-7m11 19-7-7"/></svg>',
+  fermer:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  crayon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>',
+  menu:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>',
+  ranger:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  plus:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
+  moins:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>',
+  bouclier:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4m0 4h.01"/></svg>',
+  envoi:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4z"/></svg>',
+}
+
+let etape = 1, plein = false, planReplie = false, sombre = false, reperesOn = false
+let mode = 'discussion', rappel = false
+
+/** L'interrupteur, et ce qu'il garantit — écrit sous lui, pas dans une aide. */
+function interrupteur(){
+  const enAtelier = mode==='atelier'
+  return `<div class="modes">
+    <div class="seg" data-r="La limite est posée et visible : Discussion n'engage rien">
+      <button class="${enAtelier?'':'on'}" onclick="setMode('discussion')">Discussion</button>
+      <button class="${enAtelier?'on':''}" onclick="setMode('atelier')">Atelier</button>
+    </div>
+    <span class="garantie">${enAtelier
+      ? "L'équipe : les mentions réveillent, les plans se proposent."
+      : "Hermès seul. Personne ne se réveille, rien ne s'écrit."}</span>
+    ${enAtelier ? `<span class="rappel ${rappel?'on':''}" onclick="toggleRappel()"
+        data-r="Autorisation, pas commande : Hermès puise et dit ce qu'il a puisé">
+        <span class="led"></span>Rappeler la mémoire${rappel?' · ~180 mots':''}</span>` : ''}
+  </div>`
+}
+const PLACEHOLDER = () => mode==='atelier'
+  ? "Décris ce que tu veux faire faire."
+  : "Pose une question à Hermès."
+
+const ligneAlerte = (texte, compte) => `
+  <div class="alerte" onclick="ouvrirVolet()" data-r="La ligne d'alerte : une seule, jamais deux. Le clic ouvre le volet.">
+    ${I.bouclier}<span>${texte}</span>
+    ${compte ? `<span class="compte">${compte} autres</span>` : ''}
+  </div>`
+
+function noeuds(etats, vif){
+  return ETAPES.map((e,i)=>{
+    const a = AGENTS[e.id]
+    const cl = etats[e.id] || ''
+    return `<div class="noeud ${cl} ${vif===e.id?'vif':''}" style="--agent:${a.c};left:${e.x}px;top:${e.y}px"
+       onmouseenter="surligner('${e.id}')" onmouseleave="surligner(null)"
+       data-r="Un nœud = une TÂCHE, aux couleurs de son agent">
+      <span class="ordre">${i+1}</span>
+      <div class="h"><span class="p"></span><b>${a.n}</b></div>
+      <div class="tache">${e.t}</div>
+    </div>`
+  }).join('')
+}
+function liens(){
+  const c = {}; ETAPES.forEach(e=>c[e.id]={x:e.x+132,y:e.y+26,ex:e.x,ey:e.y+26})
+  return `<svg class="liens">${LIENS.map(([a,b])=>{
+    const s=c[a],t=c[b]
+    return `<path d="M${s.x} ${s.y} C ${s.x+34} ${s.y}, ${t.ex-34} ${t.ey}, ${t.ex} ${t.ey}"
+      fill="none" stroke="${AGENTS[a].c}" stroke-width="1.6" opacity=".45"/>`
+  }).join('')}</svg>`
+}
+function planLignes(faits, vif){
+  return ETAPES.map((e,i)=>`
+    <div class="ligne ${faits.includes(e.id)?'fait':''} ${vif===e.id?'vif':''}" style="--agent:${AGENTS[e.id].c}"
+      onmouseenter="surligner('${e.id}')" onmouseleave="surligner(null)"
+      data-r="Survole : le nœud correspondant grossit dans le graphe (C3)">
+      <span class="n">${i+1}</span>
+      <span class="t"><span class="qui">${AGENTS[e.id].n} · ${AGENTS[e.id].m}</span>${e.t}</span>
+      <span class="coche">✓</span>
+    </div>`).join('')
+}
+
+function barreScenario(etat){
+  const e = {pret:['','prêt à lancer'],court:['court','en cours — étape 3 sur 5'],
+             stop:['court','arrêté : une autorisation attend'],fini:['fini','terminé en 1 min 48']}[etat]
+  return `<div class="barre-scenario">
+    ${plein?`<button class="ico" onclick="rien()" data-r="Le hamburger remplace la barre latérale absente">${I.menu}</button>`:''}
+    <button class="ico" data-r="Retour vers Orchestration">${I.retour}</button>
+    <span class="titre">Veille IA <button class="ico" style="width:22px;height:22px" data-r="On renomme le scénario là où on le regarde">${I.crayon}</button></span>
+    <span class="etat ${e[0]}"><span class="b"></span>${e[1]}</span>
+    <span style="flex:1"></span>
+    ${plein && etat==='stop' ? `<span class="alerte" style="margin:0;padding:5px 10px" onclick="ouvrirVolet()" data-r="En plein écran, l'alerte se replie dans la barre du scénario (F13)">${I.bouclier}<span>1 autorisation</span></span>`:''}
+    ${etat==='pret'?`<button class="btn or" onclick="aller(4)" data-r="UN seul bouton : lancer, c'est valider">Lancer</button>`:''}
+    <button class="ico" data-r="Chercher dans le plan et le graphe">${I.loupe}</button>
+    <button class="ico" onclick="basculerPlein()" data-r="${plein?'Réduire — retour au cadre commun':'Agrandir — plein écran pour éditer'}">${plein?I.reduire:I.agrandir}</button>
+  </div>`
+}
+
+function panneauPlan(faits, mode){
+  const bilan = mode==='fini' ? `
+    <div class="plan-bloc"><span class="etiq">Annoncé / rendu</span></div>
+    <div class="bilan">
+      <div class="l ok">✓ <span>tableau comparatif</span> <code style="margin-left:auto">veille.md</code></div>
+      <div class="l ok">✓ <span>document PDF</span> <code style="margin-left:auto">veille-2026-08-04.pdf</code></div>
+    </div>` : `
+    <div class="plan-bloc"><span class="etiq">Résultat attendu</span>
+      <div class="rendu"><span>· un tableau comparatif <code>veille.md</code></span>
+      <span>· un document <code>veille.pdf</code></span></div></div>`
+  const trou = mode==='pret' ? `
+    <div class="trou" data-r="C4 : le plan dit quand personne ne sait faire, et mène au geste qui répare">
+      <b>Personne ne fait de recherche web</b>
+      L'étape 1 revient à Hermès faute de spécialiste : le résultat sera plus large et moins sûr.
+      <button>Créer un spécialiste</button>
+    </div>` : ''
+  return `<div class="plan">
+    <div class="plan-tete">
+      <b>Plan</b>
+      <button class="ico" style="width:24px;height:24px" data-r="Chercher dans le plan">${I.loupe}</button>
+      <button class="ico" style="width:24px;height:24px" onclick="basculerPlan()"
+        data-r="Le plan est permanent → il se REPLIE, il ne se ferme pas">${I.replier}</button>
+    </div>
+    <div class="plan-corps">${planLignes(faits, null)}${trou}${bilan}</div>
+  </div>`
+}
+
+function panneauNoeud(){
+  return `<div class="noeud-p">
+    <div class="t"><span style="width:9px;height:9px;border-radius:50%;background:var(--ambre)"></span>
+      <b>Nour</b>
+      <button class="ico" style="width:24px;height:24px" data-r="Convoqué par la sélection → il se FERME">${I.fermer}</button></div>
+    <div class="champ-l">Tâche</div><div class="champ-v">Synthétiser en un tableau comparatif</div>
+    <div class="champ-l">Agent</div><div class="champ-v">Nour · synthèse</div>
+    <div class="champ-l">Risque</div><div class="champ-v" style="color:var(--emeraude)">● Vert — passe seul</div>
+  </div>`
+}
+
+function studio(mode){
+  const etats = {
+    pret:{}, court:{leo:'fini',iris:'fini',milo:'fini',nour:'court'},
+    stop:{leo:'fini',iris:'fini',milo:'fini',nour:'fini',pablo:'stop'},
+    fini:{leo:'fini',iris:'fini',milo:'fini',nour:'fini',pablo:'fini'},
+  }[mode]
+  const faits = {pret:[],court:['leo','iris','milo'],stop:['leo','iris','milo','nour'],
+                 fini:['leo','iris','milo','nour','pablo']}[mode]
+  const autor = mode==='stop' ? `
+    <div class="autor">
+      <div class="t">${I.bouclier} Autorisation demandée — risque Rouge</div>
+      <div class="c"><b>Pablo</b> veut écrire un fichier :<br>
+        <code>Projets/veille-ia/veille-2026-08-04.pdf</code><br>
+        <span style="color:var(--doux)">Le scénario est arrêté tant que tu n'as pas répondu.</span></div>
+      <div class="p"><button class="btn or" onclick="aller(6)">Autoriser</button>
+        <button class="btn">Refuser</button>
+        <span class="note">C2 : la demande apparaît LÀ OÙ TU ES, pas seulement dans le fil</span></div>
+    </div>` : ''
+  return `<div class="studio">
+    ${barreScenario(mode)}
+    ${mode==='stop' && !plein ? ligneAlerte('Pablo demande à écrire un fichier — le scénario est arrêté', 2) : ''}
+    <div class="corps ${planReplie?'replie':''}" style="${mode==='stop'&&!plein?'margin-top:10px':''}">
+      ${planReplie ? `<button class="ico" style="position:absolute;left:6px;top:8px;z-index:6;background:var(--carte);border:1px solid var(--bord)"
+          onclick="basculerPlan()" data-r="Le même bouton, au même endroit : c'est ce qui le fait revenir">${I.developper}</button>` : panneauPlan(faits, mode)}
+      <div class="graphe" id="graphe">
+        ${autor}
+        ${liens()}
+        ${noeuds(etats, null)}
+        <div class="outils-graphe">
+          <button class="ico" style="width:26px;height:26px">${I.plus}</button>
+          <button class="ico" style="width:26px;height:26px">${I.moins}</button>
+          <button class="ico" style="width:26px;height:26px" data-r="Ranger le graphe">${I.ranger}</button>
+        </div>
+        <div class="mini"></div>
+      </div>
+      ${mode==='court'?panneauNoeud():''}
+    </div>
+  </div>`
+}
+
+const ECRANS = {
+  1:()=>`<div class="entete"><h2>Accueil</h2><div class="droite">
+      <button class="ico" data-r="Bascule de thème : l'icône montre où l'on va, pas où l'on est">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></button></div></div>
+    <div class="accueil">
+      <div class="salut">
+        <div class="rond"><svg width="26" height="26" viewBox="0 0 24 24" fill="var(--navy-950)"><path d="M8 5v14l11-7z"/></svg></div>
+        <h1>Bonjour raf</h1><p>Que veux-tu faire aujourd'hui ?</p>
+      </div>
+      <div class="barre-saisie">
+        ${interrupteur()}
+        <div class="champ">
+          <textarea placeholder="${PLACEHOLDER()}"></textarea>
+          <button class="envoyer" onclick="aller(2)">${I.envoi}</button>
+        </div>
+        ${mode==='atelier'?`<div class="sous-champ"><span class="mini-champ">${I.loupe} Chercher un agent</span><span>4 agents</span></div>`:''}
+      </div>
+      <div class="apres">
+        <div class="raccourcis">
+          <span class="puce">Projets <span class="n">4</span></span>
+          <span class="puce">Coffre <span class="n">17</span></span>
+        </div>
+      </div>
+    </div>`,
+
+  2:()=>`<div class="entete"><h2>Accueil</h2><div class="droite">
+      <button class="ico" data-r="Retour au salut — C7 : ce bouton doit DIRE qu'il ramène à l'accueil">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
+    <div class="accueil">
+      <div class="fil"><div class="fil-in">
+        <div class="bulle-moi">cherche sur les 5 sites les plus tendance les nouveautés IA du moment, fais-moi un résumé sous forme de tableau, plus un PDF</div>
+        <div class="bulle-ag"><span class="pt" style="background:var(--gold-500)"></span>
+          <div style="flex:1"><span class="nom">Hermes</span> <span class="met">orchestration</span>
+            <p style="margin-top:5px">${mode==='atelier'
+              ? "C'est un chantier, pas une question — je te propose un plan plutôt que de me lancer."
+              : "Je peux t'en parler de tête, mais ce que tu demandes est un vrai travail : cinq sites à parcourir, une synthèse, un export."}</p></div></div>
+
+        ${mode==='discussion' ? `
+        <div class="bascule" data-r="La bascule se PROPOSE — un clic, et la demande est emportée">
+          ${I.bouclier}
+          <span style="flex:1">Ça demande un vrai plan, et de réveiller l'équipe. Je bascule en Atelier ?</span>
+          <button class="btn or" onclick="setMode('atelier')">Basculer</button>
+        </div>` : `
+
+        <div class="carte-plan" data-r="La carte de plan : QUI / QUOI / COMMENT / RÉSULTAT ATTENDU">
+          <div class="tete"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--gold-600)" stroke-width="2"><path d="m12 3 1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/></svg>
+            <b>Plan — Veille IA</b><span class="met" style="margin-left:auto;font-size:10.5px;color:var(--doux)">5 étapes · ~2 min</span></div>
+          <section><span class="etiq">Qui</span><div class="qui">
+            ${Object.values(AGENTS).map(a=>`<span class="jeton"><span style="width:7px;height:7px;border-radius:50%;background:${a.c}"></span>${a.n} · ${a.m}</span>`).join('')}
+          </div></section>
+          <section><span class="etiq">Quoi, et dans quel ordre</span><div class="etapes">
+            ${ETAPES.map((e,i)=>`<div class="etape-l"><span class="num">${i+1}</span><span><b>${AGENTS[e.id].n}</b> — ${e.t}</span></div>`).join('')}
+          </div></section>
+          <section><span class="etiq">Comment</span>
+            <p style="font-size:11.5px;line-height:1.5;color:var(--doux)">Iris et Milo travaillent en parallèle pour tenir les cinq sites.
+            Une écriture de fichier sera demandée à la dernière étape. Aucun agent ne dépasse trois compétences.</p></section>
+          <section><span class="etiq">Résultat attendu</span><div class="rendu">
+            <span>· un tableau comparatif — <code>veille.md</code></span>
+            <span>· un document — <code>veille-2026-08-04.pdf</code></span></div></section>
+          <div class="pied">
+            <button class="btn or" onclick="aller(3)">Valider le plan</button>
+            <button class="btn">Modifier</button><button class="btn">Refuser</button>
+            <span class="note">Les boutons n'existent QUE parce qu'un plan existe</span>
+          </div>
+        </div>`}
+      </div></div>
+      <div class="barre-saisie" style="padding:14px 18px;border-top:1px solid var(--bord)">
+        ${interrupteur()}
+        <div class="champ"><textarea placeholder="${PLACEHOLDER()}"></textarea>
+        <button class="envoyer">${I.envoi}</button></div>
+      </div>
+    </div>`,
+
+  3:()=>studio('pret'),
+  4:()=>studio('court'),
+  5:()=>studio('stop'),
+  6:()=>studio('fini'),
+
+  7:()=>`<div class="entete"><h2>Orchestration</h2></div>
+    <div class="orch">
+      <div class="orch-nav"><p>Orchestration</p>
+        <div class="i actif">Agents et équipes</div>
+        <div class="i">Scénarios</div>
+        <div class="i">Automatisations</div>
+      </div>
+      <div class="orch-corps">
+        <div class="dom" style="margin-bottom:16px">
+          <h3>Ce que ton équipe sait faire</h3>
+          <p style="font-size:11.5px;color:var(--doux);line-height:1.5">Bâti depuis les compétences et les descriptions réelles des profils — jamais depuis une liste tenue à la main. Un creux se voit avant de demander, pas après.</p>
+        </div>
+        <div class="dom"><h3><span style="width:8px;height:8px;border-radius:50%;background:var(--ciel)"></span>Trouver l'information</h3>
+          <div class="comps">
+            <div class="comp creux" data-r="Le remède à F17 : le trou se voit AVANT de demander">
+              <b>Recherche web</b><div class="porteur">⚠ personne</div>
+              <button>Créer un spécialiste</button></div>
+            <div class="comp"><b>Lecture de page</b><div class="porteur"><span style="width:7px;height:7px;border-radius:50%;background:var(--emeraude)"></span>Iris</div></div>
+            <div class="comp"><b>Extraction</b><div class="porteur"><span style="width:7px;height:7px;border-radius:50%;background:var(--emeraude)"></span>Iris, Milo</div></div>
+          </div></div>
+        <div class="dom"><h3><span style="width:8px;height:8px;border-radius:50%;background:var(--ambre)"></span>Écrire</h3>
+          <div class="comps">
+            <div class="comp"><b>Synthèse</b><div class="porteur"><span style="width:7px;height:7px;border-radius:50%;background:var(--ambre)"></span>Nour</div></div>
+            <div class="comp"><b>Tableau</b><div class="porteur"><span style="width:7px;height:7px;border-radius:50%;background:var(--ambre)"></span>Nour</div></div>
+            <div class="comp creux"><b>Relecture</b><div class="porteur">⚠ personne</div><button>Créer un spécialiste</button></div>
+          </div></div>
+        <div class="dom"><h3><span style="width:8px;height:8px;border-radius:50%;background:var(--rose)"></span>Mettre en forme</h3>
+          <div class="comps">
+            <div class="comp"><b>Export PDF</b><div class="porteur"><span style="width:7px;height:7px;border-radius:50%;background:var(--rose)"></span>Pablo</div></div>
+            <div class="comp"><b>Mise en page</b><div class="porteur"><span style="width:7px;height:7px;border-radius:50%;background:var(--rose)"></span>Pablo</div></div>
+          </div></div>
+      </div>
+    </div>`,
+}
+
+function rendre(){
+  const m = document.getElementById('main')
+  m.innerHTML = ECRANS[etape]()
+  document.getElementById('app').classList.toggle('plein', plein && etape>=3 && etape<=6)
+  document.querySelectorAll('.mock button[data-e]').forEach(b=>b.classList.toggle('on', +b.dataset.e===etape))
+  document.getElementById('nav-accueil').classList.toggle('actif', etape<3)
+  document.getElementById('nav-orch').classList.toggle('actif', etape===7 || (etape>=3&&etape<=6))
+  if(reperesOn) poserReperes()
+}
+function aller(n){ etape=n; if(n<3||n>6) plein=false; rendre() }
+function setMode(m){ mode=m; if(m==='discussion') rappel=false; rendre() }
+function toggleRappel(){ rappel=!rappel; rendre() }
+function basculerPlein(){ plein=!plein; rendre() }
+function basculerPlan(){ planReplie=!planReplie; rendre() }
+function rien(){}
+function surligner(id){
+  document.querySelectorAll('.noeud').forEach(n=>n.classList.remove('vif'))
+  document.querySelectorAll('.ligne').forEach(l=>l.classList.remove('vif'))
+  if(!id) return
+  const i = ETAPES.findIndex(e=>e.id===id)
+  const ns = document.querySelectorAll('.noeud'); if(ns[i]) ns[i].classList.add('vif')
+  const ls = document.querySelectorAll('.ligne'); if(ls[i]) ls[i].classList.add('vif')
+}
+function ouvrirVolet(){ document.getElementById('volet').classList.add('on'); document.getElementById('voile').classList.add('on') }
+function fermerVolet(){ document.getElementById('volet').classList.remove('on'); document.getElementById('voile').classList.remove('on') }
+
+document.getElementById('fermer-volet').onclick = fermerVolet
+document.getElementById('voile').onclick = fermerVolet
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') fermerVolet() })
+document.querySelectorAll('.mock button[data-e]').forEach(b=> b.onclick=()=>aller(+b.dataset.e))
+document.getElementById('theme').onclick = e => {
+  sombre=!sombre; document.body.classList.toggle('sombre',sombre); e.target.textContent = sombre?'Clair':'Sombre'
+}
+document.getElementById('reperes').onclick = e => {
+  reperesOn=!reperesOn; e.target.classList.toggle('on',reperesOn)
+  reperesOn ? poserReperes() : document.querySelectorAll('.repere').forEach(r=>r.remove())
+}
+function poserReperes(){
+  document.querySelectorAll('.repere').forEach(r=>r.remove())
+  if(!reperesOn) return
+  document.querySelectorAll('[data-r]').forEach(el=>{
+    const r = el.getBoundingClientRect()
+    if(r.width===0) return
+    const d = document.createElement('div')
+    d.className='repere'; d.textContent = el.dataset.r
+    d.style.left = Math.min(r.left, window.innerWidth-320)+'px'
+    d.style.top = (r.bottom+6)+'px'
+    document.body.appendChild(d)
+  })
+}
+rendre()
+</script>
+</body>
+</html>
