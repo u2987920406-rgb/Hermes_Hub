@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **07:30**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **11:55**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -66,13 +66,27 @@ Le point 1 de l'« Ensuite » du commit. Constats :
   incohérence d'affichage mineure, non vérifiée plus loin.
 - **F1 est tranché** — voir §6.
 
-### Chantier 2 — fait le 5 août, écrit mais **pas encore regardé à l'écran**
+### Chantier 2 — ✅ **clos le 5 août, porte franchie à l'écran**
 
 Les quatre blocs sont écrits, `npm run build` passe, `npm run design` est vert.
-**Ce qui manque est la seule chose qui compte : personne ne l'a encore vu
-tourner.** La porte s'ouvre avec l'interrupteur *Configuration >
-Développement > Alerte d'essai* — poser la fausse autorisation, puis parcourir
-Accueil, Projets, Orchestration et le Studio.
+~~**Ce qui manque est la seule chose qui compte : personne ne l'a encore vu
+tourner.**~~ **La porte a été franchie le 5 août à 11h50** : fausse
+autorisation posée depuis *Configuration > Développement*, ligne d'alerte
+retrouvée au même endroit sur Configuration, l'Accueil et Orchestration ; le
+volet « Ce qui t'attend » s'ouvre, se nomme, dit d'où vient la demande, et
+Échap le ferme ; **et dans le Studio — l'écran sans barre latérale — l'alerte
+est bien dans la barre du scénario, une pastille qui ouvre le même volet.
+F13 tient.**
+
+**Et la porte a servi : elle a trouvé ce que trois vérifications vertes
+n'avaient pas vu.** L'écran Scénarios titrait *« 12 pôles »*, juste au-dessus
+d'une phrase qui commence par « Un scénario » — **F6 était déclaré réglé et ne
+l'était pas.** Une chaîne, une seule, dans `OrchestrationView.tsx:685`.
+Corrigée et revérifiée à l'écran. Le reste du dépôt ne porte « pole » que dans
+du code, des chemins d'API et des commentaires, ce que la convention autorise.
+
+*La leçon, et c'est la troisième de la journée :* **le mot du dedans ne se voit
+que rendu.** `tsc`, 134 tests et `npm run design` étaient verts tous les trois.
 
 | Le bloc | Ce qui a été fait |
 |---|---|
@@ -104,10 +118,37 @@ vrais consommateurs, arrivent aux chantiers 3 et 4. **Dire où la vérification
 s'arrête :** rien de tout ceci n'a été joué à l'écran — seulement compilé,
 construit et vérifié par les gardes.
 
+### Chantier 3 — commencé le 5 août : l'interrupteur est posé et éprouvé
+
+Deux commits, `d774e02` et `7dc6019`. **La première pièce du chantier 3 est
+debout, et c'est la seule qui pouvait s'écrire sans les surfaces des chantiers
+suivants.**
+
+| Ce qui existe | Où |
+|---|---|
+| Le constat du greffon — `enabled` **et** le dossier sur le disque | `server/mode-conversation.js`, 7 tests |
+| L'interrupteur, sa phrase de garantie, son bandeau | `InterrupteurMode.tsx` |
+| Le mode partagé par trois surfaces | `useHubStore` |
+| L'invite du champ qui suit le mode *(F2)* | `Conversation.tsx` |
+| L'annuaire qui disparaît en Discussion | idem |
+
+**Le bouton ne promet que ce qu'il a constaté** : sans le greffon `heurtoir`,
+la phrase perd sa moitié et un bandeau dit *« Hermès peut encore modifier des
+fichiers par le terminal. »* Éprouvé à l'écran dans les deux sens, le mode
+survit au rechargement.
+
+**Un écran blanc en chemin, et il vaut d'être gardé.** La route était adressée
+sous `/config/` au lieu de `/chat/` : la requête **n'a pas échoué**, elle est
+tombée dans le bloc voisin, qui a répondu un objet valide sans `greffon`. Le
+`catch` attendait une panne, il a reçu une réponse. `tsc` était vert et 133
+tests passaient. *`request<T>` n'est pas une vérification, c'est une
+affirmation sur ce que le serveur rendra.*
+
 ### Décidé, écrit, **pas commencé**
 
-Tout le reste : la refonte Orchestration / Studio, le vocabulaire, les
-interrupteurs, la carte des compétences, la mémoire. Voir §4.
+Le reste du chantier 3 — la carte de plan, Valider / Modifier / Refuser, la
+bascule proposée, l'indicateur d'attente *(F5)*, l'historique à l'accueil — puis
+les chantiers 4, 5 et 6. Voir §4.
 
 ### Validé visuellement
 
@@ -397,7 +438,7 @@ devrait marcher ».
 
 ---
 
-### Chantier 2 — Les fondations partagées ✅ *écrit le 5 août, pas encore regardé*
+### Chantier 2 — Les fondations partagées ✅ **clos, porte franchie le 5 août**
 
 Ce qui sert aux **trois** écrans, et qu'il serait absurde d'écrire trois fois.
 
@@ -518,11 +559,11 @@ ne s'évapore dans l'exécution.
 | Réf | Ce que c'est | Chantier |
 |---|---|---|
 | F1 | La fenêtre du premier lancement recouvre un écran qui invite à écrire | *tranché le 4 août : on garde la fenêtre modale, telle quelle — aucun code à écrire* |
-| F2 | « ton équipe » désigne des inconnus | 3 — réglé par le placeholder du mode |
+| F2 | « ton équipe » désigne des inconnus | 3 — **✅ réglé le 5 août** : « Pose une question à Hermès. » en Discussion, et l'annuaire disparaît avec |
 | F3 | Le premier message efface tout | *voulu* — aucun |
 | F4 | Le retour au salut ne dit pas qu'il ramène | 3 |
 | F5 | 23 s de silence dans un chat | 3 |
-| F6 | « pôle » est un mot du dedans | 2 — devient « scénario » |
+| F6 | « pôle » est un mot du dedans | 2 — devient « scénario ». **Un titre était passé au travers (« 12 pôles »), corrigé le 5 août en franchissant la porte** |
 | F7 | « Modifier » ne promet rien de précis | 3 |
 | F8 | On quitte le fil et le fil n'en dit rien | 3 *(= C1)* |
 | F9 | Rien ne dit ce qu'on peut toucher dans le graphe | 4 |

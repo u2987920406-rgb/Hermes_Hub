@@ -681,8 +681,14 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
                       la phrase est volontairement dissymetrique de celle de
                       l'equipe : l'une nomme des gens, l'autre produit quelque
                       chose. */}
+                  {/* « scenario » a l'ecran, `pole` dans le code - F6. Ce titre
+                      etait passe au travers du chantier 2 : il disait « 12
+                      poles » juste au-dessus d'une phrase qui commence par « Un
+                      scenario ». Trouve en franchissant la porte du chantier 2,
+                      pas en relisant le code - le mot du dedans ne se voit que
+                      rendu. */}
                   <Entete
-                    titre={`${poles.length} pole${poles.length > 1 ? 's' : ''}`}
+                    titre={`${poles.length} scenario${poles.length > 1 ? 's' : ''}`}
                     detail={
                       actifs > 0
                         ? `${actifs} en cours - des taches enchainees qui produisent un livrable`
