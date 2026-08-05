@@ -383,10 +383,30 @@ c'étaient les greffons.
 `arbitrer()` comme n'importe quel autre outil. Le chaînon manquait au
 laissez-passer entier.
 
-*Non éprouvé :* le mode Discussion lui-même, jamais activé de la soirée — la
-branche haute d'`arbitrer()` reste non jouée ; le **volume**, une carte par
-commande étant intenable pour un agent au travail ; et la livraison chez un
-client, le greffon vivant dans le home d'Hermès et non dans le dépôt du Hub.
+~~*Non éprouvé :* le mode Discussion lui-même, jamais activé de la soirée — la
+branche haute d'`arbitrer()` reste non jouée ;~~ **joué à 03:02 : refus immédiat
+en 11 s, sans carte posée — contre 71,7 s pour le refus par délai dépassé. Le
+chrono seul les distingue, et c'est ce qui les qualifie.** Restent le **volume**,
+une carte par commande étant intenable pour un agent au travail, et la livraison
+chez un client, le greffon vivant dans le home d'Hermès et non dans le dépôt.
+
+### Un interrupteur peut s'écrire avant de pouvoir se livrer *(05/08/2026)*
+La garantie du mode Discussion a **deux pièces** : l'arbitrage du Hub, qui est
+dans ce dépôt, et un greffon `pre_tool_call` dans le home d'Hermès, qui n'y est
+pas. Sans la seconde, Discussion refuse ce qui demande — `edit`, `fetch` — et
+laisse passer le shell : c'est mot pour mot l'interrupteur qui ment, celui qu'on
+avait refusé d'écrire quelques heures plus tôt.
+
+**On écrit donc le bouton, mais il ne promet rien qu'il n'ait constaté.** Le Hub
+lit `plugins.enabled` dans le `config.yaml` d'Hermès — lecture pure — et dit la
+vérité quand la pièce manque. Un interrupteur qui vérifie sa propre condition
+vaut mieux qu'un interrupteur qu'on n'ose pas livrer, et mieux encore qu'un
+interrupteur livré à l'aveugle.
+
+*Le corollaire, qui n'est pas de ce chantier :* poser le greffon chez un client
+est l'affaire de l'**installateur**. Tant que ce n'est pas fait, la garantie est
+vraie sur le poste de kuchu et fausse partout ailleurs — et c'est exactement le
+genre d'écart qu'une capture d'écran ne montre jamais.
 
 ### On a lu sa propre phrase comme un verdict de la machine *(05/08/2026)*
 Le greffon d'essai annonçait « le mode Discussion est actif » dans le texte qu'il

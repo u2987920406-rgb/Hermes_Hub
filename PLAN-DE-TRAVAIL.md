@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **02:55**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **03:15**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -249,27 +249,33 @@ de la machine.** Le greffon d'essai portait un texte qui décrivait une hypothè
 non vérifiée, il est remonté à l'écran, et il en est redescendu comme un fait.
 Un banc d'essai ne doit rien affirmer qu'il ne mesure.
 
-**Les deux sens sont éprouvés, à l'écran, en mode Atelier :**
+**Les trois branches d'`arbitrer()` sont éprouvées à l'écran, la nuit du 5 août :**
 
-| | 02:38 | 02:50 |
-|---|---|---|
-| la carte | posée, jamais ouverte | **posée, ouverte, cliquée** |
-| la réponse | délai de 60 s → refus | **Allow** |
-| la commande | jamais lancée | **exécutée, `bonjour`, `exit_code 0`** |
+| tour | mode du Hub | ce qui s'est passé | durée | résultat |
+|---|---|---|---|---|
+| 02:38 | atelier | carte posée, jamais ouverte | **71,7 s** | délai de 60 s → refus |
+| 02:50 | atelier | carte ouverte, **Allow** | — | `bonjour`, `exit_code 0` |
+| 03:02 | **discussion** | **aucune carte posée** | **11 s** | refus immédiat |
 
-Les deux tours ont eu lieu sur l'**ancienne** interface (`dist/` du 3 août) : la
+**Le chrono seul distingue les deux refus, et c'est ce qui les qualifie :**
+71,7 s, c'est une porte qui se referme faute de réponse ; 11 s, c'est une
+décision. Le tour de 03:02 s'ouvre à 03:02:14, la sonde frappe à 03:02:19 et le
+refus revient à 03:02:25 — la branche `enDiscussion() && risque ≠ vert` a bien
+parlé, celle qui n'avait jamais été jouée. Hermès répond *« Action bloquée : tu
+as refusé l'exécution via le système de permission. Je ne relance pas. »* — une
+décision, pas une panne.
+
+Les trois tours ont eu lieu sur l'**ancienne** interface (`dist/` du 3 août) : la
 carte se rend et se clique déjà, ce n'est pas un acquis du chantier 2.
 
 **`mode-conversation.js` n'est plus une moitié de porte.** Il ne lui manquait pas
 une réécriture : il lui manquait que le terminal vienne frapper. *(Son en-tête
-porte encore la conclusion du 5 août à 02:05 — à barrer sur place.)*
+a été corrigé le 5 août à 02:55, première ligne comprise.)*
 
-*Dire où la vérification s'arrête.* Le mode Atelier **est** éprouvé, refus et
-accord compris. Restent quatre choses qui ne le sont pas :
+*Dire où la vérification s'arrête.* **Plus rien n'est en attente de mesure** :
+les trois branches sont jouées. Ce qui reste n'est plus de la vérification mais
+du **dessin**, et rien n'en bloque le chantier 3 :
 
-- le **mode Discussion lui-même** n'a jamais été activé. Le refus du 02:38 vient
-  d'un délai dépassé, pas de `enDiscussion()`. La branche du haut d'`arbitrer()`
-  reste non jouée — c'est maintenant la mesure la moins chère et la plus utile ;
 - le **volume**. La sonde escalade *chaque* appel terminal, et un agent au
   travail en enchaîne des dizaines. Une carte par commande est intenable : il
   faudra soit s'appuyer sur « pour la session », soit n'escalader qu'en
@@ -411,10 +417,21 @@ Le cœur du parcours. À la fin de ce chantier, **on peut créer un scénario de
 la conversation**.
 
 - l'**interrupteur Discussion / Atelier**, avec sa garantie écrite dessous et
-  appliquée côté serveur (**V2 refermée le 5 août** : la garantie tient, mais
-  elle a **deux pièces** — l'arbitrage du Hub, déjà écrit, *et* un greffon
-  `pre_tool_call` posé dans le home d'Hermès pour que le terminal frappe. La
-  seconde n'est pas dans ce dépôt : à instruire ici) ;
+  appliquée côté serveur. **V2 refermée le 5 août, les trois branches jouées :**
+  la garantie tient. Mais elle a **deux pièces**, et l'ordre compte :
+
+  1. l'**arbitrage du Hub** — déjà écrit, éprouvé, rien à faire ;
+  2. un greffon `pre_tool_call` **dans le home d'Hermès**, pour que le terminal
+     vienne frapper. **Hors de ce dépôt, et non distribué.**
+
+  *L'interrupteur peut s'écrire dès maintenant, il ne peut pas se livrer seul.*
+  Sans la pièce 2, Discussion refuse ce qui demande — `edit`, `fetch` — et
+  laisse passer le shell : c'est exactement l'interrupteur qui ment, celui qu'on
+  a refusé d'écrire. **Le bouton doit donc constater la pièce 2 avant de
+  promettre quoi que ce soit** : le Hub sait lire `plugins.enabled` dans le
+  `config.yaml` d'Hermès (lecture pure), et dire la vérité quand elle manque.
+  Poser le greffon à l'installation relève de l'installateur, pas de ce
+  chantier : **c'est le premier point du §7, à trancher avant de livrer** ;
 - la **carte de plan** dans le fil : qui, quoi, comment, **résultat attendu**
   (dépend de **V1**) ;
 - les boutons **Valider / Modifier / Refuser**, qui n'existent que parce qu'un
@@ -568,6 +585,36 @@ Plan en fin de scénario — c'est C8, et la maquette le montre déjà.
 ---
 
 ## 7. Hors périmètre — à rouvrir après
+
+### ⚠ À TRANCHER AVANT DE LIVRER — la distribution du greffon *(5 août, 03:15)*
+
+**Ce point n'est pas « à rouvrir après » comme les autres : il conditionne la
+livraison.** Il est posé ici parce qu'il ne relève d'aucun des six chantiers, et
+qu'il n'appartient à personne tant qu'on ne l'a pas nommé.
+
+La garantie du mode Discussion tient par **deux pièces** (voir §2, V2, et le
+chantier 3). La seconde — un greffon `pre_tool_call` qui oblige le terminal à
+frapper — vit dans le **home d'Hermès**, pas dans ce dépôt, et **rien ne la pose
+chez un client aujourd'hui**. Sans elle, l'interrupteur laisse passer le shell :
+c'est l'interrupteur qui ment, celui qu'on a refusé d'écrire le 5 août à 02:05.
+
+**Deux voies, à choisir en fin de projet — décision de kuchu, 5 août :**
+
+1. **l'intégrer directement** — l'installateur pose le greffon et l'active dans
+   le `config.yaml` d'Hermès, au même titre que le reste de l'installation ;
+2. **une mise à jour juste après l'installation** — le Hub détecte l'absence, le
+   propose, et pose la pièce lui-même.
+
+*Ce qui décidera :* la première touche un fichier qui n'appartient pas au Hub
+(`config.yaml` d'Hermès est aussi le fichier que le laissez-passer protège) ; la
+seconde laisse une fenêtre où la garantie est fausse sans que rien ne le dise.
+Aucune n'est gratuite.
+
+**Tant que ce n'est pas fait, la garantie est vraie sur le poste de kuchu et
+fausse partout ailleurs.** Le bouton du chantier 3 doit donc constater la pièce
+avant de promettre — c'est écrit là-bas, et c'est ce qui rend l'attente tenable.
+
+---
 
 **La mémoire de contexte** — les trois étages, les quatre crans, l'archivage par
 projet. Tout est décidé et écrit en section 8 de
