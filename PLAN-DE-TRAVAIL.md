@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **02:05**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **02:45**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -129,9 +129,9 @@ elles peuvent le changer. Chacune se lève en une expérience courte et jetable.
 | **V4** | Le chargement paresseux du Studio : combien gagne-t-on vraiment sur les 573 Ko ? | Rien de cassé — mais on saura si ça vaut le détour |
 
 **V1 et V2 sont bloquantes** pour les chantiers 3 et 4. *(V2 a été rouverte le
-5 août — voir son paragraphe. Le chantier 3 démarre donc amputé de son premier
-point, et se reprend par la carte de plan, qui ne dépend que de V1.)* V3 l'est pour le
-chantier 5. V4 ne bloque rien.
+5 août à 02:05, puis **refermée le même soir à 02:38, éprouvée à l'écran** — voir
+son paragraphe. Le chantier 3 n'est plus amputé : l'interrupteur Discussion a une
+garantie réelle.)* V3 l'est pour le chantier 5. V4 ne bloque rien.
 
 ### Résultats — chantier 1, fait le 4 août
 
@@ -162,7 +162,10 @@ préparation d'un plan ne devrait pas être **asynchrone**, c'est-à-dire qu'on
 puisse continuer d'écrire pendant. *À trancher au chantier 3.*
 
 **V2 — couper les outils. ~~Non, mais la garantie s'obtient autrement.~~
-⚠ NON, ET LA GARANTIE NE S'OBTIENT PAS — rouvert le 5 août à 02:05.**
+~~⚠ NON, ET LA GARANTIE NE S'OBTIENT PAS — rouvert le 5 août à 02:05.~~
+✅ Non — mais la garantie s'obtient, par le crochet `pre_tool_call`. Refermée le
+5 août à 02:38, éprouvée à l'écran. Lire le paragraphe jusqu'au bout : les deux
+conclusions précédentes sont barrées, pas effacées.**
 
 La session ACP s'ouvre par `session/new { cwd, mcpServers: [] }` : **il n'existe
 aucun paramètre de panoplie par tour.** En revanche l'agent demande, et le Hub
@@ -190,11 +193,56 @@ terminal. `session/set_mode` ne donnera pas la garantie. *(Mesuré par la route
 donc **ne réveiller personne est entièrement sous notre contrôle**. C'est la
 moitié qui tient, et le chantier 3 s'y appuie encore.
 
-*Ce qui reste à chercher, et ce n'est plus du Hub :* une configuration côté
+~~*Ce qui reste à chercher, et ce n'est plus du Hub :* une configuration côté
 Hermès qui soumette le terminal à permission. Sans elle, l'interrupteur
 Discussion ne peut rien promettre — et **mieux vaut pas d'interrupteur qu'un
 interrupteur qui ment.** Le module `mode-conversation.js` reste au dépôt avec sa
-mesure en tête : c'est une moitié de porte, et elle se présente comme telle.
+mesure en tête : c'est une moitié de porte, et elle se présente comme telle.~~
+
+**✅ CHERCHÉ, ET TROUVÉ — le 5 août à 02:38, éprouvé à l'écran. V2 se referme.**
+
+La configuration n'existe pas, et c'était la bonne réponse à la mauvaise
+question. `approvals.mode` (`smart` / `manual` / `off`) ne se déclenche que sur
+les **47 motifs** de `DANGEROUS_PATTERNS` : `manual` promet « toujours demander
+pour les commandes dangereuses », et `echo bonjour` n'en est pas une. **La garde
+d'Hermès est bâtie sur le texte de la commande, pas sur l'outil** — c'est la
+cause exacte de ce qui a été mesuré à 02:05, et ça la confirme.
+
+Mais il existe un crochet qui, lui, porte sur l'outil : **`pre_tool_call`**. Un
+greffon peut répondre `{"action": "approve"}`, et le code dit ce qu'on
+cherchait : *« This lets a plugin require a human decision on **ANY tool**, not
+just terminal command strings. »* Sur ACP, cette porte est déjà pontée vers
+`session/request_permission`.
+
+Le doute portait sur un seul point, que la lecture ne tranchait pas :
+`acp_adapter/` n'appelle jamais `discover_and_load`. **Mesuré :** le journal
+d'Hermès écrit `Plugin discovery complete: 55 found, 48 enabled` à la seconde où
+le Hub lance le processus ACP. Les greffons sont chargés. Chaîne complète, jouée
+sur la machine de kuchu avec un greffon jetable (`sonde-terminal`) :
+
+```
+Hermès veut lancer echo bonjour
+  → pre_tool_call intercepte (session ACP, commande anodine)
+  → « approve » → request_tool_approval → session/request_permission
+  → le Hub arbitre : enDiscussion() && risque ≠ vert  →  REFUS EXPLICITE
+  → Hermès ne lance rien, et le DIT
+```
+
+À l'écran : le bandeau porte la demande refusée **avec le nom de la commande**,
+et Hermès répond *« La commande a été refusée par ton terminal (mode Discussion
+actif) — tu as bloqué l'exécution de `echo bonjour`. Je ne l'ai donc pas
+lancée. »* Il l'a lu comme une **décision**, pas comme une panne — ce que
+`laissez-passer.js` cherchait à obtenir. Réponse en 71,7 s.
+
+**`mode-conversation.js` n'est plus une moitié de porte.** Il ne lui manquait pas
+une réécriture : il lui manquait que le terminal vienne frapper.
+
+*Dire où la vérification s'arrête.* Trois choses ne sont **pas** éprouvées :
+le **mode Atelier** — personne n'a vu la carte à boutons ni répondu dessus, et la
+sonde escalade *chaque* appel terminal, donc le volume reste à juger ; la
+**livraison chez un client** — le greffon vit dans le home d'Hermès, hors du
+dépôt du Hub, et le distribuer est une question à part entière ; et le greffon
+d'essai n'est **pas** du code de production.
 
 **⚠ Une conséquence qui déborde ce chantier, pour la version livrée.** Le
 classement du laissez-passer — vert / orange / rouge, « exige ton accord »,
@@ -203,6 +251,13 @@ en mode Atelier, celui des clients : `terminal: echo bonjour` s'exécute sans
 qu'aucune carte n'apparaisse. Un agent qui écrit par `printf > fichier` ne
 croise aucune des portes qu'on croyait poser. Ce n'est pas une régression du
 chantier 3 : c'est l'état d'aujourd'hui, découvert en l'éprouvant.
+
+**Et le crochet `pre_tool_call` le rend voyant — c'est la vraie portée de la
+mesure de 02:38.** Ce n'est pas une rustine pour le mode Discussion : une fois
+que le terminal frappe, la demande retombe sur `arbitrer()` comme n'importe
+quelle autre, le vert passe seul, l'orange et le rouge font une carte. **Le
+chaînon manquait au laissez-passer entier, pas au seul interrupteur.** À
+instruire pour la version livrée, avec la question de la distribution du greffon.
 
 **V3 — la carte des compétences. À moitié seulement.**
 `lireCompetences()` existe et rend des fiches structurées — frontmatter, tags,
@@ -318,7 +373,10 @@ Le cœur du parcours. À la fin de ce chantier, **on peut créer un scénario de
 la conversation**.
 
 - l'**interrupteur Discussion / Atelier**, avec sa garantie écrite dessous et
-  appliquée côté serveur (dépend de **V2**) ;
+  appliquée côté serveur (**V2 refermée le 5 août** : la garantie tient, mais
+  elle a **deux pièces** — l'arbitrage du Hub, déjà écrit, *et* un greffon
+  `pre_tool_call` posé dans le home d'Hermès pour que le terminal frappe. La
+  seconde n'est pas dans ce dépôt : à instruire ici) ;
 - la **carte de plan** dans le fil : qui, quoi, comment, **résultat attendu**
   (dépend de **V1**) ;
 - les boutons **Valider / Modifier / Refuser**, qui n'existent que parce qu'un

@@ -350,6 +350,41 @@ on reste prudent, avec lui on se croit couvert. Le module reste au dépôt, avec
 mesure et son avertissement en tête — c'est une moitié de porte, et elle se
 présente comme telle.
 
+### Il manquait un heurtoir, pas une serrure *(05/08/2026)*
+Suite directe des deux entrées ci-dessus, le même soir — **et elles restent
+vraies toutes les deux.** La porte ne garde toujours que ceux qui frappent ; on
+n'a pas écrit d'interrupteur menteur. On a fait frapper celui qui n'y pensait
+pas.
+
+Côté Hermès, la configuration cherchée n'existe pas : `approvals.mode` ne se
+déclenche que sur les 47 motifs de `DANGEROUS_PATTERNS`, donc `manual` demande
+« pour les commandes dangereuses » et laisse passer `echo bonjour`. **Sa garde
+est bâtie sur le texte de la commande, pas sur l'outil.** Mais un crochet porte
+sur l'outil, lui : `pre_tool_call`. Un greffon qui répond `{"action":"approve"}`
+force *n'importe quel* appel à passer par la porte humaine — et sur ACP cette
+porte est déjà pontée vers `session/request_permission`.
+
+Éprouvé à l'écran : la même commande qui, trois heures plus tôt, s'exécutait sans
+qu'aucune carte n'apparaisse, a été **refusée par le Hub**, avec son nom dans le
+bandeau. Hermès l'a lu comme une décision — *« tu as bloqué l'exécution de `echo
+bonjour`, je ne l'ai donc pas lancée »* — et non comme une panne.
+
+*Ce qu'on en retire, et qui vaut au-delà d'ici :* **« il n'y a pas de
+configuration » n'est pas « il n'y a pas de moyen ».** La recherche portait sur
+un réglage, et la réponse était un point d'extension. Deux fois de suite sur le
+même sujet, la conclusion négative venait d'avoir cherché la bonne chose au
+mauvais étage — d'abord le Hub quand c'était Hermès, puis la config quand
+c'étaient les greffons.
+
+*Et une conséquence qui dépasse l'interrupteur :* le classement du laissez-passer
+était **aveugle au shell**. Une fois que le terminal frappe, il retombe sur
+`arbitrer()` comme n'importe quel autre outil. Le chaînon manquait au
+laissez-passer entier.
+
+*Non éprouvé :* le mode Atelier — la carte à boutons n'a été ni vue ni
+répondue —, et la livraison chez un client, le greffon vivant dans le home
+d'Hermès et non dans le dépôt du Hub.
+
 ### `git add -A` ramasse ce que personne n'a décidé *(05/08/2026)*
 Trois fois dans la même soirée. `.claude/` — des autorisations par poste — a
 failli partir chez les clients ; trois scripts d'outillage sont entrés sans
