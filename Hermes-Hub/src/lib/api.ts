@@ -455,8 +455,11 @@ export const api = {
     request<{ interrompu: boolean }>('/chat/cancel', { method: 'POST', body: body({}) }),
   chatEndormir: (agent?: string) =>
     request<{ endormi: boolean }>('/chat/sommeil', { method: 'POST', body: body({ agent }) }),
+  /** `perimee` : la porte s'etait deja refermee cote Hermes quand le clic est
+      arrive - la reponse n'est allee nulle part. Distinct de `traite: false`,
+      qui veut dire « demande inconnue ». Voir `DELAI_AUTORISATION`. */
   chatAutoriser: (agent: string, demande: string, option: string | null) =>
-    request<{ traite: boolean }>('/chat/permission', {
+    request<{ traite: boolean; perimee?: boolean }>('/chat/permission', {
       method: 'POST',
       body: body({ agent, demande, option }),
     }),

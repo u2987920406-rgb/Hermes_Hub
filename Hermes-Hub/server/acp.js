@@ -39,6 +39,51 @@ function trouverHermes() {
 /** Demarrage a froid : chargement des MCP, du modele, des skills. */
 const DELAI_DEMARRAGE = 90000
 
+/**
+ * LE DELAI AU BOUT DUQUEL HERMES REFERME UNE DEMANDE - ET POURQUOI LE HUB LE
+ * COMPTE LUI-MEME.
+ *
+ * `acp_adapter/permissions.py` et `acp_adapter/edit_approval.py` prennent tous
+ * deux `timeout: float = 60.0`, et `server.py` les appelle **sans passer de
+ * valeur**. Le chemin ACP ne lit donc PAS `approvals.timeout` - le reglage a
+ * 300 s que porte `hermes_cli/callbacks.py` ne vaut qu'en ligne de commande.
+ * Le meme produit accorde cinq minutes au terminal et une seule au Hub, et
+ * aucun reglage cote client ne change ce chiffre.
+ *
+ * MESURE LE 05/08/2026 A 16:02, MAQUETTISTE SUR `glm-5.2:cloud`, EN ATELIER :
+ *
+ *   16:02:48.449  la carte est posee (Approve edit: essai-delai.txt)
+ *   16:03:48      « Tool write_file returned error (60.01s) :
+ *                   Edit approval denied by ACP client; file was not modified »
+ *   16:03:51.991  le fichier est ecrit QUAND MEME - par le terminal
+ *   16:05:02.975  la carte quitte enfin l'ecran : parce qu'on a clique dessus
+ *
+ * DEUX CHOSES QUE CETTE MESURE APPREND, ET LA SECONDE COMMANDE CE CODE.
+ *
+ * 1. **Le refus par delai ne refuse rien.** L'agent contourne par le shell en
+ *    trois secondes, et en Atelier le heurtoir ne sonne pas. Allonger le delai
+ *    n'allonge donc que l'attente avant le contournement : ce n'est pas une
+ *    porte qui se ferme, c'est une porte qui retarde. C'est ecrit au §2 de
+ *    `PLAN-DE-TRAVAIL.md` ;
+ * 2. **rien ne revient vers le Hub quand la porte se ferme.** Cote Python le
+ *    `future` est annule et la fonction rend « deny » sans emettre une seule
+ *    trame : la demande meurt en silence. La carte est alors un FANTOME - elle
+ *    garde ses deux boutons, et le clic la fait disparaitre exactement comme
+ *    un vrai accord. Mesure ci-dessus : elle a survecu **74 secondes** a la
+ *    demande qu'elle representait, et c'est le clic qui l'a retiree, pas le
+ *    serveur.
+ *
+ * Le Hub ne peut pas empecher la porte de se fermer. Il peut savoir QUAND, et
+ * le dire - parce qu'il connait l'heure a laquelle il a pose la carte. D'ou ce
+ * chiffre ici : c'est une constante d'Hermes qu'on recopie, pas un reglage.
+ *
+ * ⚠ **Si le pont ACP est rustine pour lire `approvals.timeout`, cette valeur
+ * doit suivre**, sinon le Hub perimerait des cartes encore vivantes - et ce
+ * sens-la de l'erreur est le seul qui fasse perdre du travail. La fiche de la
+ * rustine vit dans le carnet `hermes-maintenance`, comme `rustine-acp.md`.
+ */
+export const DELAI_AUTORISATION = 60000
+
 export class PontAcp extends EventEmitter {
   /** `profil` vaut null pour Hermes lui-meme : le profil par defaut n'a pas de
       nom sur la ligne de commande, et le nommer changerait de home. */
@@ -352,13 +397,23 @@ export class PontAcp extends EventEmitter {
       risque,
       detail: extraireContenu(p.toolCall?.content),
       options,
+      // L'heure a laquelle Hermes refermera - voir `DELAI_AUTORISATION`. Elle
+      // voyage avec la carte pour que l'ecran puisse la montrer AVANT qu'elle
+      // ne passe : une echeance qu'on ne decouvre qu'une fois depassee n'aide
+      // personne a revenir a temps.
+      echeance: Date.now() + DELAI_AUTORISATION,
+      perimee: false,
     }
 
     // L'evenement est conserve, pas seulement emis : Hermes attend la reponse
     // pour continuer, et un navigateur ferme ou recharge a cet instant precis
     // laisserait le tour bloque pour toujours. Il sera rejoue a la reconnexion.
+    const minuteur = setTimeout(() => this.#perimer(cle), DELAI_AUTORISATION)
+    minuteur.unref?.() // ne retient pas le process ouvert pour une carte oubliee
+
     this.autorisations.set(cle, {
       evenement,
+      minuteur,
       resoudre: (optionId) => {
         this.#repondre(
           msg.id,
@@ -372,6 +427,31 @@ export class PontAcp extends EventEmitter {
     this.emettre(evenement)
   }
 
+  /**
+   * La porte vient de se refermer cote Hermes. On le dit, on ne l'efface pas.
+   *
+   * L'entree RESTE dans la table, et c'est tout le propos : une carte qui
+   * disparait toute seule laisse quelqu'un devant un ecran propre en croyant
+   * n'avoir rien manque. Elle doit rester, et porter la verite - « trop tard,
+   * l'agent est reparti sans ta reponse ». C'est la meme lecon que le commit
+   * du 05/08 sur le salut de l'accueil : un agent qui attend n'est pas un
+   * ecran vide, et un agent qui n'attend plus n'est pas une carte vivante.
+   *
+   * On ne repond RIEN a Hermes : son `future` est deja annule, la trame
+   * tomberait dans le vide. La demande est morte, pas en attente d'un verdict.
+   */
+  #perimer(cle) {
+    const attente = this.autorisations.get(cle)
+    if (!attente || attente.evenement.perimee) return
+    attente.evenement.perimee = true
+    this.emettre({
+      type: 'autorisation-perimee',
+      demande: cle,
+      titre: attente.evenement.titre,
+      echeance: attente.evenement.echeance,
+    })
+  }
+
   /** Ce qu'un flux qui arrive en cours de route doit savoir pour se remettre au
       niveau : un tour peut etre en train de tourner, une autorisation d'attendre. */
   etat() {
@@ -382,13 +462,24 @@ export class PontAcp extends EventEmitter {
     }
   }
 
-  /** Reponse de l'utilisateur a une demande d'autorisation. */
+  /**
+   * Reponse de l'utilisateur a une demande d'autorisation.
+   *
+   * Rend `'ok'`, `'perimee'` ou `false` - et non plus un booleen, parce que
+   * les deux premiers cas ne racontent pas la meme chose a l'ecran. Un clic
+   * sur une carte perimee ne doit pas etre traite comme un accord : la porte
+   * est deja refermee cote Hermes, la trame n'irait nulle part, et faire
+   * disparaitre la carte ferait croire que le clic a porte. C'est exactement
+   * ce qui a ete mesure le 05/08 a 16:05 - voir `DELAI_AUTORISATION`.
+   */
   autoriser(demande, optionId) {
     const attente = this.autorisations.get(demande)
     if (!attente) return false
+    if (attente.evenement.perimee) return 'perimee'
+    clearTimeout(attente.minuteur)
     this.autorisations.delete(demande)
     attente.resoudre(optionId)
-    return true
+    return 'ok'
   }
 
   // ---------------------------------------------------------------------------

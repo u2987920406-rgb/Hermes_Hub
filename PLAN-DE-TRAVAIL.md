@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **15:50**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **16:45**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -330,12 +330,78 @@ du **dessin**, et rien n'en bloque le chantier 3 :
   clients utilisent. Le raisonnement complet est dans `ADM.md`, « Le heurtoir ne
   sonne qu'en Discussion ». *Prix assumé :* en Atelier le laissez-passer reste
   aveugle au shell — voir le ⚠ ci-dessous et le §7 ;
-- le **délai de 60 s**. `make_approval_callback` est construit sans timeout
+- ~~le **délai de 60 s**. `make_approval_callback` est construit sans timeout
   explicite, donc une carte non vue se referme en une minute. C'est court pour
   quelqu'un qui a quitté l'écran, et le refus qui s'ensuit ressemble à une
-  panne. À confronter à `approvals.timeout` (300 s).
-  **⚠ ARRIVÉ EN VRAI LE 5 AOÛT À 15:45, ET PAS TOUT SEUL — voir juste en
-  dessous. Ce n'est plus une hypothèse, c'est un agent perdu.** ;
+  panne. À confronter à `approvals.timeout` (300 s).~~
+  **✅ CONFRONTÉ ET TRANCHÉ LE 5 AOÛT À 16:02, CHRONOMÉTRÉ DEUX FOIS — et la
+  confrontation retourne la question. Lire le paragraphe qui suit.** ;
+
+#### Le délai de 60 s — mesuré, et ce n'est pas le délai le problème *(5 août, 16:02)*
+
+**Ce qui était prévu :** « porter le délai de 60 s à quelque chose de tenable ».
+**Ce que la mesure dit :** le faire *seul* aggraverait les choses.
+
+*La confrontation d'abord.* `approvals.timeout` vaut bien 300 s — mais
+**le pont ACP ne le lit pas.** `acp_adapter/permissions.py` et
+`acp_adapter/edit_approval.py` prennent chacun `timeout: float = 60.0`, et
+`server.py` les appelle **sans passer de valeur** (lignes 1704 et 1708). Les
+300 s vivent dans `hermes_cli/callbacks.py`, c'est-à-dire **en ligne de commande
+seulement**. Le même produit accorde donc cinq minutes au terminal et une seule
+au Hub — et aucun réglage côté client ne change ce chiffre. `approvals:`
+n'existe même pas dans le `config.yaml` de kuchu.
+
+*La mesure ensuite,* Maquettiste sur `glm-5.2:cloud`, en **Atelier**, jouée deux
+fois avec le même résultat à la centiseconde :
+
+```
+16:02:48.449  la carte paraît (Approve edit: essai-delai.txt)
+16:03:48      « Tool write_file returned error (60.01s) :
+                Edit approval denied by ACP client; file was not modified »
+16:03:51.991  le fichier est écrit QUAND MÊME — par le terminal, en 3 s
+16:05:02.975  la carte quitte l'écran : parce qu'on a cliqué dessus
+```
+
+**Trois choses, et les deux dernières comptent plus que la première.**
+
+1. **60,01 s**, non réglable, confirmé deux fois ;
+2. **le refus par délai ne refuse rien.** L'agent contourne par le shell, et en
+   Atelier le heurtoir ne sonne pas *(§7)*. Ce n'est pas une porte qui se ferme,
+   c'est une porte qui **retarde de 60 s**. Porter le délai à 300 s ne
+   protégerait donc personne de plus : ça allongerait l'attente avant le
+   contournement. **La garantie qu'on croyait avoir n'a jamais existé sur ce
+   chemin** ;
+3. **la carte devient un fantôme, et c'est la panne à réparer.** Rien ne revient
+   vers le Hub quand la porte se ferme — côté Python le `future` est annulé et
+   la fonction rend « deny » sans émettre une seule trame. La carte est restée
+   **74 secondes** après la mort de la demande, boutons intacts ; le clic
+   « Allow edit » l'a fait disparaître **exactement comme un vrai accord**,
+   alors qu'il n'allait nulle part et que le fichier était écrit depuis une
+   minute. C'est la même famille que la panne de 15:45 : l'écran affirme.
+
+**✅ Corrigé, et éprouvé à l'écran le 5 août à 16:16.** Le Hub ne peut pas
+empêcher la porte de se fermer ; il peut savoir **quand**, puisqu'il connaît
+l'heure à laquelle il a posé la carte. `DELAI_AUTORISATION` dans
+`server/acp.js` recopie donc la constante d'Hermès, et trois choses en
+découlent :
+
+- **la carte porte son compte à rebours** — vu à l'écran, « 45 s » —, ce qui
+  permet de savoir qu'il faut revenir maintenant. Une échéance qu'on ne
+  découvre qu'une fois passée n'a jamais aidé personne ;
+- **à l'échéance, la carte reste et perd ses boutons**, remplacés par ce qui
+  s'est passé. On ne la retire pas : un écran redevenu propre laisse croire
+  qu'on n'a rien manqué ;
+- **la ligne d'alerte s'efface**, elle. Sa phrase — « il est arrêté tant que la
+  réponse ne vient pas » — cesse d'être vraie à la seconde où l'agent repart
+  sans réponse. Le compte et la liste ne valent donc plus la même chose, et
+  `/api/accords` les sépare.
+
+*Ce qui reste à faire, et ce n'est pas dans ce dépôt :* porter le 60 s à 300 s
+demande une **rustine dans le pont ACP d'Hermès**, du même genre que
+`rustine-acp.md` — donc effacée par chaque `hermes update`, donc à documenter
+dans le carnet `hermes-maintenance`. **Elle est utile mais secondaire** : sans
+le correctif ci-dessus, elle ne fait que déplacer le mensonge cinq minutes plus
+loin. À décider avec kuchu ;
 
 ### ⚠ La carte disparaît du fil quand on change d'écran *(5 août, 15:45)*
 
@@ -753,6 +819,25 @@ de penser, et aucun moyen de le réparer sans terminal.** Le Hub affichait
    aux crédits. Mesuré le 5 août : `glm-5.2:cloud` répond en **1,9 s** avec
    outils et raisonnement ; `qwen3.5:4b` est le vrai repli hors ligne, sans
    aucun compte.
+
+**⚠ ET CE N'EST PLUS UNE GÊNE, C'EST UN BLOCAGE — mesuré le 5 août à 16:30.**
+La panne n'a pas été réparée depuis 15:10, et elle a **empêché de jouer le
+scénario « Portrait de Lucas Ferrand » de bout en bout** ce jour-là. Relevé sur
+disque, `profiles/*/config.yaml` :
+
+| Agent | Cerveau | État |
+|---|---|---|
+| maquettiste | `glm-5.2:cloud` (Ollama, local) | ✅ répond |
+| clean | `qwen2.5:0.5b` (local) | ✅ |
+| **les onze autres** | `tencent/hy3:free` | ❌ |
+| **Hermès lui-même** *(profil par défaut)* | `tencent/hy3:free` | ❌ |
+
+Éprouvé, pas supposé : `hermes --profile geographe chat -q "Reponds juste : ok"`
+rend en 5,7 s *« No access token found for Nous Portal login »*. **Le décomposeur
+est mort avec les autres** — donc aucun scénario ne peut même être découpé, et
+le chantier 5 n'est plus seulement une commodité : il conditionne toute épreuve
+de bout en bout sur cette machine. *Le contournement du jour a été de tout jouer
+sur le Maquettiste, seul agent capable de penser.*
 
 **⚠ MESURÉ LE 5 AOÛT À 15:20 — LA CASCADE N'EXISTE PAS.** L'aide d'Hermès
 décrit `config get` comme *« Print a **resolved** configuration value »*, ce qui

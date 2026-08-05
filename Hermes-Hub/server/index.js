@@ -2341,8 +2341,19 @@ async function handleApi(req, res, url) {
     const poles = (etatChantiers().chantiers || []).flatMap((c) =>
       (c.accords || []).map((d) => ({ ...d, pole: c.pole })),
     )
+    // `total` COMPTE, `accords` LISTE - et depuis le 05/08 les deux ne se
+    // valent plus. Une demande perimee ne bloque plus personne : la porte s'est
+    // refermee cote Hermes et l'agent est reparti sans elle (voir
+    // `DELAI_AUTORISATION` dans `acp.js`). Elle doit donc sortir du COMPTE, qui
+    // nourrit la pastille et la ligne « il est arrete tant que la reponse ne
+    // vient pas » - c'etait vrai, ca ne l'est plus, et une alerte qui survit a
+    // son motif est exactement la pastille qui ment decrite ci-dessus.
+    //
+    // Elle reste en revanche dans la LISTE, parce que le fil doit continuer de
+    // la montrer pour dire ce qui s'est passe. La retirer des deux rendrait
+    // l'ecran propre et muet - la panne meme qu'on repare.
     const tout = [...conversation, ...poles]
-    return sendJson(res, 200, { total: tout.length, accords: tout })
+    return sendJson(res, 200, { total: tout.filter((d) => !d.perimee).length, accords: tout })
   }
 
   if (rest[0] === 'chat') {
@@ -2452,9 +2463,14 @@ async function handleApi(req, res, url) {
       const agent = String(body.agent || 'default')
       const demande = String(body.demande)
       const option = body.option || null
-      const traite =
+      // `'ok'`, `'perimee'` ou `false` - les deux premiers sont vrais, et ils
+      // ne disent pas la meme chose. `perimee` : la porte s'est refermee avant
+      // le clic, la reponse n'est allee nulle part. Le distinguer est tout
+      // l'objet du correctif du 05/08 - repondre `traite: true` a un clic qui
+      // n'a rien pu faire, c'est le fantome qu'on cherche a supprimer.
+      const issue =
         equipage.autoriser(agent, demande, option) || autoriserChantier(agent, demande, option)
-      return sendJson(res, 200, { traite })
+      return sendJson(res, 200, { traite: issue === 'ok', perimee: issue === 'perimee' })
     }
 
     // Bascule automatique de modele quand le fournisseur coupe.

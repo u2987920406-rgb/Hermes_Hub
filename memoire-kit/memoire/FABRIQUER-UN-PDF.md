@@ -1,6 +1,7 @@
 # Fabriquer un PDF
 
-> ⏱ **Achevé** le 5 août 2026 à **12:40**
+> ⏱ **Achevé** le 5 août 2026 à **12:40** · **joué pour de vrai** le 5 août 2026
+> à **15:56**
 >
 > _Ce fichier n'est pas chargé au démarrage. Va le lire quand une tâche demande
 > un PDF — la mémoire te le dit._
@@ -28,17 +29,40 @@ $chrome = @(
 ## La ligne qui compte, et pourquoi
 
 **`([Uri]$page).AbsoluteUri`.** Elle transforme `C:\Mes dossiers\a.html` en
-`file:///C:/Mes%20dossiers/a.html`.
+`file:///C:/Mes%20dossiers/a.html`. Garde-la : elle ne coûte rien et elle rend
+la commande vraie dans **tous** les shells.
 
-Sans elle, un chemin qui contient un espace est coupé au premier blanc — et un
-dossier de scénario en contient **toujours**, puisqu'il porte la demande en
-entier. Chrome ne trouve alors rien, affiche `ERR_FILE_NOT_FOUND`… **et imprime
-cette page d'erreur.** Le PDF sort à 24 Ko et ne contient que le message du
-navigateur.
+> ⚠ **Mais ce n'est pas elle qui a produit les PDF de 24 Ko — mesuré le 5 août
+> à 15:56, et le diagnostic d'origine était faux.**
+>
+> ~~Sans elle, un chemin qui contient un espace est coupé au premier blanc.~~
+> **En PowerShell, non.** Éprouvé sur `…\Portrait de Lucas Ferrand\dossier.html`,
+> Chrome 151.0.7922.75 : la commande **avec** `AbsoluteUri` et la commande
+> **sans** (`"file:///$page"`, espace compris) rendent deux fichiers de
+> **74 618 octets au même SHA-256**. PowerShell passe une chaîne entre
+> guillemets comme **un seul argument** — il ne la découpe pas.
+>
+> Le découpage existe, mais ailleurs : dès qu'on construit la ligne comme un
+> **texte brut** — `cmd.exe`, un `Start-Process -ArgumentList` mal formé, un
+> `subprocess` sans liste. Reproduit ce jour-là avec
+> `Start-Process -ArgumentList @(…)` : Chrome répond *« Multiple targets are not
+> supported in headless mode »* et sort en **13**. Et c'est le chemin de
+> **sortie** qui a cassé, pas celui d'entrée.
 
-Ce n'est pas une hypothèse : c'est arrivé deux fois, les **1er** et
+**La vraie cause d'un PDF de 24 Ko est plus bête et plus fréquente : le fichier
+HTML n'était pas là.** Chrome imprime alors sa page d'erreur. C'est ce
+qu'`execution.js` avait déjà relevé pour l'incident du 3 août — le maquettiste
+avait écrit son `.html` dans un dossier de travail **éphémère, effacé
+entre-temps**. Reproduit à l'identique le 5 août en pointant Chrome sur un
+fichier absent : **24 879 octets**, à 44 octets de l'incident réel (24 923).
+
+Ce n'est donc pas une hypothèse : c'est arrivé deux fois, les **1er** et
 **5 août 2026**. La seconde a produit `dossier_dirigeants.pdf`, 24 Ko, déclaré
 livrable d'un scénario terminé.
+
+**Ce qu'il faut en retenir pour ne pas le refaire :** vérifie que ton `.html`
+existe **au moment où tu lances Chrome**, pas au moment où tu l'as écrit. Un
+dossier de travail peut disparaître entre les deux.
 
 ## Vérifier avant de rendre — toujours
 
@@ -63,8 +87,35 @@ livrable d'un scénario terminé.
 
 ## Où la vérification s'arrête
 
-Cette recette n'a **pas** été jouée sur le poste au moment où elle a été écrite.
-Le diagnostic — le chemin non encodé — vient de la taille du fichier et de la
-signature d'erreur, pas de la lecture du PDF fautif. La commande, elle, est la
-forme standard de Chrome. **Le jour où quelqu'un la joue pour de vrai, qu'il
-remplace ce paragraphe par ce qu'il a mesuré.**
+> ~~Cette recette n'a **pas** été jouée sur le poste au moment où elle a été
+> écrite. Le diagnostic — le chemin non encodé — vient de la taille du fichier
+> et de la signature d'erreur, pas de la lecture du PDF fautif.~~
+> **Jouée le 5 août 2026 à 15:56. Ce paragraphe est remplacé par la mesure, comme
+> il le demandait.**
+
+**Ce qui a été joué**, sur ce poste, Chrome **151.0.7922.75**, dossier
+`…\Portrait de Lucas Ferrand\` (avec ses espaces) :
+
+| Ce qu'on a lancé | Résultat |
+|---|---|
+| la commande de cette fiche, telle quelle | **74 618 o**, document lisible ✅ |
+| la même **sans** `AbsoluteUri`, espaces bruts | **74 618 o**, même SHA-256 — le piège ne se produit pas en PowerShell |
+| la ligne construite en **texte brut** (`Start-Process -ArgumentList`) | `Multiple targets are not supported`, **exit 13**, aucun fichier |
+| Chrome sur un **fichier absent** | **24 879 o** — la page d'erreur, à 44 o de l'incident réel |
+
+**Ce qui n'a pas été vérifié**, et il faut le savoir :
+
+- la recette n'a été jouée **qu'en PowerShell**. Sous `cmd.exe`, sous `bash`, ou
+  depuis l'outil terminal d'un agent, le découpage au premier blanc **peut**
+  se produire : c'est le cas de la troisième ligne du tableau. L'encodage reste
+  donc la bonne habitude, pour une raison différente de celle qu'on croyait ;
+- `@page`, les polices système et « aucun script » **n'ont pas été éprouvés
+  séparément** — le document d'essai les utilisait tous et il est sorti juste,
+  ce qui ne dit pas lequel aurait cassé seul ;
+- la page d'erreur a été produite **en français et en anglais**. Les autres
+  langues n'ont pas été regardées.
+
+*Ce que la mesure a servi ailleurs :* les trois PDF sont entrés dans le dépôt du
+Hub comme échantillons de test — `Hermes-Hub/server/echantillons/` — et ils y ont
+trouvé un défaut. Le détecteur de livrable en creux ne mordait que par **une
+signature sur quatre**. Voir le `LISEZ-MOI.md` de ce dossier.

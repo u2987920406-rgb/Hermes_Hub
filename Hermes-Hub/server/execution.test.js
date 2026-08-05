@@ -158,3 +158,59 @@ test('une tache qui ne produit aucun fichier n a rien a prouver', () => {
   assert.deepEqual(repecher(analyse, POLE, DEBUT()), [])
   assert.equal(livrablesManquants(analyse, POLE, DEBUT()), null)
 })
+
+// -----------------------------------------------------------------------------
+// Le PDF qui ment - sur de VRAIS fichiers, imprimes par Chrome 151
+// -----------------------------------------------------------------------------
+/**
+ * Ces trois cas sont les seuls du fichier a ne pas etre ecrits a la main, et
+ * c'est deliberé : le defaut a attraper vit dans le CODAGE des glyphes, pas
+ * dans le texte. Un faux PDF porterait le texte qu'on croit que Chrome ecrit -
+ * or c'est cette croyance qui etait fausse.
+ *
+ * Mesure du 05/08/2026 : sur une vraie page d'erreur, `texteDuPdf` rend
+ * « Impossible d'accder  v otr e fichier [...] ERR_FILE_NO T_FOUND ». Accents
+ * perdus, espace au milieu des mots. **Trois des quatre signatures ne
+ * pouvaient donc mordre sur rien**, et la quatrieme ne tenait qu'a l'endroit
+ * ou l'espace parasite etait tombee. Voir `echantillons/LISEZ-MOI.md`.
+ */
+const ECHANTILLONS = path.join(import.meta.dirname, 'echantillons')
+
+const pdfDEssai = (nom, sous) => {
+  fs.copyFileSync(path.join(ECHANTILLONS, nom), path.join(POLE, sous))
+  // `depuis` regarde la date d'ecriture : une copie garde celle de la source,
+  // qui est plus vieille que le tour. On la ramene a maintenant.
+  const t = new Date()
+  fs.utimesSync(path.join(POLE, sous), t, t)
+}
+
+const TACHE_PDF = {
+  titre: 'Assembler le dossier dirigeants',
+  corps: 'Produis dossier_dirigeants.pdf a partir des donnees.',
+}
+
+test('une page d erreur Chrome en francais est bloquee', () => {
+  pdfDEssai('erreur-chrome-fr.pdf', 'dossier_dirigeants.pdf')
+
+  const verdict = livrablesManquants(TACHE_PDF, POLE, DEBUT())
+  assert.equal(verdict?.motif, 'creux')
+  assert.equal(verdict?.aveu, 'le PDF est une page d erreur du navigateur')
+})
+
+test('une page d erreur Chrome en anglais est bloquee aussi', () => {
+  // Le poste d'un client n'est pas forcement en francais, et la phrase change
+  // du tout au tout : « Your file couldn't be accessed », pas une traduction de
+  // la francaise. L'ancienne signature exigeait « found » - elle serait passee
+  // a cote meme avec un codage parfait.
+  pdfDEssai('erreur-chrome-en.pdf', 'dossier_dirigeants.pdf')
+
+  assert.equal(livrablesManquants(TACHE_PDF, POLE, DEBUT())?.aveu, 'le PDF est une page d erreur du navigateur')
+})
+
+test('un vrai document d une page passe la garde', () => {
+  // Le sens qui compte le plus : une garde qui bloquerait du vrai travail
+  // serait eteinte a la premiere semaine, et on serait revenu au 03/08.
+  pdfDEssai('vrai-contenu.pdf', 'dossier_dirigeants.pdf')
+
+  assert.equal(livrablesManquants(TACHE_PDF, POLE, DEBUT()), null)
+})

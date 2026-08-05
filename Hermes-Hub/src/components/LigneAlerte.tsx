@@ -103,7 +103,15 @@ function useAlertes(): Alerte[] {
     })
   }
 
-  for (const d of demandes) {
+  // `perimee` est ecarte, et c'est la phrase du dessous qui l'exige : « il est
+  // arrete tant que la reponse ne vient pas » cesse d'etre vraie a la seconde ou
+  // la porte se referme cote Hermes - l'agent est justement reparti SANS la
+  // reponse. Mesure le 05/08 : l'alerte a survecu 74 s a son motif, et son
+  // bouton « Y aller » menait a une carte que plus rien n'ecoutait.
+  //
+  // La carte, elle, reste dans le fil - c'est la qu'on lit ce qui s'est passe,
+  // pas dans un bandeau d'urgence qui reclame un geste devenu sans effet.
+  for (const d of demandes.filter((d) => !d.perimee)) {
     liste.push({
       cle: `accord:${d.agent}:${d.demande}`,
       nature: 'autorisation',

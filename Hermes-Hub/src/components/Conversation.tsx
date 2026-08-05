@@ -109,6 +109,7 @@ export function Conversation({
    */
   const autorisations = useHubStore((s) => s.demandes)
   const rafraichirAccords = useHubStore((s) => s.rafraichirAccords)
+  const notify = useHubStore((s) => s.notify)
   /** L'equipe affichee dans la barre. Vide = tout l'annuaire. */
   const [equipeVue, setEquipeVue] = useState('')
   const [recherche, setRecherche] = useState('')
@@ -496,7 +497,15 @@ export function Conversation({
   }
 
   const repondre = async (d: DemandeAutorisation & { agent: string }, option: string) => {
-    await api.chatAutoriser(d.agent, d.demande, option).catch(() => null)
+    const issue = await api.chatAutoriser(d.agent, d.demande, option).catch(() => null)
+    // La course des toutes dernieres secondes : on a clique alors que la porte
+    // venait de se refermer. Le silence serait ici la pire reponse - c'est
+    // exactement le clic sans effet du 05/08, celui qui retirait la carte comme
+    // si l'accord avait porte. On le dit, et la carte passera perimee au
+    // rafraichissement juste apres.
+    if (issue?.perimee) {
+      notify('error', "Trop tard : Hermes avait deja referme cette demande. L'agent est reparti sans reponse.")
+    }
     // On relit plutot que de retirer la carte a la main : si le serveur n'a pas
     // pris la reponse, elle doit RESTER a l'ecran. La faire disparaitre d'abord
     // ferait croire l'agent debloque alors qu'il attend toujours - c'est la
@@ -1206,6 +1215,51 @@ function Bloc({ bloc }: { bloc: BlocTour }) {
   )
 }
 
+/**
+ * Les secondes qui restent avant qu'Hermes ne referme la demande.
+ *
+ * Rend `null` quand aucune echeance n'est connue - une demande d'une version
+ * anterieure du serveur, ou un pont qui n'en pose pas. **Pas zero** : « on ne
+ * sait pas » et « il ne reste rien » ne se ressemblent que dans un nombre, et
+ * les confondre afficherait un compte a rebours fini sur une carte vivante.
+ */
+function useSecondesRestantes(echeance?: number) {
+  const [maintenant, setMaintenant] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (!echeance) return
+    const t = setInterval(() => setMaintenant(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [echeance])
+
+  if (!echeance) return null
+  return Math.max(0, Math.round((echeance - maintenant) / 1000))
+}
+
+/**
+ * LA CARTE, ET SON ECHEANCE - la panne mesuree le 05/08/2026 a 16:02.
+ *
+ * Hermes referme une demande d'autorisation au bout de 60 s, et il ne le dit
+ * pas : rien ne revient vers le Hub, le `future` est annule cote Python. La
+ * carte restait donc a l'ecran avec ses deux boutons intacts, et le clic la
+ * faisait disparaitre exactement comme un vrai accord - sauf que l'agent etait
+ * reparti depuis longtemps, et avait ecrit le fichier par le terminal.
+ *
+ * Chronometre ce jour-la : carte posee a 16:02:48, porte refermee a 16:03:48,
+ * carte enfin retiree a 16:05:02 **parce qu'on a clique dessus**. Soit 74
+ * secondes pendant lesquelles l'ecran proposait un geste sans effet.
+ *
+ * D'ou les deux ajouts, et ils vont ensemble :
+ *
+ *   - **le compte a rebours**, visible AVANT l'echeance. C'est ce qui permet de
+ *     savoir qu'il faut revenir maintenant. Une echeance qu'on ne decouvre
+ *     qu'une fois passee n'a jamais aide personne ;
+ *   - **l'etat perime**, qui remplace les boutons par ce qui s'est passe. On ne
+ *     retire pas la carte : un ecran redevenu propre laisse croire qu'on n'a
+ *     rien manque. C'est la meme lecon que le salut de l'accueil, retournee -
+ *     un agent qui attend n'est pas un ecran vide, et un agent qui n'attend
+ *     plus n'est pas une carte vivante.
+ */
 function Autorisation({
   demande,
   agent,
@@ -1215,24 +1269,62 @@ function Autorisation({
   agent?: Agent
   onRepondre: (d: DemandeAutorisation & { agent: string }, option: string) => void
 }) {
+  const restantes = useSecondesRestantes(demande.echeance)
+
+  // Le drapeau du serveur fait foi ; l'horloge locale ne sert qu'a ne pas
+  // laisser les boutons vivants pendant le dixieme de seconde qui separe
+  // l'echeance de l'evenement. Un clic dans cet intervalle partirait pour rien.
+  const perimee = demande.perimee || restantes === 0
+
   return (
-    <div style={jetonDe(agent)} className="card space-y-2 border-l-4 p-3" >
-      <p className="text-xs font-semibold">
-        {agent?.nom || demande.agent} demande une autorisation
-      </p>
+    <div
+      data-zone="carte-autorisation"
+      style={jetonDe(agent)}
+      className={`card space-y-2 border-l-4 p-3 ${perimee ? 'opacity-70' : ''}`}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-xs font-semibold">
+          {agent?.nom || demande.agent} demande une autorisation
+        </p>
+        {!perimee && restantes !== null && (
+          <span
+            className="shrink-0 text-[11px] tabular-nums muted"
+            title="Passe ce delai, Hermes referme la demande et repart sans reponse."
+          >
+            {restantes} s
+          </span>
+        )}
+      </div>
       <p className="text-sm">{demande.titre}</p>
       {demande.detail && <p className="text-[11px] muted">{demande.detail}</p>}
-      <div className="flex flex-wrap gap-2 pt-1">
-        {demande.options.map((o) => (
-          <button
-            key={o.id}
-            onClick={() => onRepondre(demande, o.id)}
-            className={o.genre === 'reject_once' || o.genre === 'reject_always' ? 'btn-ghost px-3 py-1.5 text-xs' : 'btn-primary px-3 py-1.5 text-xs'}
-          >
-            {o.libelle}
-          </button>
-        ))}
-      </div>
+
+      {perimee ? (
+        // Le texte dit les deux choses qu'on ne peut pas deviner de l'ecran :
+        // que le geste n'a plus d'effet, et que l'agent, lui, a continue.
+        //
+        // « au-dessus » et non « plus bas » : la carte se rend APRES les tours,
+        // donc la trace de ce que l'agent a fait ensuite - le `printf` par le
+        // terminal, mesure le 05/08 - paraissait au-dessus d'elle. Envoyer
+        // chercher du mauvais cote est la faute exacte du commit « le panneau
+        // qui dit ou chercher cherchait au mauvais endroit ».
+        <p className="bandeau sens-alerte text-[11px]">
+          Trop tard : Hermes a referme cette demande et l'agent est reparti sans
+          reponse. Ce qu'il a fait ensuite est dans la trace de son tour,
+          au-dessus.
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-2 pt-1">
+          {demande.options.map((o) => (
+            <button
+              key={o.id}
+              onClick={() => onRepondre(demande, o.id)}
+              className={o.genre === 'reject_once' || o.genre === 'reject_always' ? 'btn-ghost px-3 py-1.5 text-xs' : 'btn-primary px-3 py-1.5 text-xs'}
+            >
+              {o.libelle}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

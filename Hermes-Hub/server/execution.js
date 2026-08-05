@@ -432,11 +432,49 @@ const COURT = 2500
  * `ERR_<MAJUSCULES>` est le signe le plus sur : c'est un code d'erreur reseau
  * de Chrome, il n'a rien a faire dans un document remis a des dirigeants.
  */
+/**
+ * ⚠ CES MOTIFS SE LISENT SUR LE TEXTE **SERRE**, SANS AUCUNE ESPACE, ET C'EST
+ * UNE MESURE QUI L'EXIGE - pas une preference d'ecriture.
+ *
+ * Eprouve le 05/08/2026 sur de vraies pages d'erreur imprimees par Chrome 151,
+ * dans les deux langues. Ce que `texteDuPdf` en tire reellement :
+ *
+ *   FR  « Impossible d'accder  v otr e fichier [...] ERR_FILE_NO T_FOUND »
+ *   EN  « Y our file couldnÔt be accessed [...] ERR_FILE_NO T_FOUND »
+ *
+ * Trois accidents s'y cumulent, et ils viennent tous de la facon dont Chrome
+ * pose son texte : **les accents sont perdus** (« accder », « peut-tre t
+ * dplac »), **une espace tombe entre chaque groupe de glyphes** - au milieu des
+ * mots, « Y our », « otr e », et jusque dans « ERR_FILE_NO T_FOUND » -, et
+ * **l'apostrophe sort en `Ô`**.
+ *
+ * LA VERSION D'AVANT NE MORDAIT QUE PAR UN MOTIF SUR QUATRE. Mesure du 05/08 :
+ * seul `ERR_` a jamais fire ; les trois motifs de prose etaient du code mort,
+ * incapables de matcher quoi que ce soit de reel. Ils annoncaient une
+ * couverture en quatre points qui n'existait pas - et le quatrieme, celui qui
+ * marchait, ne tenait qu'a la chance : l'espace parasite est tombee apres
+ * `ERR_FILE_NO`, pas dedans. Une coupure trois caracteres plus tot et la garde
+ * devenait muette, exactement comme le 03/08.
+ *
+ * Serrer le texte enleve les trois accidents d'un coup : les mots se
+ * recollent, `ERR_FILE_NOT_FOUND` redevient entier quel que soit l'endroit de
+ * la coupure, et les motifs n'ont plus qu'a tolerer les caracteres perdus -
+ * d'ou les `.{0,3}` la ou un accent ou une apostrophe se tenait.
+ *
+ * `ERR_<MAJUSCULES>` reste le signe le plus sur, et il garde sa casse : c'est
+ * un code d'erreur reseau de Chrome, il n'a rien a faire dans un document remis
+ * a des dirigeants. Le motif anglais dit `accessed` autant que `found` parce
+ * que la phrase MESUREE est « Your file couldn't be accessed » - l'ancienne
+ * version exigeait « found » et serait passee a cote meme sans les accidents.
+ */
 const ERREURS_NAVIGATEUR = [
-  [/\bERR_[A-Z_]{3,}/, 'le PDF est une page d erreur du navigateur'],
-  [/Impossible d.?acc[eé]der [aà] votre fichier/i, 'le PDF est une page d erreur du navigateur'],
-  [/This (?:site|page) can.?t be reached/i, 'le PDF est une page d erreur du navigateur'],
-  [/Your file (?:was|couldn.?t be) (?:not )?found/i, 'le PDF est une page d erreur du navigateur'],
+  [/ERR_[A-Z_]{3,}/, 'le PDF est une page d erreur du navigateur'],
+  [/impossibled.{0,3}acc.{0,3}der.{0,3}votrefichier/i, 'le PDF est une page d erreur du navigateur'],
+  [/this(?:site|page)can.{0,3}tbereached/i, 'le PDF est une page d erreur du navigateur'],
+  [
+    /yourfile(?:was|couldn.{0,3}tbe)(?:not)?(?:found|accessed)/i,
+    'le PDF est une page d erreur du navigateur',
+  ],
 ]
 
 /**
@@ -500,8 +538,11 @@ const OPAQUES = /\.(png|jpe?g|gif|webp|zip|wav|mp3|mp4|xlsx?|docx?|pptx?)$/i
 
 function livrableEnCreux(chemin) {
   if (/\.pdf$/i.test(chemin)) {
-    const texte = texteDuPdf(chemin)
-    for (const [signe, raison] of ERREURS_NAVIGATEUR) if (signe.test(texte)) return raison
+    // Serre : toutes les espaces retirees. `texteDuPdf` en pose une entre
+    // chaque groupe de glyphes, et Chrome coupe ses groupes au milieu des mots -
+    // le raisonnement complet est au-dessus d'`ERREURS_NAVIGATEUR`.
+    const serre = texteDuPdf(chemin).replace(/\s+/g, '')
+    for (const [signe, raison] of ERREURS_NAVIGATEUR) if (signe.test(serre)) return raison
     return null
   }
   if (OPAQUES.test(chemin)) return null
@@ -1180,7 +1221,11 @@ export function poleActif(poleId) {
  */
 export function autoriserChantier(agentId, demande, optionId) {
   for (const chantier of chantiers.values()) {
-    if (chantier.equipage.autoriser(agentId, demande, optionId)) return true
+    // On rend l'issue telle quelle - `'ok'` ou `'perimee'` -, pas un booleen :
+    // aplatir les deux en `true` reperdrait ici la distinction que `acp.js`
+    // vient de faire, et le clic sur une carte morte repasserait pour un accord.
+    const issue = chantier.equipage.autoriser(agentId, demande, optionId)
+    if (issue) return issue
   }
   return false
 }

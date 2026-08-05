@@ -51,6 +51,7 @@ pour le nommer quand on veut demander une modification.
 | Ta propre bulle, a droite | `bulle-moi` | `--bulle-rayon`, `--bulle-largeur` | idem |
 | « X confie le travail a Y » | `trace-delegation` | — | idem |
 | « X voulait appeler Y, la limite est atteinte » | `trace-refus` | — | idem, composant `TraceRefus` |
+| « X demande une autorisation », ses boutons et son compte a rebours | `carte-autorisation` | — | idem, composant `Autorisation`. Le compte a rebours n'est pas decoratif : Hermes referme la demande a l'echeance et repart **sans reponse**. Passe ce delai la carte reste, ses boutons partent, et elle dit pourquoi — voir `DELAI_AUTORISATION` dans `server/acp.js` |
 | « Tu appelles 12 agents » avant d'envoyer | `avertissement-convocation` | — | idem, seuil en dur : `mentionnes > 10` |
 | La colonne qui defile | `fil-conversation` | — | largeur : `max-w-3xl` |
 | La barre du bas | `barre-saisie` | — | idem |
@@ -238,6 +239,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `brouillon-tache` | `src/pages/StudioView.tsx` |
 | `bulle-agent` | `src/components/Conversation.tsx` |
 | `bulle-moi` | `src/components/Conversation.tsx` |
+| `carte-autorisation` | `src/components/Conversation.tsx` |
 | `carte-projet` | `src/components/ProjectCard.tsx` |
 | `champ-recherche` | `src/components/ChampRecherche.tsx` |
 | `decompte-decoupage` | `src/components/FenetreSimulation.tsx` |

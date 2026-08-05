@@ -754,6 +754,14 @@ export interface DemandeAutorisation {
   /** Ce que ce genre vaut. Absent quand le laissez-passer est coupe : rien
       n'ayant ete classe, on n'affiche pas un jugement qu'on n'a pas porte. */
   risque?: Risque | null
+  /** L'heure - en millisecondes - a laquelle Hermes refermera cette demande
+      tout seul. Posee par le serveur, jamais calculee ici : le delai est une
+      constante d'Hermes, et deux horloges qui le comptent finiraient par ne
+      plus tomber d'accord. Voir `DELAI_AUTORISATION` dans `server/acp.js`. */
+  echeance?: number
+  /** L'echeance est passee : l'agent est reparti sans reponse. La carte reste
+      affichee, mais elle n'attend plus rien - et ses boutons non plus. */
+  perimee?: boolean
 }
 
 /**
@@ -809,6 +817,12 @@ type EvenementBrut =
       risque: Risque
       option: string
     }
+  /** L'echeance est passee : Hermes a referme la demande tout seul et l'agent
+      est reparti sans reponse. Emis par le MINUTEUR du serveur, pas par une
+      trame d'Hermes - le pont ACP ne dit rien quand il abandonne, c'est
+      justement pourquoi le Hub compte de son cote. Voir `DELAI_AUTORISATION`
+      dans `server/acp.js`. */
+  | { type: 'autorisation-perimee'; demande: string; titre: string; echeance: number }
   | { type: 'tour-fin'; raison: string; message?: string }
   | { type: 'panne'; message: string }
   /** Le fournisseur a coupe : on repart sur `vers` et on rejoue le message. */
