@@ -1,6 +1,6 @@
 # Audit technique — `hermes-webui`
 
-> ⏱ **Achevé** le 5 août 2026 à **19:05** · **révisé** le 5 août 2026 à **21:20**
+> ⏱ **Achevé** le 5 août 2026 à **19:05** · **révisé** le 5 août 2026 à **21:45**
 >
 > Audit de code d'un projet tiers. Dépôt `github.com/nesquena/hermes-webui`,
 > clone `master` du 5 août 2026. Build annoncé dans leur documentation :
@@ -361,8 +361,64 @@ Plafond de 2 s avant de quitter l'état « chargement ». En développement, l'U
 est cache-bustée (`?hermes_dv=<timestamp>`) pour que le HMR de Vite puisse
 réexécuter un bundle déjà chargé.
 
-⚠ *Non lu* : `slots.ts` (184 lignes) — un greffon peut s'insérer dans des
-emplacements nommés de l'hôte, pas seulement occuper un onglet.
+### 1.8 Les emplacements — un greffon n'est pas obligé de prendre un onglet
+
+`web/src/plugins/slots.ts`. Deux mécanismes coexistent : `register()` donne un
+**onglet entier** (une route) ; `registerSlot()` **greffe sur une page
+existante**. L'en-tête du fichier écrit l'intention du second :
+
+> *« use these to inject widgets, cards, or toolbars into existing pages
+> **without overriding the whole route** »*
+
+**Trente emplacements** sont câblés par la coque :
+
+| Portée | Noms |
+|---|---|
+| Coque | `backdrop` · `header-left` · `header-right` · `header-banner` · `sidebar` · `pre-main` · `post-main` · `footer-left` · `footer-right` · `overlay` |
+| Par page | `<page>:top` et `<page>:bottom` pour `sessions`, `analytics`, `logs`, `cron`, `skills`, `plugins`, `config`, `env`, `docs`, `chat` |
+
+Le registre, intégral :
+
+```ts
+export function registerSlot(
+  plugin: string,
+  slot: string,
+  component: React.ComponentType,
+): void {
+  const existing = _slotRegistry.get(slot) ?? [];
+  const filtered = existing.filter((e) => e.plugin !== plugin);
+  filtered.push({ plugin, component });
+  _slotRegistry.set(slot, filtered);
+  _notifySlots();
+}
+```
+
+Quatre propriétés qui en découlent :
+
+- **plusieurs greffons peuvent occuper le même emplacement** — ils s'empilent
+  dans l'ordre d'enregistrement ;
+- **la liste est une convention, pas une barrière** : *« The registry accepts
+  any string so plugin ecosystems can define their own slots; the shell only
+  renders `<PluginSlot name="..." />` for the slots it knows about »* ;
+- réenregistrer la même paire `(greffon, emplacement)` **remplace** au lieu
+  d'empiler, *« this matches how React HMR expects plugin re-mounts to
+  behave »* ;
+- `PluginSlot` porte un `fallback` — *« Optional content rendered when no
+  plugins have claimed the slot. Useful for **built-in defaults the plugin
+  would replace** »*. Un greffon peut donc **se substituer** à un contenu natif,
+  pas seulement s'ajouter à côté. Le composant se réabonne au registre, donc un
+  greffon arrivé tard paraît sans rechargement.
+
+**Deux points relevés au passage :**
+
+- le manifeste admet un champ **`slots`** en plus de `tab` — *« Plugins
+  declaring any of these in their manifest's `slots` field get wired in
+  automatically »*. Le `manifest.json` du kanban (§1.6) ne l'utilise pas ;
+- l'emplacement `sidebar` est décrit comme *« the cockpit sidebar rail (only
+  rendered when `layoutVariant === "cockpit"`) »*. L'application web d'Hermès
+  porte donc une **variante de mise en page « cockpit »**, avec un rail latéral
+  que les greffons peuvent alimenter. ⚠ *Non vérifié* : ce que `layoutVariant`
+  recouvre, où il se règle, et ce qui change entre les variantes.
 
 Le WebUI possède par ailleurs son propre système d'extensions
 (`api/extensions.py`, manifestes plafonnés à 64 Ko, `window.HermesExtensionSettings`
@@ -1168,7 +1224,8 @@ par `i18n.js` (26 032 lignes).
 
 **Lu intégralement :** `api/route_approvals.py` (639), `api/kanban_bridge.py`
 (1 197), `BUGS.md`, `plugins/kanban/dashboard/manifest.json`, et — côté Hermès —
-`web/src/plugins/sdk.d.ts` (161), `registry.ts` (169), `usePlugins.ts` (134).
+`web/src/plugins/sdk.d.ts` (161), `registry.ts` (169), `usePlugins.ts` (134),
+`slots.ts` (201).
 
 **Lu en grande partie :** `ARCHITECTURE.md` (~830 sur 1 274).
 
@@ -1187,5 +1244,6 @@ Hermès.
 
 **Points explicitement non vérifiés :** le mécanisme `delegate` (§4.6) ; le
 rendu des huit codes d'erreur de sonde (§5.2) ; l'intégration Mermaid (§2.2) ;
-`web/src/plugins/slots.ts` (§1.7) ; et l'application web d'Hermès dans son
-ensemble — seul son chargeur de greffons a été lu, pas ses pages.
+`layoutVariant` et la variante « cockpit » (§1.8) ; et l'application web
+d'Hermès dans son ensemble — seuls son chargeur de greffons et son registre
+d'emplacements ont été lus, pas ses pages.
