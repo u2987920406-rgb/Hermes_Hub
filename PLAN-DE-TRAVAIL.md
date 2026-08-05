@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **15:25**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **15:50**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -333,7 +333,40 @@ du **dessin**, et rien n'en bloque le chantier 3 :
 - le **délai de 60 s**. `make_approval_callback` est construit sans timeout
   explicite, donc une carte non vue se referme en une minute. C'est court pour
   quelqu'un qui a quitté l'écran, et le refus qui s'ensuit ressemble à une
-  panne. À confronter à `approvals.timeout` (300 s) ;
+  panne. À confronter à `approvals.timeout` (300 s).
+  **⚠ ARRIVÉ EN VRAI LE 5 AOÛT À 15:45, ET PAS TOUT SEUL — voir juste en
+  dessous. Ce n'est plus une hypothèse, c'est un agent perdu.** ;
+
+### ⚠ La carte disparaît du fil quand on change d'écran *(5 août, 15:45)*
+
+**Trouvé en jouant le parcours, et c'est la panne la plus grave de la journée :
+un agent s'est arrêté sans qu'aucun geste ne puisse le sauver.**
+
+Déroulé exact. Le Maquettiste demande `Approve edit: essai-pdf.html`, la carte
+paraît dans le fil. On change d'écran. Au retour, **le fil est vide** — plus de
+carte, plus de conversation. La ligne d'alerte, elle, affiche toujours les deux
+demandes et dit *« Il est arrêté tant que la réponse ne vient pas »*. Son bouton
+**« Y aller » mène à une conversation vide.** Pendant qu'on cherche, le délai de
+60 s s'écoule, la porte se referme, et l'agent meurt.
+
+**Deux sources pour la même vérité, et elles divergent.** Le magasin tient
+`demandes`, rempli par un appel HTTP (`api.accords()`) — c'est lui qui alimente
+la ligne d'alerte et le volet, et il avait raison. La `Conversation`, elle, tient
+son propre `autorisations` en état local, rempli par l'évènement SSE `reprise`.
+Au remontage du composant, cet état repart vide.
+
+*L'ironie est écrite dans le dépôt :* le commentaire de `demandes` dans
+`useHubStore` dit déjà **« on garde une seule source, sinon le compte et la
+liste finiraient par ne plus raconter la même chose »**. Il y en a une
+troisième, et c'est elle qui ment.
+
+**Le remède est une suppression, pas un ajout :** la `Conversation` doit lire
+les demandes en attente dans le magasin, comme le volet. Le `reprise` n'a pas à
+porter cet état.
+
+*Chantier 3, et avant la carte de plan* — parce que la carte de plan vivra au
+même endroit et héritera du même défaut. La porte : on pose une demande, on va
+sur trois écrans, on revient, **la carte est toujours là et répond**.
 - la **livraison chez un client** — le greffon vit dans le home d'Hermès, hors
   du dépôt du Hub. Le distribuer est une question à part entière, et le greffon
   d'essai n'est **pas** du code de production.
