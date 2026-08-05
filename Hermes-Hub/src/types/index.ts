@@ -734,7 +734,56 @@ export interface TourRefus {
   plafond?: number
 }
 
-export type Tour = TourMoi | TourAgent | TourDelegation | TourRefus
+/**
+ * Le plan propose - QUI, QUOI, COMMENT, RESULTAT ATTENDU.
+ *
+ * Ecrit par Hermes en UN appel qui n'ecrit rien : ni tache, ni fichier, ni
+ * reveil. C'est ce qui permet de le refuser sans rien avoir a defaire. Voir
+ * `server/plan.js`, ou la mesure des dix appels du 06/08/2026 est consignee.
+ */
+export interface PlanPropose {
+  chantier: true
+  titre: string
+  qui: { agent: string; role: string }[]
+  quoi: { agent: string; tache: string }[]
+  comment: string
+  resultat: { fichier: string; quoi: string }[]
+  /** Les noms que le plan a inventes, tombes sur l'orchestrateur. Presque
+      toujours vide - et c'est pour le « presque » que la carte doit le dire :
+      `trioueur` a ete rendu la ou `trieur` existe, et une faute d'une lettre
+      ne se voit pas a l'oeil dans une liste de jetons. */
+  inconnus: string[]
+  /** Aucun fichier annonce : la confrontation annonce / rendu n'aura rien a
+      comparer. Dit plutot qu'invente. */
+  sansLivrable: boolean
+  /** La demande d'origine, gardee pour que la carte rappelle a quoi elle
+      repond - et pour poser le scenario sans la redemander. */
+  demande: string
+}
+
+/**
+ * La carte de plan dans le fil, et son etat.
+ *
+ * Les trois etats sont dans le fil, jamais retires : c'est F8 - « le fil doit
+ * porter l'etat de ce qu'il a propose, sinon il raconte une histoire fausse des
+ * le lendemain ». Une carte qui disparait apres validation laisse croire qu'on
+ * n'a jamais rien propose.
+ */
+export interface TourPlan {
+  role: 'plan'
+  id: string
+  plan: PlanPropose
+  /** `bascule` : le plan existe, mais on est en Discussion - alors la carte ne
+      s'ouvre pas et la bascule se propose. Valider creerait un scenario, donc
+      finirait par reveiller l'equipe, ce que ce mode promet de ne pas faire. */
+  etat: 'propose' | 'pose' | 'refuse' | 'bascule'
+  /** Le scenario cree, une fois le plan valide. ⚠ PAS `pole` : ce mot-la, sur
+      un evenement, signifie « ceci appartient a un scenario qui tourne, donc ce
+      n'est pas de la conversation », et le fil le jette. Voir la route. */
+  scenario?: string
+}
+
+export type Tour = TourMoi | TourAgent | TourDelegation | TourRefus | TourPlan
 
 export interface EtapePlan {
   libelle: string
@@ -824,6 +873,14 @@ type EvenementBrut =
       dans `server/acp.js`. */
   | { type: 'autorisation-perimee'; demande: string; titre: string; echeance: number }
   | { type: 'tour-fin'; raison: string; message?: string }
+  /** Un plan est propose dans le fil. Diffuse plutot que simplement rendu par
+      la route : c'est `diffuser()` qui ecrit l'historique, donc c'est la seule
+      facon pour la carte de survivre a un changement d'ecran et de se rejouer
+      le lendemain avec l'etat qu'elle avait (F8). */
+  | { type: 'carte-plan'; id: string; plan: PlanPropose; etat: 'propose' | 'bascule' }
+  /** La carte change d'etat - validee, donc un scenario existe ; refusee ; ou
+      ouverte apres une bascule en Atelier. Elle ne disparait dans aucun cas. */
+  | { type: 'carte-plan-etat'; id: string; etat: 'propose' | 'pose' | 'refuse'; scenario?: string }
   | { type: 'panne'; message: string }
   /** Le fournisseur a coupe : on repart sur `vers` et on rejoue le message. */
   | { type: 'bascule'; de: string | null; vers: string; raison: string }
@@ -836,6 +893,15 @@ type EvenementBrut =
   /** L'interrupteur a bouge dans une autre fenetre. */
   | { type: 'bascule-reglage'; actif: boolean }
   | { type: 'laissez-passer-reglage'; actif: boolean }
+  /**
+   * Discussion ou Atelier a change - ici, dans un autre onglet, ou depuis la
+   * bascule proposee par une carte de plan.
+   *
+   * ⚠ Le serveur l'emettait depuis le debut et **personne ne l'ecoutait** : il
+   * n'etait meme pas dans ce type. Une garantie qui reste affichee apres avoir
+   * ete levee est le pire des affichages - c'est celle-la qu'on croit.
+   */
+  | { type: 'mode-conversation-reglage'; mode: string; greffon?: unknown }
   /** Un pole vient d'etre lance : ses agents vont travailler dans `dossier`. */
   | { type: 'chantier-debut'; titre: string; dossier: string }
   /** Plus rien de pret sur ce pole. `restantes` a zero veut dire qu'il est

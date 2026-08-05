@@ -24,6 +24,7 @@ import type {
   Profil,
   ProfilTexte,
   Decomposition,
+  PlanPropose,
   NoteRetour,
   VersionBanc,
   Orchestration,
@@ -234,6 +235,37 @@ export const api = {
     request<Decomposition>('/orchestration/demande', { method: 'POST', body: body({ texte }) }),
   simulation: (pole: string) =>
     request<Simulation>(`/orchestration/simulation?pole=${enc(pole)}`),
+
+  // --- La carte de plan --------------------------------------------------------
+  // `plan` est un appel modele, mais il n'ECRIT rien : ni tache, ni fichier, ni
+  // reveil. C'est ce qui permet de refuser sans rien avoir a defaire. Dix appels
+  // mesures le 06/08/2026 sur le cerveau local : 8,5 · 8,6 · 10,3 · 13,3 · 13,3 ·
+  // 14,7 · 14,8 · 16,9 · 54,2 s. Le serveur coupe a 90 s - `PLAFOND_PLAN`.
+  //
+  // `poserPlan` et `refuserPlan`, eux, n'appellent aucun modele : le graphe pose
+  // est exactement le plan qu'on vient de lire.
+  plan: (texte: string) =>
+    request<PlanPropose & { id: string } | { chantier: false; pourquoi: string }>(
+      '/orchestration/plan',
+      { method: 'POST', body: body({ texte }) },
+    ),
+  poserPlan: (id: string, plan: PlanPropose) =>
+    request<{ pole: string; titre: string }>('/orchestration/plan/poser', {
+      method: 'POST',
+      body: body({ id, plan }),
+    }),
+  refuserPlan: (id: string) =>
+    request<{ refuse: boolean }>('/orchestration/plan/refuser', {
+      method: 'POST',
+      body: body({ id }),
+    }),
+  // Accepter la bascule proposee en Discussion : le mode passe en Atelier et la
+  // carte s'ouvre. Le plan etait deja calcule.
+  basculerPlan: (id: string) =>
+    request<ModeConversation>('/orchestration/plan/basculer', {
+      method: 'POST',
+      body: body({ id }),
+    }),
   validerPole: (pole: string, empreinte?: string) =>
     request<Validation>('/orchestration/validation', {
       method: 'POST',

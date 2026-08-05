@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **18:15**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **01:52**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -587,17 +587,77 @@ la conversation**.
   Atelier, rien ne change pour un client. En Discussion, tout ce qui n'est pas
   une lecture est refusé sans être posé, donc **aucune carte n'apparaît non
   plus** — la garantie ne coûte pas un clic. Voir §2, V2 ;
-- la **carte de plan** dans le fil : qui, quoi, comment, **résultat attendu**
-  (dépend de **V1**) ;
+- la **carte de plan** dans le fil : qui, quoi, comment, **résultat attendu**.
+  ✅ **Posée le 6 août, éprouvée à l'écran dans ses cinq états** ;
 - les boutons **Valider / Modifier / Refuser**, qui n'existent que parce qu'un
-  plan existe ;
-- la **bascule proposée** quand une demande en Discussion mérite un plan ;
-- l'**indicateur d'attente** qui dit ce qu'il fait pendant les ~23 s *(F5)* ;
+  plan existe. ✅ **Faits.** *Modifier* est devenu **« Reformuler la demande »** :
+  F7 reprochait à ce bouton de ne rien promettre de précis, alors il dit où il
+  mène — le champ, avec la demande dedans. Rien n'ayant été écrit sur le disque
+  à ce stade, il n'y a rien à défaire ;
+- la **bascule proposée** quand une demande en Discussion mérite un plan.
+  ✅ **Faite**, et elle ne coûte aucun appel modèle : le plan est déjà calculé,
+  seule la carte reste fermée tant qu'on est en Discussion ;
+- l'**indicateur d'attente** qui dit ce qu'il fait pendant les ~23 s *(F5)*.
+  ✅ **Fait**, avec son plafond visible — voir la mesure ci-dessous ;
 - l'**historique** déménage à l'accueil, et le **retour au salut se nomme**
-  *(F4, C7)*.
+  *(F4, C7)*. **Reste à faire.**
 
 **Porte :** depuis le chat, une demande devient un scénario écrit sur le disque,
 en attente, sans qu'aucun agent ait été réveillé.
+✅ **Franchie le 6 août 2026 à 01:35**, mesurée sur le bac à sable : quatre
+tâches posées — `t_cbbf94cd` *ready*, `t_81ea56c0` *todo* (redacteur),
+`t_3b6b82d6` *todo* (maquettiste), et la demande en tête de pôle — enchaînées,
+**rien en `running`**.
+
+#### Ce que la mesure a corrigé de V1 — 6 août 2026
+
+V1 avait été éprouvée **une fois**, sur une demande, avec un cerveau distant.
+Rejouée **dix fois** sur `glm-5.2:cloud` en local, elle a rendu trois choses
+que l'échantillon unique ne pouvait pas voir :
+
+- **« bonjour » recevait un plan** — un agent, une tâche, un livrable nommé
+  `reponse-conversation.txt`. Sans un verdict `chantier: false` **avant** le
+  gabarit, la règle du 4 août mourait à la première phrase tapée ;
+- **un agent inventé** — `trioueur` là où `trieur` existe. Le Hub confronte les
+  noms à l'annuaire et **ne rapproche pas au plus ressemblant** : rapprocher
+  deux chaînes est une devinette, et une devinette qui se trompe donne le
+  travail à quelqu'un d'autre sans que ça se voie ;
+- **l'appel peut revenir vide** — deux essais sur la même phrase, le premier
+  n'a rien rendu, le second a répondu en 14,7 s.
+
+**Temps : 8,5 · 8,6 · 10,3 · 13,3 · 13,3 · 14,7 · 14,8 · 16,9 · 54,2 s.** Un
+facteur six sur la même machine et le même modèle : **aucune moyenne n'est
+annonçable**, d'où le décompte à plafond visible plutôt qu'une estimation.
+
+**Et le graphe est posé sans second appel modèle.** C'est l'inverse du chemin
+d'aujourd'hui : `/api/demande` appelle `kanban decompose`, donc un modèle, et
+on valide ensuite un graphe qu'on n'a pas vu. Ici on lit le plan, on le valide,
+et **le scénario posé est exactement celui qu'on a lu**.
+
+#### Deux défauts trouvés à l'écran, et pas au test
+
+- **Un mot pour deux sens.** L'événement de validation portait un champ `pole`.
+  Dans tout le Hub, `pole` sur un événement veut dire « ceci appartient à un
+  scénario qui tourne, donc ce n'est **pas** de la conversation » — le fil le
+  jette, et `noter()` aussi. La carte validée gardait donc ses trois boutons, et
+  l'état n'entrait pas dans l'historique. Rien n'échouait : l'événement partait
+  bien, il était écarté à l'arrivée. Renommé `scenario`.
+- **Une promesse écrite mais jamais tenue.** Le serveur diffusait
+  `mode-conversation-reglage` depuis le début, avec en commentaire « deux
+  onglets ouverts sur le même Hub ne peuvent pas afficher des garanties
+  contraires ». **Personne ne l'écoutait** — le type n'existait même pas côté
+  interface. Invisible tant que le seul moyen de changer de mode était de
+  cliquer l'interrupteur, qui met son propre état à jour. La bascule d'une carte
+  l'a révélé : Hub passé en Atelier, carte ouverte avec ses boutons, et
+  l'interrupteur affichant toujours « Discussion · personne ne se réveille ».
+  Deux affirmations contraires sur le même écran, dont une fausse.
+
+**Et une leçon de méthode, payée une heure.** Le navigateur servait un
+`index.html` en cache : tout ce qui a été « éprouvé » pendant une heure tournait
+sur un bundle sans la carte. Le premier diagnostic — une délégation qui gardait
+`eveilles` non nul — était plausible, et **faux faute d'avoir vérifié quel code
+tournait**. Vérifier le rendu ne suffit pas : il faut vérifier qu'on regarde le
+rendu de ce qu'on vient d'écrire.
 
 ---
 

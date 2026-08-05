@@ -52,6 +52,9 @@ pour le nommer quand on veut demander une modification.
 | « X confie le travail a Y » | `trace-delegation` | — | idem |
 | « X voulait appeler Y, la limite est atteinte » | `trace-refus` | — | idem, composant `TraceRefus` |
 | « X demande une autorisation », ses boutons et son compte a rebours | `carte-autorisation` | — | idem, composant `Autorisation`. Le compte a rebours n'est pas decoratif : Hermes referme la demande a l'echeance et repart **sans reponse**. Passe ce delai la carte reste, ses boutons partent, et elle dit pourquoi — voir `DELAI_AUTORISATION` dans `server/acp.js` |
+| La carte de plan : qui, quoi, comment, resultat attendu, et ses trois boutons | `carte-plan` | — | `CartePlan.tsx`. Les boutons n'existent QUE parce qu'un plan existe — c'est la regle de kuchu du 4 aout, et elle n'a pas d'exception. La carte ne disparait dans aucun de ses etats : validee elle montre son scenario, refusee elle le dit (F8) |
+| « Ca demande un vrai plan. Je bascule en Atelier ? » | `bascule-proposee` | — | idem — c'est ce que la carte devient en mode Discussion, ou valider reveillerait l'equipe. Le plan est deja calcule : basculer ne rappelle aucun modele |
+| « Je regarde si ca merite un plan — 12 s / 90 s » | `attente-plan` | — | idem, composant `AttentePlan`. Le plafond est visible parce qu'aucune moyenne ne predit la duree : dix mesures du 6 aout vont de 8,5 s a 54,2 s. Voir `PLAFOND_PLAN` dans `server/plan.js` |
 | « Tu appelles 12 agents » avant d'envoyer | `avertissement-convocation` | — | idem, seuil en dur : `mentionnes > 10` |
 | La colonne qui defile | `fil-conversation` | — | largeur : `max-w-3xl` |
 | La barre du bas | `barre-saisie` | — | idem |
@@ -229,17 +232,20 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `agents-au-travail` | `src/components/Conversation.tsx` |
 | `alerte-essai` | `src/components/AlerteEssai.tsx` |
 | `attente-bouton` | `src/components/Attente.tsx` |
+| `attente-plan` | `src/components/CartePlan.tsx` |
 | `automatisations` | `src/components/Automatisations.tsx` |
 | `avertissement-convocation` | `src/components/Conversation.tsx` |
 | `banc-essai` | `src/components/BancEssai.tsx` |
 | `bandeau-profil` | `src/components/PremiereFois.tsx` |
 | `barre-saisie` | `src/components/Conversation.tsx` |
+| `bascule-proposee` | `src/components/CartePlan.tsx` |
 | `boite-demande` | `src/pages/OrchestrationView.tsx` |
 | `bouton-repli` | `src/components/BoutonRepli.tsx` |
 | `brouillon-tache` | `src/pages/StudioView.tsx` |
 | `bulle-agent` | `src/components/Conversation.tsx` |
 | `bulle-moi` | `src/components/Conversation.tsx` |
 | `carte-autorisation` | `src/components/Conversation.tsx` |
+| `carte-plan` | `src/components/CartePlan.tsx` |
 | `carte-projet` | `src/components/ProjectCard.tsx` |
 | `champ-recherche` | `src/components/ChampRecherche.tsx` |
 | `decompte-decoupage` | `src/components/FenetreSimulation.tsx` |

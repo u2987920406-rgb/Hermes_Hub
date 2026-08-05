@@ -1,13 +1,14 @@
 {
-  "src/App.tsx": 262,
+  "src/App.tsx": 281,
   "src/components/AlerteEssai.tsx": 42,
   "src/components/Attente.tsx": 63,
   "src/components/Automatisations.tsx": 156,
   "src/components/BancEssai.tsx": 344,
   "src/components/BoutonRepli.tsx": 107,
+  "src/components/CartePlan.tsx": 274,
   "src/components/ChampRecherche.tsx": 96,
   "src/components/CommandPalette.tsx": 204,
-  "src/components/Conversation.tsx": 1547,
+  "src/components/Conversation.tsx": 1613,
   "src/components/EditeurEquipe.tsx": 164,
   "src/components/FenetreSimulation.tsx": 655,
   "src/components/InterrupteurMode.tsx": 132,
@@ -31,9 +32,10 @@
   "src/components/Toasts.tsx": 47,
   "src/components/VoletAlertes.tsx": 115,
   "src/hooks/useEchap.ts": 38,
+  "src/hooks/usePlan.ts": 143,
   "src/hooks/useRoute.ts": 47,
   "src/lib/accords.ts": 33,
-  "src/lib/api.ts": 505,
+  "src/lib/api.ts": 537,
   "src/lib/dates.ts": 11,
   "src/main.tsx": 17,
   "src/pages/CleanView.tsx": 95,
@@ -47,5 +49,5 @@
   "src/pages/VaultView.tsx": 297,
   "src/store/alertes.ts": 62,
   "src/store/useHubStore.ts": 428,
-  "src/types/index.ts": 950
+  "src/types/index.ts": 1016
 }

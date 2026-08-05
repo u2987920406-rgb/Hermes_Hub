@@ -41,6 +41,17 @@ const GARDES = new Set([
   'bascule',
   'delegation',
   'tour-fin',
+  /**
+   * La carte de plan et ses changements d'etat.
+   *
+   * Sans ces deux-la, la carte vivait dans le direct et **disparaissait de la
+   * relecture** : on rouvrait la conversation du lendemain et rien ne disait
+   * qu'un plan avait ete propose, ni ce qu'on en avait fait. C'est exactement
+   * F8 - « le fil doit porter l'etat de ce qu'il a propose, sinon il raconte
+   * une histoire fausse des le lendemain ».
+   */
+  'carte-plan',
+  'carte-plan-etat',
 ])
 
 let courante = null

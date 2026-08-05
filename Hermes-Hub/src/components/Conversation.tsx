@@ -34,7 +34,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { cleAccord, sansAccord } from '../lib/accords'
 import { api } from '../lib/api'
+import { AttentePlan, CartePlan } from './CartePlan'
 import { ChampRecherche, aplatir } from './ChampRecherche'
+import { usePlan } from '../hooks/usePlan'
 import { InterrupteurMode } from './InterrupteurMode'
 import { useHubStore } from '../store/useHubStore'
 import { GENRES_OUTIL } from '../types'
@@ -48,6 +50,7 @@ import type {
   Tour,
   TourAgent,
   TourDelegation,
+  TourPlan,
   TourRefus,
 } from '../types'
 
@@ -273,7 +276,10 @@ export function Conversation({
     if (e.type === 'moi') filVuRef.current = null
     // La liste laterale se met a jour quand un tour se termine : c'est la que
     // le titre et l'heure d'un fil viennent de changer.
-    if (e.type === 'tour-fin') void rafraichirFils()
+    if (e.type === 'tour-fin') {
+      void rafraichirFils()
+      setToursFinis((n) => n + 1)
+    }
 
     // En relisant une conversation passee, rien de neuf ne s'y ajoute. L'etat
     // d'eveil et les demandes d'autorisation, eux, restent d'actualite : un
@@ -367,6 +373,20 @@ export function Conversation({
           ajouterBloc(t, agent, { type: 'bascule', de: e.de, vers: e.vers, raison: e.raison }),
         )
 
+      case 'carte-plan':
+        setTours((t) => [...t, { role: 'plan', id: e.id, plan: e.plan, etat: e.etat }])
+        return
+
+      case 'carte-plan-etat':
+        setTours((t) =>
+          t.map((tour) =>
+            tour.role === 'plan' && tour.id === e.id
+              ? { ...tour, etat: e.etat, scenario: e.scenario }
+              : tour,
+          ),
+        )
+        return
+
       // `autorisation` et `tour-fin` ne touchent plus a la liste : le magasin
       // la reinterroge au serveur sur CHAQUE evenement, celui-ci compris.
       case 'autorisation':
@@ -393,6 +413,20 @@ export function Conversation({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rafraichirFils])
 
+  // --- le plan ---------------------------------------------------------------
+  /** Compte les tours termines : c'est la ceinture du declencheur, voir `usePlan`. */
+  const [toursFinis, setToursFinis] = useState(0)
+
+  const plan = usePlan({
+    eveilles: eveilles.size,
+    toursFinis,
+    onErreur: setErreur,
+    onReformuler: (texte) => {
+      setSaisie(texte)
+      champ.current?.focus()
+    },
+  })
+
   // --- actions ---------------------------------------------------------------
   const envoyer = async () => {
     const texte = composer()
@@ -403,6 +437,9 @@ export function Conversation({
     setErreur(null)
     try {
       await api.chatEnvoyer(texte)
+      // Ce qu'on vient de demander attend son verdict : est-ce seulement un
+      // chantier ? La question part quand Hermes aura fini de repondre.
+      plan.mettreDeCote(texte)
       setSaisie('')
       setVises([])
       setGroupesVises([])
@@ -668,10 +705,23 @@ export function Conversation({
               <TraceDelegation key={i} tour={tour} agents={parId} />
             ) : tour.role === 'refus' ? (
               <TraceRefus key={i} tour={tour} agent={parId.get(tour.de)} />
+            ) : tour.role === 'plan' ? (
+              <CartePlan
+                key={tour.id}
+                carte={tour}
+                agents={parId}
+                enCours={plan.enVol === tour.id}
+                onValider={() => void plan.valider(tour)}
+                onModifier={() => void plan.reformuler(tour)}
+                onRefuser={() => plan.refuser(tour)}
+                onBasculer={() => plan.basculer(tour)}
+              />
             ) : (
               <BulleAgent key={i} tour={tour} agent={parId.get(tour.agent)} />
             ),
           )}
+
+          {plan.depuis !== null && <AttentePlan depuis={plan.depuis} />}
 
           {autorisations.map((d) => (
             <Autorisation
@@ -965,6 +1015,10 @@ const MODIFIE_LE_FIL = new Set([
   'delegation',
   'tour-fin',
   'panne',
+  // La carte de plan appartient au fil ou elle a ete proposee : elle ne doit
+  // pas venir se poser dans une conversation qu'on relit.
+  'carte-plan',
+  'carte-plan-etat',
 ])
 
 /**
@@ -1042,6 +1096,18 @@ function construire(evenements: (EvenementChat & { a?: number })[]): Tour[] {
           t.role === 'agent' && t.agent === agent && !t.fini
             ? { ...t, fini: true, raison: e.raison }
             : t,
+        )
+        break
+      // La carte de plan se rejoue comme le reste, et c'est tout l'interet :
+      // relire un fil du mois dernier montre ce qui avait ete propose ET ce
+      // qu'on en avait fait. Un fil qui aurait oublie l'un des deux raconterait
+      // une histoire fausse (F8).
+      case 'carte-plan':
+        tours = [...tours, { role: 'plan', id: e.id, plan: e.plan, etat: 'propose' }]
+        break
+      case 'carte-plan-etat':
+        tours = tours.map((t) =>
+          t.role === 'plan' && t.id === e.id ? { ...t, etat: e.etat, scenario: e.scenario } : t,
         )
         break
       default:

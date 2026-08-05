@@ -75,12 +75,13 @@ import {
   suspendreAutomatisation,
 } from './planification.js'
 import { ecrireReglage, lireReglage } from './laissez-passer.js'
-import { ecrireMode, lireGreffon, lireMode } from './mode-conversation.js'
+import { ecrireMode, enDiscussion, lireGreffon, lireMode } from './mode-conversation.js'
 import { annulerValidation, simuler, valider } from './simulation.js'
 import { comparer, listerVersions, lireVersion, marquerFavori, oublierVersion } from './versions.js'
 import { prevoirRetour, rejouer } from './retour.js'
 import { executer, preparer } from './masse.js'
 import { ecrireDisposition, lireDisposition, oublierDisposition } from './studio.js'
+import { poserScenario, preparerPlan } from './plan.js'
 import { clore, lire as lireConversation, lister as listerConversations, noter, supprimer as supprimerConversation } from './historique.js'
 import { ecrireBascule, lireBascule } from './modeles.js'
 import { projectFiles, vaultNote } from './templates.js'
@@ -1914,6 +1915,104 @@ async function handleApi(req, res, url) {
         throw err
       }
       return sendJson(res, 200, await decomposer(texte))
+    }
+
+    // -------------------------------------------------------------------------
+    // La carte de plan
+    // -------------------------------------------------------------------------
+    /**
+     * TOUT PASSE PAR `diffuser()`, ET C'EST LA REPONSE A F8.
+     *
+     * « Le fil doit porter l'etat de ce qu'il a propose - sinon il raconte une
+     * histoire fausse des le lendemain. » Une carte rendue seulement dans la
+     * reponse HTTP vivrait dans le navigateur : on change d'ecran, elle
+     * disparait ; on revient le lendemain, elle n'a jamais existe. Diffusee,
+     * elle est notee dans l'historique comme n'importe quel tour, et se rejoue
+     * a la relecture avec l'etat qu'elle avait.
+     *
+     * C'est exactement la lecon payee le 05/08 avec les demandes d'autorisation
+     * gardees en `useState` : un agent y est mort pendant qu'on cherchait ou lui
+     * repondre.
+     */
+    if (rest[1] === 'plan') {
+      // Proposer. Un seul appel modele, et il n'ecrit RIEN : ni tache, ni
+      // fichier, ni reveil. C'est ce qui permet de refuser sans rien defaire.
+      if (!rest[2] && method === 'POST') {
+        const body = await readBody(req)
+        const plan = await preparerPlan(String(body.texte || ''))
+
+        // Pas un chantier : rien ne se pose dans le fil. La regle de kuchu du
+        // 04/08 - tant qu'Hermes n'a pas propose de plan, il repond et c'est
+        // tout - vaut aussi pour le silence : ne rien montrer est la bonne
+        // reponse, pas une carte qui annonce qu'il n'y a pas de carte.
+        if (!plan.chantier) return sendJson(res, 200, plan)
+
+        const id = `plan_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+        /**
+         * En Discussion, la carte ne s'ouvre pas : la bascule se PROPOSE.
+         *
+         * Valider un plan cree un scenario et finira par reveiller l'equipe -
+         * exactement ce que ce mode promet de ne pas faire. Poser les trois
+         * boutons quand meme reviendrait a demander a l'interrupteur de mentir,
+         * et c'est le seul reproche qu'on n'ait jamais accepte de lui faire.
+         *
+         * L'etat est stampe ICI, pas cote navigateur : relu demain, le fil doit
+         * savoir dans quel mode la proposition a ete faite. Le plan, lui, est
+         * deja calcule - basculer ne rappellera aucun modele.
+         */
+        diffuser({ type: 'carte-plan', id, plan, etat: enDiscussion() ? 'bascule' : 'propose' })
+        return sendJson(res, 200, { ...plan, id })
+      }
+
+      // Valider : le graphe est pose sur le disque, et aucun modele n'est
+      // rappele - c'est le plan lu qui devient le scenario, pas un second
+      // decoupage dont personne n'aurait vu le resultat.
+      if (rest[2] === 'poser' && method === 'POST') {
+        const body = await readBody(req)
+        const pose = poserScenario(body.plan, body.plan?.demande)
+        /**
+         * ⚠ `scenario`, PAS `pole` - et le mot a coute une heure le 06/08/2026.
+         *
+         * Dans tout le Hub, `pole` sur un evenement veut dire « ceci appartient
+         * a un scenario qui tourne, donc ce n'est PAS de la conversation ». Le
+         * navigateur le jette (`if (e.pole && ...) return`) et `noter()` le
+         * jette aussi. En nommant ainsi le scenario qu'on vient de creer, la
+         * carte validee restait avec ses trois boutons a l'ecran, et l'etat
+         * n'entrait pas dans l'historique - donc F8 tombait au rechargement.
+         *
+         * Meme mot, deux sens : celui du garde, et le mien. Rien n'echouait,
+         * l'evenement partait bel et bien - il etait juste ecarte a l'arrivee.
+         */
+        diffuser({
+          type: 'carte-plan-etat',
+          id: String(body.id || ''),
+          etat: 'pose',
+          scenario: pose.pole,
+        })
+        return sendJson(res, 201, pose)
+      }
+
+      // Refuser. Rien n'a ete ecrit, donc il n'y a rien a defaire : la carte
+      // garde sa place et cesse seulement d'etre validable.
+      if (rest[2] === 'refuser' && method === 'POST') {
+        const body = await readBody(req)
+        diffuser({ type: 'carte-plan-etat', id: String(body.id || ''), etat: 'refuse' })
+        return sendJson(res, 200, { refuse: true })
+      }
+
+      // Accepter la bascule : le mode passe en Atelier et la carte s'ouvre. Le
+      // plan est celui qu'on avait deja - aucun modele n'est rappele.
+      if (rest[2] === 'basculer' && method === 'POST') {
+        const body = await readBody(req)
+        // Meme evenement que l'interrupteur lui-meme, greffon compris : deux
+        // onglets ouverts sur le meme Hub ne peuvent pas afficher des garanties
+        // contraires, et basculer depuis une carte n'est pas une bascule d'une
+        // autre nature.
+        const etat = { ...ecrireMode('atelier'), greffon: lireGreffon() }
+        diffuser({ type: 'mode-conversation-reglage', ...etat })
+        diffuser({ type: 'carte-plan-etat', id: String(body.id || ''), etat: 'propose' })
+        return sendJson(res, 200, etat)
+      }
     }
 
     // La simulation locale : aucun processus lance, aucun modele appele.

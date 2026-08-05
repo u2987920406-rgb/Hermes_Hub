@@ -26,6 +26,7 @@ export default function App() {
   const connected = useHubStore((s) => s.connected)
   const rafraichirAccords = useHubStore((s) => s.rafraichirAccords)
   const noterScenarioFini = useHubStore((s) => s.noterScenarioFini)
+  const chargerMode = useHubStore((s) => s.chargerMode)
 
   /**
    * Les demandes en attente, tenues au niveau de l'application.
@@ -48,6 +49,24 @@ export default function App() {
     void rafraichirAccords()
     return ecouterChat((e) => {
       void rafraichirAccords()
+      /**
+       * LE MODE CHANGE AILLEURS : L'INTERRUPTEUR DOIT SUIVRE.
+       *
+       * ⚠ Le serveur diffusait `mode-conversation-reglage` depuis le debut, avec
+       * ce commentaire a cote : « deux onglets ouverts sur le meme Hub ne
+       * peuvent pas afficher des garanties contraires ». **Personne ne
+       * l'ecoutait.** La promesse etait ecrite, pas tenue - et invisible tant
+       * que le seul moyen de changer de mode etait de cliquer l'interrupteur
+       * lui-meme, qui met son propre etat a jour.
+       *
+       * Vu a l'ecran le 06/08/2026 : la bascule proposee par une carte de plan
+       * a fait passer le Hub en Atelier, la carte s'est ouverte avec ses trois
+       * boutons - et l'interrupteur affichait toujours « Discussion · Hermes
+       * seul. Personne ne se reveille ». Deux affirmations contraires sur le
+       * meme ecran, dont une fausse. C'est exactement l'interrupteur qui ment,
+       * celui qu'on a refuse d'ecrire le 05/08.
+       */
+      if (e.type === 'mode-conversation-reglage') void chargerMode()
       if (e.type === 'chantier-fin') {
         noterScenarioFini({
           titre: e.titre,
@@ -58,7 +77,7 @@ export default function App() {
         })
       }
     })
-  }, [rafraichirAccords, noterScenarioFini])
+  }, [rafraichirAccords, noterScenarioFini, chargerMode])
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [newProject, setNewProject] = useState(false)
