@@ -2,8 +2,9 @@
  * Discussion ou Atelier - dans quel mode la conversation se tient.
  *
  * ~~DEUX MODES, ET AUCUN N'EST ENCORE UNE PROMESSE TENABLE.~~
- * **La promesse est tenable depuis le 05/08/2026 a 02:50 - mais elle a DEUX
- * pieces, et la seconde n'est pas dans ce depot. Lire jusqu'en bas.**
+ * **La promesse est tenable depuis le 05/08/2026 - le heurtoir a 02:50, ce
+ * mode-ci a 03:02. Mais elle a DEUX pieces, et la seconde n'est pas dans ce
+ * depot. Lire jusqu'en bas.**
  *
  *   - **Atelier** : ce que le Hub a toujours fait. L'agent demande, tu reponds,
  *     le laissez-passer decide de ce qui te derange. Rien ne change ici ;
@@ -73,12 +74,47 @@
  * tout le reste. Le chainon manquait au laissez-passer entier, pas au seul
  * interrupteur.
  *
- * ⚠ **Ce qui n'est toujours pas eprouve, au 05/08/2026 :** ce mode-ci. Le refus
+ * ~~⚠ **Ce qui n'est toujours pas eprouve, au 05/08/2026 :** ce mode-ci. Le refus
  * observe ce soir-la venait d'un delai de 60 s depasse sur une carte que
  * personne n'avait ouverte, le Hub etant en **Atelier** - pas de
- * `enDiscussion()`. La branche haute d'`arbitrer()` reste non jouee. Reste aussi
- * le VOLUME : escalader chaque appel terminal donne une carte par commande, ce
- * qui est intenable pour un agent au travail.
+ * `enDiscussion()`. La branche haute d'`arbitrer()` reste non jouee.~~
+ *
+ * ✅ **JOUE A 03:02, ET LE CHRONO SEUL LE QUALIFIE.** Tour ouvert a 03:02:14, la
+ * sonde frappe a 03:02:19, le refus revient a 03:02:25 : **onze secondes, aucune
+ * carte posee.** C'est bien `enDiscussion() && risque !== 'vert'` qui a parle -
+ * la branche haute d'`arbitrer()`, jamais jouee jusque-la. A comparer aux 71,7 s
+ * du refus de 02:38, qui n'etait qu'un delai de 60 s depasse sur une carte que
+ * personne n'avait ouverte, le Hub etant alors en Atelier.
+ *
+ * **71,7 s, c'est une porte qui se referme faute de reponse ; 11 s, c'est une
+ * decision.** Hermes lit la seconde comme telle : « Action bloquee : tu as
+ * refuse l'execution via le systeme de permission. Je ne relance pas. »
+ *
+ * ~~Reste aussi le VOLUME : escalader chaque appel terminal donne une carte par
+ * commande, ce qui est intenable pour un agent au travail.~~
+ *
+ * ✅ **TRANCHE le 05/08/2026 a 07:30 : LE GREFFON NE FAIT FRAPPER LE TERMINAL
+ * QU'EN DISCUSSION.** Trois regles jouees sur une tache ordinaire - douze appels
+ * d'outil dont huit par le terminal - et c'est un chiffre inattendu qui a
+ * decide : en Discussion, **les trois donnent zero carte**, puisque ce mode
+ * refuse d'office au lieu de poser. Le volume n'est donc pas un probleme de cet
+ * interrupteur, mais de l'**Atelier** - 2, 3 ou 10 cartes selon la regle. On
+ * garde l'Atelier intact.
+ *
+ * **Ce que ce module coute a l'usage, du coup : rien.** En Atelier il ne change
+ * pas une ligne du comportement d'aujourd'hui ; en Discussion il refuse sans
+ * poser, donc sans clic. Une garde qui coute un clic par geste n'est pas tenue,
+ * elle est eteinte - c'est ce qui a ecarte les deux autres regles.
+ *
+ * ⚠ **Et voici le prix, qui n'est pas paye ici.** Puisque le terminal ne frappe
+ * qu'en Discussion, le laissez-passer reste **aveugle au shell en Atelier**, et
+ * il l'est en silence : un `printf > fichier` passe pendant que la carte d'a
+ * cote annonce « exige ton accord » sur un `edit`. Ce n'est pas une regression,
+ * c'est l'etat d'aujourd'hui, assume. Il est ecrit au §7 de
+ * `PLAN-DE-TRAVAIL.md` avec la distribution du greffon, parce que les deux
+ * questions portent sur la meme piece. Le raisonnement complet est dans
+ * `ADM.md`, « Le heurtoir ne sonne qu'en Discussion » ; la maquette d'arbitrage
+ * est `maquette-volume-escalade.html`.
  *
  * LE CHOIX SURVIT AU REDEMARRAGE, et ce n'est pas un detail de confort. Une
  * garantie qui se leve toute seule pendant qu'on a le dos tourne n'est pas une

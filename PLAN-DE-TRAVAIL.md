@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **03:15**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **07:30**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -276,10 +276,19 @@ a été corrigé le 5 août à 02:55, première ligne comprise.)*
 les trois branches sont jouées. Ce qui reste n'est plus de la vérification mais
 du **dessin**, et rien n'en bloque le chantier 3 :
 
-- le **volume**. La sonde escalade *chaque* appel terminal, et un agent au
+- ~~le **volume**. La sonde escalade *chaque* appel terminal, et un agent au
   travail en enchaîne des dizaines. Une carte par commande est intenable : il
   faudra soit s'appuyer sur « pour la session », soit n'escalader qu'en
-  Discussion. **Non tranché, et ça touche le dessin du chantier 3** ;
+  Discussion. **Non tranché, et ça touche le dessin du chantier 3**~~
+  **✅ Tranché le 5 août à 07:30, sur maquette — le greffon ne renvoie l'appel
+  vers le Hub qu'en Discussion.** Les trois règles ont été jouées sur une tâche
+  ordinaire, douze appels dont huit par le terminal : 2 cartes / 3 cartes /
+  10 cartes en Atelier, et **0 carte dans les trois en Discussion**. C'est ce
+  dernier chiffre qui a décidé : le mode refuse d'office, donc le volume n'est
+  pas un problème de l'interrupteur mais de l'**Atelier**, le seul mode que les
+  clients utilisent. Le raisonnement complet est dans `ADM.md`, « Le heurtoir ne
+  sonne qu'en Discussion ». *Prix assumé :* en Atelier le laissez-passer reste
+  aveugle au shell — voir le ⚠ ci-dessous et le §7 ;
 - le **délai de 60 s**. `make_approval_callback` est construit sans timeout
   explicite, donc une carte non vue se referme en une minute. C'est court pour
   quelqu'un qui a quitté l'écran, et le refus qui s'ensuit ressemble à une
@@ -431,7 +440,13 @@ la conversation**.
   promettre quoi que ce soit** : le Hub sait lire `plugins.enabled` dans le
   `config.yaml` d'Hermès (lecture pure), et dire la vérité quand elle manque.
   Poser le greffon à l'installation relève de l'installateur, pas de ce
-  chantier : **c'est le premier point du §7, à trancher avant de livrer** ;
+  chantier : **c'est le premier point du §7, à trancher avant de livrer**.
+
+  *Et le volume est tranché — c'est ce qui rend l'interrupteur écrivable
+  maintenant :* **le greffon ne fait frapper le terminal qu'en Discussion.** En
+  Atelier, rien ne change pour un client. En Discussion, tout ce qui n'est pas
+  une lecture est refusé sans être posé, donc **aucune carte n'apparaît non
+  plus** — la garantie ne coûte pas un clic. Voir §2, V2 ;
 - la **carte de plan** dans le fil : qui, quoi, comment, **résultat attendu**
   (dépend de **V1**) ;
 - les boutons **Valider / Modifier / Refuser**, qui n'existent que parce qu'un
@@ -613,6 +628,24 @@ Aucune n'est gratuite.
 **Tant que ce n'est pas fait, la garantie est vraie sur le poste de kuchu et
 fausse partout ailleurs.** Le bouton du chantier 3 doit donc constater la pièce
 avant de promettre — c'est écrit là-bas, et c'est ce qui rend l'attente tenable.
+
+### Le laissez-passer reste aveugle au shell en Atelier *(5 août, 07:30)*
+
+**Posé ici parce que c'est le prix de la décision de volume, et qu'un prix qu'on
+assume sans l'écrire est un prix qu'on a oublié.** Le greffon ne fait frapper le
+terminal qu'en Discussion — donc en **Atelier**, le mode des clients, un
+`printf > fichier` continue de passer sans qu'aucune carte n'apparaisse, pendant
+que la carte d'à côté annonce « exige ton accord » sur un `edit`. Le classement
+vert / orange / rouge dit vrai des outils qui demandent, et seulement d'eux.
+
+Ce n'est **pas** une régression du chantier 3 : c'est l'état d'aujourd'hui,
+découvert en l'éprouvant le 5 août. Et le remède est déjà connu — c'est le même
+crochet, laissé sonner en Atelier aussi. Ce qui manque n'est pas le moyen, c'est
+une réponse au volume qui tienne une semaine : ni dix cartes par tour, ni un
+« pour la session » qui rende au rouge le « toujours » qu'on lui a retiré. **À
+instruire avec la distribution du greffon ci-dessus, pas séparément** : les deux
+questions portent sur la même pièce, et les trancher à part ferait poser chez le
+client une garantie dont personne n'aurait réglé le débit.
 
 ---
 

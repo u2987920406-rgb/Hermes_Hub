@@ -408,6 +408,43 @@ est l'affaire de l'**installateur**. Tant que ce n'est pas fait, la garantie est
 vraie sur le poste de kuchu et fausse partout ailleurs — et c'est exactement le
 genre d'écart qu'une capture d'écran ne montre jamais.
 
+### Le heurtoir ne sonne qu'en Discussion *(05/08/2026)*
+Trancher le **volume** était la condition posée pour écrire l'interrupteur : une
+fois le greffon en place, le terminal frappe à *chaque* commande, et un agent au
+travail en enchaîne des dizaines. Les trois règles possibles ont été jouées sur
+une tâche ordinaire — douze appels d'outil, dont huit par le terminal.
+
+| la règle | en Atelier | en Discussion |
+|---|---|---|
+| le terminal ne frappe **qu'en Discussion** | 2 cartes, mais le `printf >` passe sans être vu | 0 carte, 10 refus |
+| il frappe partout, « pour la session » absorbe | 3 cartes | 0 carte, 10 refus |
+| il frappe partout, une carte par commande | **10 cartes** | 0 carte, 10 refus |
+
+**Retenu : le greffon ne renvoie l'appel vers le Hub qu'en mode Discussion.**
+
+Trois choses ont décidé, et la première n'était pas attendue. **La colonne
+Discussion est identique dans les trois règles** — le mode refuse d'office, donc
+il ne pose jamais de carte. Le volume n'est donc pas un problème de
+l'interrupteur : c'est un problème de l'**Atelier**, c'est-à-dire du seul mode
+que les clients utilisent. Ensuite, dix cartes pour un tour, c'est exactement la
+porte qu'on repousse cent fois par jour et qu'on finit par retirer en entier.
+Enfin, « pour la session » rendrait au rouge le « toujours » qu'on lui avait
+retiré exprès — et la réponse qui couvre tout serait prise sur `ls -R src`, la
+commande la plus anodine du tour, pour ouvrir ensuite `sed -i` et `printf >`.
+
+**Le prix est nommé, pas réglé :** en Atelier, le laissez-passer reste **aveugle
+au shell**, et il l'est en silence. La carte qui annonce « exige ton accord » dit
+vrai des outils qui demandent et ne voit pas passer un `printf > fichier`. Ce
+n'est pas une régression de ce chantier — c'est l'état d'aujourd'hui, qu'on
+choisit de ne pas corriger ici. Il part au §7 de `PLAN-DE-TRAVAIL.md`, avec la
+distribution du greffon, parce qu'un coût qu'on assume sans l'écrire quelque part
+est un coût qu'on a oublié.
+
+*Ce qu'on en retire, et qui vaut au-delà d'ici :* **une garde qui coûte un clic
+par geste n'est pas tenue, elle est éteinte.** Le mécanisme qui rend le terminal
+voyant est le même dans les trois règles ; ce qui les sépare n'est pas la
+sécurité obtenue mais celle qui survit à une semaine d'usage.
+
 ### On a lu sa propre phrase comme un verdict de la machine *(05/08/2026)*
 Le greffon d'essai annonçait « le mode Discussion est actif » dans le texte qu'il
 envoyait à la porte d'autorisation. Ce texte est remonté à l'écran, Hermès l'a

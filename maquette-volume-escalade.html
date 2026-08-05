@@ -1,0 +1,374 @@
+<!doctype html>
+<!--
+  ⏱ Achevé le 5 août 2026 à 07:30
+
+  Maquette d'arbitrage — le VOLUME d'escalade du terminal, chantier 3.
+  Elle a servi à trancher, et la décision est prise : le greffon ne renvoie
+  l'appel vers le Hub qu'en Discussion. Voir ADM.md, « Le heurtoir ne sonne
+  qu'en Discussion », et PLAN-DE-TRAVAIL.md §2 (V2) et §7.
+
+  CE QU'ELLE EST : un banc de comparaison, trois règles × deux modes, la même
+  tâche jouée à l'identique. Les compteurs sont calculés par le script, pas
+  écrits à la main — la table de PAR_GENRE et la logique d'arbitrer() y sont
+  recopiées de server/laissez-passer.js.
+
+  DIRE OÙ LA VÉRIFICATION S'ARRÊTE. Rien ici n'a été mesuré sur la machine :
+  la séquence des douze appels est PLAUSIBLE, pas enregistrée. Ce qui est
+  éprouvé, c'est le mécanisme — les trois branches d'arbitrer() jouées à
+  l'écran la nuit du 5 août (71,7 s / Allow / 11 s). Les chiffres de cartes
+  découlent de ces branches appliquées à une tâche inventée : ils donnent le
+  bon ORDRE DE GRANDEUR, pas une mesure. Si un jour un vrai tour est
+  enregistré, c'est ce commentaire qu'il faut venir corriger.
+
+  ⚠ Cette maquette ne fait PAS foi. maquette-parcours.html reste la seule qui
+  fasse foi en cas de doute.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le volume d'escalade — trois règles, jouées</title>
+<style>
+/* Palette reelle du Hub : tailwind.config.ts + index.css */
+:root{
+  --navy-950:#0c1122; --navy-900:#161f38; --navy-800:#1f2b4d; --navy-700:#2b3c66;
+  --navy-600:#384d82; --navy-400:#6b83b8; --navy-200:#c6d0e7;
+  --gold-300:#f7e0a4; --gold-400:#f0cb72; --gold-500:#c99c34; --gold-600:#a67f22;
+  --ciel:#0ea5e9; --emeraude:#10b981; --violet:#8b5cf6; --ambre:#f59e0b;
+  --rose:#ec4899; --ardoise:#64748b; --rouge:#dc2626;
+  --fond:#f8fafc; --carte:#ffffff; --texte:#161f38; --doux:#64748b;
+  --bord:#e2e8f0; --surlignage:#f1f5f9;
+}
+body.sombre{
+  --fond:#0c1122; --carte:#161f38; --texte:#f1f5f9; --doux:#94a3b8;
+  --bord:#2b3c66; --surlignage:#1f2b4d;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,'Segoe UI',system-ui,sans-serif;background:#334155;color:var(--texte);
+  height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:13px}
+
+/* ---------- chrome de la maquette (hors produit) ---------- */
+.mock{background:#1e293b;color:#cbd5e1;padding:8px 12px;display:flex;gap:6px;align-items:center;
+  flex:none;overflow-x:auto;border-bottom:2px solid #475569}
+.mock b{color:#f8fafc;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-right:4px;white-space:nowrap}
+.mock button{background:#334155;color:#cbd5e1;border:1px solid #475569;border-radius:6px;
+  padding:5px 10px;font:inherit;font-size:11px;cursor:pointer;white-space:nowrap}
+.mock button:hover{background:#475569;color:#fff}
+.mock button.on{background:var(--gold-500);color:#0c1122;border-color:var(--gold-400);font-weight:600}
+.mock .sep{flex:1}
+.mock .div{width:1px;height:20px;background:#475569;margin:0 4px;flex:none}
+
+.corps{flex:1;display:flex;overflow:hidden;background:var(--fond);color:var(--texte)}
+
+/* ---------- colonne gauche : le fil ---------- */
+.gauche{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.entete{flex:none;display:flex;align-items:center;gap:10px;padding:11px 18px;background:var(--carte);
+  border-bottom:1px solid var(--bord)}
+.entete h2{font-size:14.5px;font-weight:600}
+.entete .droite{margin-left:auto;display:flex;gap:10px;align-items:center}
+.seg{display:flex;flex:none;border:1px solid var(--bord);border-radius:8px;overflow:hidden;background:var(--carte)}
+.seg button{border:none;background:none;font:inherit;font-size:11.5px;padding:5px 13px;cursor:pointer;color:var(--doux)}
+.seg button.on{background:var(--navy-900);color:#fff;font-weight:600}
+body.sombre .seg button.on{background:var(--gold-500);color:var(--navy-950)}
+
+/* compteurs — le volume, rendu voyant */
+.compteurs{flex:none;display:flex;gap:8px;padding:10px 18px 0}
+.kpi{flex:1;border:1px solid var(--bord);background:var(--carte);border-radius:10px;padding:8px 11px}
+.kpi .n{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi .l{font-size:9.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--doux);font-weight:700;margin-top:2px}
+.kpi.alerte{border-color:var(--rouge)}
+.kpi.alerte .n{color:var(--rouge)}
+.kpi.bien{border-color:var(--emeraude)}
+
+.fil{flex:1;overflow:auto;padding:12px 18px 18px}
+.fil-in{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:7px}
+.bulle-moi{align-self:flex-end;background:var(--ciel);color:#fff;padding:9px 14px;border-radius:14px;max-width:80%;margin-bottom:5px}
+.agent{display:flex;gap:8px;align-items:center;margin-bottom:2px}
+.pt{width:9px;height:9px;border-radius:50%;flex:none;background:var(--gold-500)}
+.agent .nom{font-weight:700;font-size:12px}
+.agent .met{font-size:10px;color:var(--doux)}
+
+/* une ligne d'appel d'outil */
+.appel{display:flex;align-items:flex-start;gap:9px;border:1px solid var(--bord);border-radius:9px;
+  padding:7px 10px;background:var(--carte);font-size:12px;animation:apparait .18s ease-out}
+@keyframes apparait{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+.appel code{font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-size:11.5px;
+  background:var(--surlignage);border-radius:4px;padding:1px 5px;color:var(--texte)}
+.appel .txt{flex:1;min-width:0;line-height:1.45}
+.appel .suite{display:block;font-size:10.5px;color:var(--doux);margin-top:3px}
+.badge{flex:none;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  border-radius:99px;padding:3px 8px;margin-top:1px}
+.b-vert{background:rgba(16,185,129,.14);color:#047857}
+.b-passe{background:var(--surlignage);color:var(--doux)}
+.b-invisible{background:rgba(220,38,38,.12);color:var(--rouge);border:1px dashed var(--rouge)}
+.b-refus{background:rgba(139,92,246,.14);color:#6d28d9}
+.b-session{background:rgba(245,158,11,.16);color:#b45309}
+body.sombre .b-vert{color:#6ee7b7} body.sombre .b-refus{color:#c4b5fd} body.sombre .b-session{color:#fcd34d}
+
+/* LA CARTE — ce qui coute un clic */
+.carte-perm{border:1px solid var(--rouge);border-radius:10px;background:var(--carte);overflow:hidden;
+  box-shadow:0 2px 8px rgba(220,38,38,.13);animation:apparait .18s ease-out}
+.carte-perm.orange{border-color:var(--ambre);box-shadow:0 2px 8px rgba(245,158,11,.13)}
+.carte-perm .tete{padding:8px 12px;background:rgba(220,38,38,.07);border-bottom:1px solid var(--bord);
+  display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600}
+.carte-perm.orange .tete{background:rgba(245,158,11,.09)}
+.carte-perm .tete .risque{font-size:9px;text-transform:uppercase;letter-spacing:.07em;
+  border-radius:99px;padding:2px 7px;background:var(--rouge);color:#fff}
+.carte-perm.orange .tete .risque{background:var(--ambre);color:#3b2600}
+.carte-perm .corps-c{padding:9px 12px;font-size:12px;line-height:1.45}
+.carte-perm .boutons{padding:0 12px 10px;display:flex;gap:6px;flex-wrap:wrap}
+.carte-perm .boutons button{font:inherit;font-size:11px;padding:5px 11px;border-radius:7px;cursor:pointer;
+  border:1px solid var(--bord);background:var(--carte);color:var(--texte)}
+.carte-perm .boutons button.oui{background:var(--navy-900);color:#fff;border-color:var(--navy-900)}
+body.sombre .carte-perm .boutons button.oui{background:var(--gold-500);color:var(--navy-950)}
+.carte-perm .note{padding:0 12px 9px;font-size:10px;color:var(--doux);font-style:italic}
+
+.fin{border-top:1px dashed var(--bord);margin-top:6px;padding-top:9px;font-size:12px;color:var(--doux)}
+
+/* ---------- colonne droite : la règle et son prix ---------- */
+.droite-col{width:330px;flex:none;border-left:1px solid var(--bord);background:var(--carte);
+  display:flex;flex-direction:column;overflow:auto}
+.droite-col .tete-r{padding:13px 15px;border-bottom:1px solid var(--bord)}
+.droite-col .tete-r .eti{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:var(--doux);font-weight:700}
+.droite-col .tete-r h3{font-size:15px;margin-top:3px;line-height:1.25}
+.bloc{padding:13px 15px;border-bottom:1px solid var(--bord)}
+.bloc h4{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:var(--doux);font-weight:700;margin-bottom:6px}
+.bloc p{font-size:12px;line-height:1.5;color:var(--texte)}
+.bloc p+p{margin-top:7px}
+.bloc.gagne{border-left:3px solid var(--emeraude)}
+.bloc.coute{border-left:3px solid var(--rouge)}
+.cite{font-size:11px;font-style:italic;color:var(--doux);border-left:2px solid var(--bord);padding-left:9px;margin-top:7px;line-height:1.45}
+
+.pied{padding:12px 15px;font-size:11px;color:var(--doux);line-height:1.5}
+.pied b{color:var(--texte)}
+
+@media(max-width:900px){.corps{flex-direction:column}.droite-col{width:auto;border-left:none;border-top:1px solid var(--bord)}}
+</style>
+</head>
+<body>
+
+<div class="mock">
+  <b>Règle</b>
+  <button data-regle="A" class="on">A · seulement en Discussion</button>
+  <button data-regle="B">B · partout + « pour la session »</button>
+  <button data-regle="C">C · partout, une carte par commande</button>
+  <span class="div"></span>
+  <b>Mode du Hub</b>
+  <div class="seg" style="border-color:#475569;background:#334155">
+    <button data-mode="atelier" class="on" style="color:#cbd5e1">Atelier</button>
+    <button data-mode="discussion" style="color:#cbd5e1">Discussion</button>
+  </div>
+  <span class="sep"></span>
+  <button id="rejouer">↻ Rejouer</button>
+  <button id="theme">Sombre</button>
+</div>
+
+<div class="corps">
+
+  <div class="gauche">
+    <div class="entete">
+      <h2>Accueil — la conversation</h2>
+      <div class="droite">
+        <span style="font-size:11px;color:var(--doux)" id="etiq-mode">Mode : Atelier</span>
+      </div>
+    </div>
+
+    <div class="compteurs">
+      <div class="kpi" id="k-cartes"><div class="n">0</div><div class="l">cartes posées</div></div>
+      <div class="kpi" id="k-clics"><div class="n">0</div><div class="l">clics demandés</div></div>
+      <div class="kpi" id="k-invisible"><div class="n">0</div><div class="l">passés sans être vus</div></div>
+      <div class="kpi" id="k-refus"><div class="n">0</div><div class="l">refusés</div></div>
+    </div>
+
+    <div class="fil"><div class="fil-in" id="fil"></div></div>
+  </div>
+
+  <div class="droite-col">
+    <div class="tete-r">
+      <div class="eti">Règle en cours</div>
+      <h3 id="r-titre">—</h3>
+    </div>
+    <div class="bloc"><h4>Ce qu'elle fait</h4><p id="r-quoi">—</p></div>
+    <div class="bloc gagne"><h4>Ce qu'elle gagne</h4><p id="r-gagne">—</p></div>
+    <div class="bloc coute"><h4>Ce qu'elle coûte</h4><p id="r-coute">—</p></div>
+    <div class="pied">
+      <b>Comment lire cette maquette.</b> Une seule tâche, jouée à l'identique dans les six
+      cases (trois règles × deux modes). Douze appels d'outil, dont huit par le terminal —
+      un volume ordinaire pour un agent au travail. Ce qui change d'une case à l'autre,
+      c'est seulement <b>ce que tu vois</b> et <b>ce que tu cliques</b>.
+      <br><br>
+      L'appel n° 9 — <code style="font-size:10.5px">printf &gt; .hub/…</code> — est celui qui
+      écrit sur le disque <b>sans jamais passer par <code style="font-size:10.5px">edit</code></b>.
+      C'est le trou mesuré le 5 août à 02:05. Regarde-le dans chaque case : c'est lui
+      qui départage les trois règles.
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ------------------------------------------------------------------
+   La tâche jouée : « Renomme "pôle" en "scénario" dans l'interface,
+   puis reconstruis. » Douze appels, l'ordre est celui d'un vrai tour.
+   `natif` = l'appel frappe à la porte SANS greffon (ACP le fait déjà).
+   ------------------------------------------------------------------ */
+const APPELS = [
+  {kind:'read',    natif:true,  txt:'lire <code>src/pages/HomeView.tsx</code>'},
+  {kind:'execute', natif:false, txt:'terminal <code>ls -R src</code>'},
+  {kind:'execute', natif:false, txt:'terminal <code>grep -rn "pole" src</code>'},
+  {kind:'search',  natif:true,  txt:'chercher « pole » dans le projet'},
+  {kind:'execute', natif:false, txt:'terminal <code>cat src/components/Sidebar.tsx</code>'},
+  {kind:'edit',    natif:true,  txt:'modifier <code>src/components/Sidebar.tsx</code>'},
+  {kind:'execute', natif:false, txt:'terminal <code>git status</code>'},
+  {kind:'execute', natif:false, txt:'terminal <code>sed -i s/pole/scenario/ src/store/…</code>'},
+  {kind:'execute', natif:false, txt:'terminal <code>printf \'{"mode":"atelier"}\' &gt; .hub/mode-conversation.json</code>',
+   piege:true, suite:'Écrit sur le disque, et ne passe par <code>edit</code> à aucun moment.'},
+  {kind:'execute', natif:false, txt:'terminal <code>npm run build</code>'},
+  {kind:'execute', natif:false, txt:'terminal <code>npm run design</code>'},
+  {kind:'fetch',   natif:true,  txt:'consulter <code>https://vitejs.dev/…</code>'},
+]
+
+const PAR_GENRE = {read:'vert', search:'vert', think:'vert', fetch:'orange', move:'orange',
+                   edit:'rouge', delete:'rouge', execute:'rouge'}
+
+const REGLES = {
+  A:{titre:'A · Le terminal ne frappe qu\'en Discussion',
+     quoi:'Le greffon <code>pre_tool_call</code> ne renvoie l\'appel vers le Hub que lorsque le mode est Discussion. En Atelier, il laisse passer : c\'est exactement le comportement d\'aujourd\'hui, celui qui tourne chez les clients.',
+     gagne:'Zéro carte ajoutée dans les deux modes. La promesse écrite sous l\'interrupteur est tenue sans réserve : en Discussion, rien ne s\'écrit, terminal compris. Et le jour où on livre, aucun client ne voit son quotidien changer.',
+     coute:'En Atelier, le trou reste ouvert et il reste <b>invisible</b> : l\'appel n° 9 écrit sur le disque sans qu\'aucune porte ne bouge. Le laissez-passer continue d\'annoncer « exige ton accord » sur une catégorie qu\'il ne voit pas passer. À instruire à part pour la version livrée — pas à oublier.'},
+  B:{titre:'B · Le terminal frappe partout, « pour la session » absorbe le volume',
+     quoi:'Le greffon renvoie tout, dans les deux modes. En Atelier, la première commande pose une carte ; répondre « pour la session » couvre les suivantes jusqu\'à la fin de la conversation.',
+     gagne:'Le laissez-passer devient voyant <b>partout</b>, Atelier compris. L\'appel n° 9 est arrêté au moins une fois, et tu sais que l\'agent a la main sur le shell — au lieu de le découvrir après coup.',
+     coute:'Il faut rendre au rouge un « toujours » qu\'on lui avait retiré exprès. La carte qui couvre <code>ls</code> couvre aussi <code>rm -rf</code> : une seule réponse, prise sur la commande la plus anodine du tour, ouvre le shell entier pour la session.<div class="cite">« Un agent détourné une seule fois ne doit pas emporter une permission permanente. » — laissez-passer.js, sur le rouge</div>'},
+  C:{titre:'C · Le terminal frappe partout, une carte par commande',
+     quoi:'Aucune exception, aucune mémoire. Chaque appel terminal est classé <code>execute</code>, donc rouge, donc posé — et le rouge se redemande à chaque fois.',
+     gagne:'La règle la plus honnête des trois : rien ne passe sans toi, et ce que tu vois est exactement ce qui se produit. Aucune promesse à nuancer, aucun cas particulier à documenter.',
+     coute:'Onze cartes pour <b>une</b> tâche. Et le vrai danger n\'est pas l\'agacement — c\'est ce qui se passe la semaine suivante.<div class="cite">« Une porte qu\'on repousse cent fois par jour finit par être retirée en entier. Mieux vaut une porte qui ne s\'ouvre que sur ce qui compte qu\'une porte que personne ne regarde plus. » — laissez-passer.js, en tête</div>'},
+}
+
+let regle = 'A', mode = 'atelier', sombre = false
+
+function classer(kind){ return PAR_GENRE[kind] || 'orange' }
+
+/* Le cœur : pour un appel donné, ce que la règle + le mode en font. */
+function resoudre(a, etat){
+  const risque = classer(a.kind)
+  // 1. l'appel frappe-t-il à la porte ?
+  let frappe = a.natif
+  if(!a.natif){
+    if(regle === 'A') frappe = (mode === 'discussion')
+    else frappe = true                    // B et C : le greffon renvoie tout
+  }
+  if(!frappe){
+    return {type:'invisible', risque,
+      badge: a.piege ? 'passé sans être vu' : 'ne frappe pas',
+      cls: a.piege ? 'b-invisible' : 'b-passe',
+      note: a.piege ? 'Aucune porte n\'a bougé. Le fichier est écrit.' : null}
+  }
+  // 2. il frappe : arbitrer() décide
+  if(mode === 'discussion' && risque !== 'vert')
+    return {type:'refus', risque, badge:'refusé', cls:'b-refus'}
+  if(risque === 'vert')
+    return {type:'auto', risque, badge:'passe seul, et le dit', cls:'b-vert'}
+  // orange / rouge → carte… sauf si « pour la session » a déjà couvert le shell
+  if(regle === 'B' && a.kind === 'execute' && etat.sessionOuverte)
+    return {type:'couvert', risque, badge:'couvert par la session', cls:'b-session'}
+  return {type:'carte', risque, session: (regle === 'B' && a.kind === 'execute')}
+}
+
+function jouer(){
+  const fil = document.getElementById('fil')
+  fil.innerHTML = ''
+  const etat = {sessionOuverte:false}
+  let cartes = 0, clics = 0, invisibles = 0, refus = 0
+
+  fil.insertAdjacentHTML('beforeend',
+    '<div class="bulle-moi">Renomme « pôle » en « scénario » dans l\'interface, puis reconstruis.</div>' +
+    '<div class="agent"><span class="pt"></span><span class="nom">Hermès</span>' +
+    '<span class="met">· orchestrateur · 12 appels d\'outil</span></div>')
+
+  APPELS.forEach((a, i) => {
+    const r = resoudre(a, etat)
+    const n = String(i+1).padStart(2,'0')
+
+    if(r.type === 'carte'){
+      cartes++; clics++
+      if(r.session) etat.sessionOuverte = true
+      const orange = r.risque === 'orange'
+      fil.insertAdjacentHTML('beforeend',
+        '<div class="carte-perm' + (orange ? ' orange' : '') + '">' +
+          '<div class="tete"><span class="risque">' + r.risque + '</span>' +
+            'Hermès demande ton accord <span style="margin-left:auto;color:var(--doux);font-weight:400">n° ' + n + '</span></div>' +
+          '<div class="corps-c">' + a.txt + (a.suite ? '<span class="suite">' + a.suite + '</span>' : '') + '</div>' +
+          '<div class="boutons">' +
+            '<button class="oui">Autoriser</button>' +
+            (r.session ? '<button class="oui">Autoriser pour la session</button>' : '') +
+            '<button>Refuser</button>' +
+          '</div>' +
+          (r.session
+            ? '<div class="note">« Pour la session » couvrira toutes les commandes suivantes, quelles qu\'elles soient.</div>'
+            : (orange ? '' : '<div class="note">Rouge : l\'option « toujours » est retirée — ça se redemandera.</div>')) +
+        '</div>')
+    } else {
+      if(r.type === 'invisible' && a.piege) invisibles++
+      if(r.type === 'refus') refus++
+      fil.insertAdjacentHTML('beforeend',
+        '<div class="appel">' +
+          '<span style="color:var(--doux);font-variant-numeric:tabular-nums;font-size:11px;margin-top:2px">' + n + '</span>' +
+          '<span class="txt">' + a.txt +
+            (r.note ? '<span class="suite" style="color:var(--rouge)">' + r.note + '</span>'
+                    : (a.suite && r.type !== 'refus' ? '<span class="suite">' + a.suite + '</span>' : '')) +
+          '</span>' +
+          '<span class="badge ' + r.cls + '">' + r.badge + '</span>' +
+        '</div>')
+    }
+  })
+
+  const bilan = mode === 'discussion'
+    ? 'Hermès : « Action bloquée : tu as refusé l\'exécution via le système de permission. Je ne relance pas. » — <b>11 s</b>, une décision, pas une panne.'
+    : (cartes > 6
+        ? 'Tâche finie. <b>' + clics + ' clics</b> pour un seul tour — et il y en aura un autre dans dix minutes.'
+        : 'Tâche finie. <b>' + clics + (clics > 1 ? ' clics' : ' clic') + '</b> demandé' + (clics > 1 ? 's' : '') + '.')
+  fil.insertAdjacentHTML('beforeend', '<div class="fin">' + bilan + '</div>')
+
+  maj('k-cartes', cartes, cartes > 6 ? 'alerte' : (cartes === 0 ? 'bien' : ''))
+  maj('k-clics', clics, clics > 6 ? 'alerte' : (clics === 0 ? 'bien' : ''))
+  maj('k-invisible', invisibles, invisibles > 0 ? 'alerte' : 'bien')
+  maj('k-refus', refus, '')
+
+  const R = REGLES[regle]
+  document.getElementById('r-titre').innerHTML = R.titre
+  document.getElementById('r-quoi').innerHTML = R.quoi
+  document.getElementById('r-gagne').innerHTML = R.gagne
+  document.getElementById('r-coute').innerHTML = R.coute
+  document.getElementById('etiq-mode').textContent =
+    'Mode : ' + (mode === 'atelier' ? 'Atelier' : 'Discussion')
+}
+
+function maj(id, val, cls){
+  const el = document.getElementById(id)
+  el.className = 'kpi' + (cls ? ' ' + cls : '')
+  el.querySelector('.n').textContent = val
+}
+
+document.querySelectorAll('[data-regle]').forEach(b => b.onclick = () => {
+  regle = b.dataset.regle
+  document.querySelectorAll('[data-regle]').forEach(x => x.classList.toggle('on', x === b))
+  jouer()
+})
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => {
+  mode = b.dataset.mode
+  document.querySelectorAll('[data-mode]').forEach(x => x.classList.toggle('on', x === b))
+  jouer()
+})
+document.getElementById('rejouer').onclick = jouer
+document.getElementById('theme').onclick = () => {
+  sombre = !sombre
+  document.body.classList.toggle('sombre', sombre)
+  document.getElementById('theme').textContent = sombre ? 'Clair' : 'Sombre'
+}
+
+jouer()
+</script>
+</body>
+</html>
