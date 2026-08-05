@@ -124,6 +124,8 @@
  * comportement d'aujourd'hui, et personne ne doit decouvrir un beau matin que
  * plus rien ne s'ecrit sans avoir demande ce changement.
  */
+import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { HUB_DIR, readJson, writeJson } from './workspace.js'
 
@@ -154,4 +156,170 @@ export function ecrireMode(mode) {
 /** Vrai quand le Hub doit refuser tout ce qui n'est pas une lecture. */
 export function enDiscussion() {
   return lireMode().mode === 'discussion'
+}
+
+// -----------------------------------------------------------------------------
+// La seconde piece - celle qui n'est pas dans ce depot
+// -----------------------------------------------------------------------------
+/**
+ * LE GREFFON QUI FAIT FRAPPER LE TERMINAL, ET POURQUOI ON LE CONSTATE.
+ *
+ * Le mode ci-dessus refuse tout ce qui DEMANDE. Le terminal, lui, ne demande
+ * rien - mesure le 05/08/2026 : Hermes s'est vu refuser un `edit`, puis a ecrit
+ * le meme fichier par le shell, sans qu'aucune demande ne soit posee. La
+ * garantie a donc DEUX pieces, et la seconde vit dans le home d'Hermes : un
+ * greffon `pre_tool_call` qui oblige l'outil a passer par la porte.
+ *
+ * Sans lui, Discussion refuse `edit` et `fetch` et laisse passer le shell. Un
+ * bouton qui promettrait quand meme serait l'interrupteur qui ment, celui qu'on
+ * a refuse d'ecrire le 05/08 a 02:05. D'ou cette lecture : le Hub ne promet
+ * rien qu'il n'ait constate.
+ *
+ * ON CHERCHE `heurtoir`, PAS `sonde-terminal`. La sonde est le greffon jetable
+ * du banc d'essai - elle est activee sur le poste de kuchu et nulle part
+ * ailleurs. Chercher son nom rendrait la garantie vraie ici et fausse chez tous
+ * les clients, c'est-a-dire l'ecart exact qu'on cherche a fermer. Le nom vient
+ * d'`ADM.md`, « Le heurtoir ne sonne qu'en Discussion ».
+ *
+ * FORME DU FICHIER, RELEVEE LE 05/08/2026 sur le poste de kuchu - on ne devine
+ * pas, on a regarde :
+ *
+ *   plugins:
+ *     enabled:
+ *       - sonde-terminal
+ *     disabled: []
+ *     entries:
+ *       sonde-terminal:
+ *         allow_tool_override: false
+ *
+ * Bloc a deux espaces, listes a tirets a quatre, et `disabled` ecrit en style
+ * « flow » quand il est vide. On lit les deux styles : ne reconnaitre que le
+ * premier ferait passer un greffon eteint pour un greffon actif, et c'est le
+ * seul sens dans lequel une erreur est grave.
+ *
+ * Aucun analyseur YAML : le serveur n'a aucune dependance npm et n'en aura pas
+ * pour ceci. Meme parti-pris que `lireServeurs()` dans `outils.js`, et meme
+ * limite assumee - un fichier ecrit a la main dans une forme exotique rend
+ * « absent ». **Le doute rend toujours absent**, jamais present : au pire on
+ * n'ose pas promettre une garantie qui existe, au mieux on ne promet pas une
+ * garantie qui manque. Le second sens est le seul qui abime quelqu'un.
+ *
+ * DEUX CONSTATS, PAS UN - et c'est la lecon de l'etape 7 de la methode. Un nom
+ * dans `enabled` est une DECLARATION : il y reste si le dossier du greffon a
+ * ete supprime a la main. « Prouver que la donnee existe n'est pas prouver que
+ * le geste aboutit » a deja coute une correction sur ce depot, avec un bouton
+ * « Ouvrir le dossier » qui ne pouvait pas marcher. On verifie donc AUSSI que
+ * le dossier est la : `<home>\plugins\<nom>`, releve le 05/08/2026 sur le poste
+ * de kuchu. Les deux doivent tenir, sinon on ne promet rien.
+ */
+export const GREFFON = 'heurtoir'
+
+/**
+ * Le home d'Hermes.
+ *
+ * `HERMES_HOME` passe devant, parce que c'est ce que `hermes` lui-meme honore -
+ * verifie le 03/08/2026 dans `equipe.js`, avec `LOCALAPPDATA` detourne. Le Hub
+ * doit regarder le meme home que le processus qu'il pilote, sinon il constate
+ * l'etat d'une autre installation. *(A noter : `index.js` calcule ce chemin
+ * sans honorer la variable. Ce n'est pas de ce chantier, mais les deux
+ * divergent le jour ou quelqu'un s'en sert.)*
+ */
+function homeHermes() {
+  return (
+    process.env.HERMES_HOME ||
+    path.join(process.env.LOCALAPPDATA || os.homedir(), 'hermes')
+  )
+}
+
+/** Le `config.yaml` du profil par defaut - celui que la session ACP honore. */
+function configHermes() {
+  return path.join(homeHermes(), 'config.yaml')
+}
+
+/** Le dossier du greffon, s'il est vraiment pose. */
+function greffonSurDisque() {
+  try {
+    return fs.statSync(path.join(homeHermes(), 'plugins', GREFFON)).isDirectory()
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Les noms d'une cle de liste sous `plugins:`, quel que soit son style.
+ *
+ * Rend `null` - et non `[]` - quand la cle est absente : « pas de liste » et
+ * « liste vide » ne veulent pas dire la meme chose pour l'appelant.
+ */
+function listeSous(lignes, debut, cle) {
+  const enTete = new RegExp(`^ {2}${cle}:\\s*(.*)$`)
+  for (let i = debut + 1; i < lignes.length; i++) {
+    const ligne = lignes[i]
+    if (!ligne.trim() || ligne.trimStart().startsWith('#')) continue
+    // Retour a la marge : on a quitte le bloc `plugins`.
+    if (/^\S/.test(ligne)) return null
+
+    const trouve = ligne.match(enTete)
+    if (!trouve) continue
+
+    // Style « flow » sur la meme ligne : `disabled: []`, `enabled: [a, b]`.
+    const reste = trouve[1].trim()
+    if (reste.startsWith('[')) {
+      return reste
+        .slice(1, reste.lastIndexOf(']') > 0 ? reste.lastIndexOf(']') : undefined)
+        .split(',')
+        .map((n) => n.trim().replace(/^['"]|['"]$/g, ''))
+        .filter(Boolean)
+    }
+    if (reste) return null
+
+    // Style « bloc » : les tirets qui suivent, jusqu'a la prochaine cle.
+    const noms = []
+    for (let j = i + 1; j < lignes.length; j++) {
+      const suite = lignes[j]
+      if (!suite.trim() || suite.trimStart().startsWith('#')) continue
+      const tiret = suite.match(/^ {4}-\s*(.+?)\s*$/)
+      if (!tiret) break
+      noms.push(tiret[1].replace(/^['"]|['"]$/g, ''))
+    }
+    return noms
+  }
+  return null
+}
+
+/**
+ * Le greffon est-il declare et allume ?
+ *
+ * `raison` n'est pas decorative : c'est ce que l'interface a le droit de dire a
+ * l'ecran. Un bandeau qui annonce un manque sans pouvoir le nommer envoie
+ * chercher a l'aveugle.
+ */
+export function lireGreffon() {
+  const fichier = configHermes()
+  let brut
+  try {
+    brut = fs.readFileSync(fichier, 'utf8')
+  } catch {
+    return { present: false, nom: GREFFON, raison: 'config-introuvable' }
+  }
+
+  const lignes = brut.split(/\r?\n/)
+  const debut = lignes.findIndex((l) => /^plugins:\s*$/.test(l))
+  if (debut === -1) return { present: false, nom: GREFFON, raison: 'sans-bloc-plugins' }
+
+  const eteints = listeSous(lignes, debut, 'disabled') || []
+  if (eteints.includes(GREFFON)) {
+    return { present: false, nom: GREFFON, raison: 'eteint' }
+  }
+
+  const allumes = listeSous(lignes, debut, 'enabled')
+  if (!allumes) return { present: false, nom: GREFFON, raison: 'sans-liste-enabled' }
+  if (!allumes.includes(GREFFON)) return { present: false, nom: GREFFON, raison: 'absent' }
+
+  // Declare, mais pose ? Les deux constats, jamais un seul.
+  if (!greffonSurDisque()) {
+    return { present: false, nom: GREFFON, raison: 'declare-mais-introuvable' }
+  }
+
+  return { present: true, nom: GREFFON, raison: null }
 }

@@ -901,6 +901,28 @@ export const FILE_HINTS: Record<string, string> = {
   'ADM.md': 'Decisions et raisons (cumulatif, jamais efface)',
 }
 
+/**
+ * Discussion ou Atelier - et ce que le mode a le DROIT de promettre.
+ *
+ * `greffon` ne se separe jamais de `mode` : sans la piece qui fait frapper le
+ * terminal, Discussion laisse passer le shell, et l'interrupteur mentirait.
+ * Le pourquoi complet est en tete de `server/mode-conversation.js`.
+ */
+export type ModeConversation = {
+  mode: 'atelier' | 'discussion'
+  greffon: { present: boolean; nom: string; raison: RaisonGreffon | null }
+}
+
+/** Ce que l'ecran a le droit d'afficher quand la piece manque. Pas exporte :
+ *  il n'a qu'un consommateur, juste au-dessus. */
+type RaisonGreffon =
+  | 'config-introuvable'
+  | 'sans-bloc-plugins'
+  | 'sans-liste-enabled'
+  | 'declare-mais-introuvable'
+  | 'eteint'
+  | 'absent'
+
 export const statusLabels: Record<ProjectStatus, string> = {
   active: 'En cours',
   done: 'Termine',

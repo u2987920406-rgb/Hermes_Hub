@@ -32,6 +32,7 @@ import type {
   Fil,
   FilResume,
   MemoryFile,
+  ModeConversation,
   Project,
   ProjectStatus,
   SessionChat,
@@ -136,6 +137,15 @@ export const api = {
     request<{ applique: string; redemarrage: boolean }>('/update/apply', {
       method: 'POST',
       body: body({ tag }),
+    }),
+
+  // Le mode et l'etat du greffon partent ensemble - un seul aller-retour, sinon
+  // l'ecran afficherait une garantie avant de savoir si elle tient.
+  modeConversation: () => request<ModeConversation>('/chat/mode-conversation'),
+  setModeConversation: (mode: ModeConversation['mode']) =>
+    request<ModeConversation>('/chat/mode-conversation', {
+      method: 'POST',
+      body: body({ mode }),
     }),
 
   autoStart: () => request<{ enabled: boolean; path: string }>('/autostart'),

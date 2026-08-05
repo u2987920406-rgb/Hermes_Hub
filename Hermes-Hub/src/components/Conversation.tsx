@@ -35,6 +35,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { cleAccord, sansAccord } from '../lib/accords'
 import { api } from '../lib/api'
 import { ChampRecherche, aplatir } from './ChampRecherche'
+import { InterrupteurMode } from './InterrupteurMode'
 import { GENRES_OUTIL } from '../types'
 import type {
   Agent,
@@ -673,6 +674,8 @@ export function Conversation({
             centre ? 'mx-auto flex max-w-3xl flex-col gap-2' : 'mx-auto max-w-3xl space-y-2'
           }
         >
+          <InterrupteurMode centre={centre} />
+
           <div className={`flex flex-wrap items-center gap-2 ${centre ? 'order-last' : ''}`}>
             {/**
              * Le menu d'equipes ne parait qu'avec la rangee qu'il filtre.

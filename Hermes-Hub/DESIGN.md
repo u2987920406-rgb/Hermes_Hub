@@ -59,6 +59,7 @@ pour le nommer quand on veut demander une modification.
 | La rangee de pastilles d'agents | `rangee-agents` | `--agent-point-compact` | repliee par defaut, voir `deplie` |
 | Une pastille d'agent | `pastille-agent` | `--agent-point-compact` | idem |
 | Qui recevra le message, **a droite du champ** | `destinataires` | — | idem — apres le message dans le sens de lecture, jamais devant |
+| Discussion / Atelier, **au-dessus du champ** | `interrupteur-mode` | — | `InterrupteurMode.tsx` — la phrase de garantie n'est pas un libelle : elle change selon ce que le Hub a **constate**, voir plus bas |
 
 ### L'orchestration
 
@@ -99,6 +100,15 @@ par les props `accueil` / `accueilDessous` de `Conversation.tsx`.
 
 La section entiere s'efface quand il n'y a rien a dire - ni tache programmee,
 ni alerte. Un accueil ne porte pas de rubrique vide.
+
+**L'interrupteur de mode n'est pas un reglage d'apparence, et aucune molette ne
+le concerne.** Sa phrase de garantie change selon un fichier qui n'appartient
+pas a ce depot : le `config.yaml` d'Hermes, ou le Hub va constater qu'un greffon
+`pre_tool_call` est declare **et** pose sur le disque. Piece absente, Discussion
+promet une moitie de moins et un bandeau dit laquelle. Retoucher ces phrases
+sans lire `server/mode-conversation.js` fait ecrire une promesse que le produit
+ne tient pas - c'est la seule zone de l'index dont le libelle est **une
+affirmation verifiable**, pas une etiquette.
 
 Le champ ne se recopie pas pour changer de place : `barre-saisie` reste ou elle
 est ecrite, et ce sont les deux espaces qui l'encadrent qui la poussent au
@@ -248,6 +258,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `fil-conversation` | `src/components/Conversation.tsx` |
 | `fin-du-tour` | `src/components/Conversation.tsx` |
 | `formulaire-nouveau-projet` | `src/components/NewProjectModal.tsx` |
+| `interrupteur-mode` | `src/components/InterrupteurMode.tsx` |
 | `ligne-alerte` | `src/components/LigneAlerte.tsx` |
 | `ligne-banc` | `src/components/BancEssai.tsx` |
 | `ligne-historique` | `src/pages/OrchestrationView.tsx` |

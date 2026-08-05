@@ -75,7 +75,7 @@ import {
   suspendreAutomatisation,
 } from './planification.js'
 import { ecrireReglage, lireReglage } from './laissez-passer.js'
-import { ecrireMode, lireMode } from './mode-conversation.js'
+import { ecrireMode, lireGreffon, lireMode } from './mode-conversation.js'
 import { annulerValidation, simuler, valider } from './simulation.js'
 import { comparer, listerVersions, lireVersion, marquerFavori, oublierVersion } from './versions.js'
 import { prevoirRetour, rejouer } from './retour.js'
@@ -2461,11 +2461,15 @@ async function handleApi(req, res, url) {
     // Diffuse, comme la bascule : deux onglets ouverts sur le meme Hub ne
     // peuvent pas afficher des garanties contraires. Celle-ci moins que toute
     // autre - c'est une promesse, pas une preference d'affichage.
+    // Le mode ET l'etat du greffon partent ensemble, jamais separement : c'est
+    // le greffon qui decide de ce que l'interrupteur a le droit de promettre,
+    // et deux appels laisseraient une fenetre ou l'ecran affiche une garantie
+    // sans savoir si elle tient. Un seul aller-retour, une seule verite.
     if (rest[1] === 'mode-conversation') {
-      if (method === 'GET') return sendJson(res, 200, lireMode())
+      if (method === 'GET') return sendJson(res, 200, { ...lireMode(), greffon: lireGreffon() })
       if (method === 'POST') {
         const body = await readBody(req)
-        const etat = ecrireMode(String(body.mode || ''))
+        const etat = { ...ecrireMode(String(body.mode || '')), greffon: lireGreffon() }
         diffuser({ type: 'mode-conversation-reglage', ...etat })
         return sendJson(res, 200, etat)
       }
