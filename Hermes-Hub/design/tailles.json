@@ -7,7 +7,7 @@
   "src/components/BoutonRepli.tsx": 107,
   "src/components/ChampRecherche.tsx": 96,
   "src/components/CommandPalette.tsx": 204,
-  "src/components/Conversation.tsx": 1432,
+  "src/components/Conversation.tsx": 1454,
   "src/components/EditeurEquipe.tsx": 164,
   "src/components/FenetreSimulation.tsx": 655,
   "src/components/InterrupteurMode.tsx": 132,

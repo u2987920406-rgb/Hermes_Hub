@@ -99,7 +99,16 @@ export function Conversation({
   const [envoi, setEnvoi] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
   const [eveilles, setEveilles] = useState<Set<string>>(() => new Set())
-  const [autorisations, setAutorisations] = useState<(DemandeAutorisation & { agent: string })[]>([])
+  /**
+   * ⚠ LES DEMANDES EN ATTENTE NE SONT PAS UN ETAT DE CE COMPOSANT - on lit, on
+   * ne retient pas. Elles ont vecu ici en `useState`, remplies par l'evenement
+   * `reprise` : au remontage, changer d'ecran suffisait a vider la liste, et la
+   * carte disparaissait du fil pendant que l'agent attendait toujours. Un
+   * Maquettiste y est reste le 05/08/2026. Le magasin, lui, reinterroge le
+   * serveur a chaque evenement. Recit complet au §7 de `PLAN-DE-TRAVAIL.md`.
+   */
+  const autorisations = useHubStore((s) => s.demandes)
+  const rafraichirAccords = useHubStore((s) => s.rafraichirAccords)
   /** L'equipe affichee dans la barre. Vide = tout l'annuaire. */
   const [equipeVue, setEquipeVue] = useState('')
   const [recherche, setRecherche] = useState('')
@@ -271,11 +280,10 @@ export function Conversation({
     if (filVuRef.current !== null && MODIFIE_LE_FIL.has(e.type)) return
 
     switch (e.type) {
+      // `reprise` ne rend plus que l'eveil. Les demandes qu'il portait aussi
+      // etaient la source qui mentait : elles ne survivaient pas au remontage.
       case 'reprise':
         setEveilles(new Set(e.agents.map((a) => a.agent)))
-        setAutorisations(
-          e.agents.flatMap((a) => a.autorisations.map((d) => ({ ...d, agent: a.agent }))),
-        )
         return
 
       case 'moi':
@@ -358,15 +366,12 @@ export function Conversation({
           ajouterBloc(t, agent, { type: 'bascule', de: e.de, vers: e.vers, raison: e.raison }),
         )
 
+      // `autorisation` et `tour-fin` ne touchent plus a la liste : le magasin
+      // la reinterroge au serveur sur CHAQUE evenement, celui-ci compris.
       case 'autorisation':
-        setAutorisations((a) => [
-          ...a,
-          { demande: e.demande, titre: e.titre, detail: e.detail, options: e.options, agent },
-        ])
         return
 
       case 'tour-fin':
-        setAutorisations((a) => a.filter((d) => d.agent !== agent))
         return setTours((t) =>
           t.map((tour) =>
             tour.role === 'agent' && tour.agent === agent && !tour.fini
@@ -491,8 +496,12 @@ export function Conversation({
   }
 
   const repondre = async (d: DemandeAutorisation & { agent: string }, option: string) => {
-    setAutorisations((a) => sansAccord(a, d.agent, d.demande))
     await api.chatAutoriser(d.agent, d.demande, option).catch(() => null)
+    // On relit plutot que de retirer la carte a la main : si le serveur n'a pas
+    // pris la reponse, elle doit RESTER a l'ecran. La faire disparaitre d'abord
+    // ferait croire l'agent debloque alors qu'il attend toujours - c'est la
+    // meme faute que celle qui a coute un agent le 05/08.
+    await rafraichirAccords()
   }
 
   // --- qui s'affiche dans la barre -------------------------------------------
@@ -561,7 +570,21 @@ export function Conversation({
    * milieu. Un composant qui se recopie pour changer de place finit par diverger
    * de lui-meme - une correction sur un exemplaire, oubliee sur l'autre.
    */
-  const centre = Boolean(accueil) && !demarre && !filVu && tours.length === 0
+  /**
+   * ⚠ UN AGENT QUI ATTEND N'EST PAS UN ECRAN VIDE.
+   *
+   * Le salut remplace le fil - et les cartes d'autorisation vivent DANS le fil.
+   * Trouve le 05/08/2026, juste apres avoir repare la source des demandes :
+   * elles survivaient bien au changement d'ecran, mais restaient invisibles sur
+   * l'Accueil, qui est justement l'ecran par defaut. La ligne d'alerte disait
+   * « il est arrete tant que la reponse ne vient pas » au-dessus d'un
+   * « Bonjour » - et le chrono de 60 s courait derriere.
+   *
+   * `autorisations.length` fait donc partie de la condition : tant qu'une
+   * demande attend, on montre le fil, pas le salut.
+   */
+  const centre =
+    Boolean(accueil) && !demarre && !filVu && tours.length === 0 && autorisations.length === 0
 
   // L'ecran hote a besoin de le savoir pour ce qu'il garde a l'oeil de son
   // cote : une automatisation tombee doit rester lisible une fois le salut parti.

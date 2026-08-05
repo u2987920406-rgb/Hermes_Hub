@@ -92,6 +92,31 @@ test('au-dela de vingt poles, les plus anciens partent', () => {
   assert.equal(lireCompteurs('vague0').taches.length, 0, 'le plus ancien est parti')
 })
 
+test('MEME MILLISECONDE : le pole qu on vient d ecrire ne part jamais', () => {
+  // Le test d'au-dessus attrapait ce defaut UNE FOIS SUR CINQ, et seulement
+  // quand la machine etait assez rapide pour ecrire les vingt-cinq poles dans
+  // la meme milliseconde. Un test qui echoue par intermittence ne dit pas
+  // « je suis fragile », il dit « le code a tort parfois » - ici, le tri par
+  // `vuLe` retombait sur l'ordre d'insertion a date egale, et effacait les
+  // PLUS RECENTS. On fige donc l'horloge pour que le cas soit joue a CHAQUE
+  // passage, au lieu d'attendre qu'il se represente.
+  const vraiNow = Date.now
+  Date.now = () => 1_700_000_000_000
+
+  try {
+    for (let i = 0; i < 25; i++) {
+      noterTache({ pole: `fige${i}`, tache: 'a', titre: 'A', agent: 'a', ms: 1, appels: 1, bascules: 0, etat: 'done' })
+    }
+    assert.equal(
+      lireCompteurs('fige24').taches.length,
+      1,
+      'le dernier ecrit survit meme quand toutes les dates sont egales',
+    )
+  } finally {
+    Date.now = vraiNow
+  }
+})
+
 test('oublier un pole', () => {
   noterTache({ pole: 'a-oublier', tache: 'a', titre: 'A', agent: 'a', ms: 1000, appels: 1, bascules: 0, etat: 'done' })
   assert.deepEqual(oublierCompteurs('a-oublier'), { oublie: true })

@@ -73,9 +73,31 @@ export function noterTache({ pole, tache, titre, agent, ms, appels, bascules, et
     finiLe: Date.now(),
   }
 
-  // Les plus anciens partent, le pole qu'on vient d'ecrire jamais.
-  const poles = Object.entries(donnees).sort((a, b) => (b[1].vuLe || 0) - (a[1].vuLe || 0))
-  for (const [id] of poles.slice(POLES_GARDES)) delete donnees[id]
+  /**
+   * Les plus anciens partent, le pole qu'on vient d'ecrire JAMAIS.
+   *
+   * ⚠ CETTE PROMESSE ETAIT FAUSSE, et c'est un test intermittent qui l'a dite.
+   * Le tri se fait sur `vuLe`, en millisecondes. Quand plusieurs poles sont
+   * ecrits dans la MEME milliseconde - une machine rapide y arrive sans mal -
+   * les dates sont egales, le tri stable retombe sur l'ordre d'insertion, et
+   * ce sont alors les PLUS RECENTS qui se retrouvent au-dela du vingtieme
+   * rang. Le pole qu'on venait d'ecrire pouvait donc etre efface dans la
+   * foulee, et ses compteurs perdus sans que rien ne le signale.
+   *
+   * Vu une fois sur cinq passages le 05/08/2026. Un test qui echoue une fois
+   * sur cinq n'est pas un test fragile : c'est un code qui a tort une fois sur
+   * cinq, et qui aurait fini par le faire en production, un jour de charge.
+   *
+   * Deux corrections, et la premiere suffirait presque : le pole courant est
+   * mis a l'abri AVANT le tri, plutot que d'esperer qu'il arrive en tete. La
+   * seconde rend l'ordre deterministe a date egale - a defaut, deux executions
+   * identiques n'effacent pas les memes.
+   */
+  const candidats = Object.entries(donnees)
+    .filter(([id]) => id !== pole)
+    .sort((a, b) => (b[1].vuLe || 0) - (a[1].vuLe || 0) || a[0].localeCompare(b[0]))
+
+  for (const [id] of candidats.slice(POLES_GARDES - 1)) delete donnees[id]
 
   writeJson(FICHIER, donnees)
   return dossier.taches[tache]
