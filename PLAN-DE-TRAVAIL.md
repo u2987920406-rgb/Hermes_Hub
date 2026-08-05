@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **11:55**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **15:25**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -701,7 +701,56 @@ Deux autres, plus anciennes, qui n'ont pas bougé de la séance :
 - la **sauvegarde depuis le Hub** — `hermes backup` existe, le Hub n'a aucun
   bouton. C'était noté « le plus urgent » de la phase 9 ;
 - les **clés et modèles depuis le Hub** — un client dont la clé expire doit
-  ouvrir un terminal.
+  ouvrir un terminal. **Élargi le 5 août, et ce n'est plus une commodité :
+  voir juste en dessous.**
+
+### Le cerveau de chaque agent, choisi à la souris *(5 août, 15:10)*
+
+**Demande de kuchu, née d'une panne totale du même jour.** Les treize agents
+pointaient tous vers `tencent/hy3:free` ; OpenRouter a répondu *credit error* et
+Nous *HTTP 401 — invalid, blocked or out of funds*. **Plus un seul agent capable
+de penser, et aucun moyen de le réparer sans terminal.** Le Hub affichait
+« Internal error ».
+
+**L'architecture voulue, en deux étages — précisée par kuchu le 5 août :**
+
+1. **un cerveau universel pour tout le Hub**, dont tous les agents héritent ;
+2. **des exceptions déclarées** : un agent très spécialisé, sur une tâche
+   étroite et agentique, tourne **en local**. Gratuit, hors ligne, insensible
+   aux crédits. Mesuré le 5 août : `glm-5.2:cloud` répond en **1,9 s** avec
+   outils et raisonnement ; `qwen3.5:4b` est le vrai repli hors ligne, sans
+   aucun compte.
+
+**⚠ MESURÉ LE 5 AOÛT À 15:20 — LA CASCADE N'EXISTE PAS.** L'aide d'Hermès
+décrit `config get` comme *« Print a **resolved** configuration value »*, ce qui
+laissait espérer un héritage profil → racine. Éprouvé sur le géographe :
+`config unset model.default -p geographe`, puis `config get` rend **`Config key
+not set`**, et non la valeur de la racine. **Chaque profil est un îlot.**
+
+*Conséquence directe :* le cerveau universel ne peut pas être une notion
+d'Hermès, ce sera une notion **du Hub**. Le changer voudra dire réécrire les
+treize `config.yaml` en boucle. Ce n'est pas cher — le Hub fait déjà cette
+boucle pour afficher le modèle de chaque agent (`equipe.js`, `lireModele`).
+
+**⚠ Et c'est là qu'est la vraie difficulté, pas dans l'écriture.** Si le Hub
+réécrit tout le monde, **il doit savoir qui ne pas écraser** — sinon le
+spécialiste en local se fait rattraper par le cerveau universel à la première
+mise à jour, **en silence**. C'est la panne la plus vicieuse : celle qui défait
+un réglage que quelqu'un avait posé exprès.
+
+*Le dépôt a déjà résolu ce problème, ailleurs :* le panneau des outils MCP coche
+**toute l'équipe d'avance** et laisse décocher les exceptions. Même grammaire,
+rien à inventer — voir `OutilsEquipe.tsx` et la note « le défaut y est celui qui
+marche ».
+
+**Ce qui existe déjà et qu'il ne faut pas réécrire :** la bascule automatique de
+`modeles.js` a parfaitement fonctionné ce jour-là — elle a vu le fournisseur
+couper, enchaîné cinq modèles de repli, et **tout écrit en clair dans le fil**.
+Ce qui manque n'est pas la détection, c'est que la liste de repli ne contient
+aucun modèle local, et qu'aucun geste d'interface n'existe.
+
+*Chantier 5.* La porte : on change le cerveau d'un agent, on le voit répondre,
+sans jamais ouvrir de terminal.
 
 Trois de plus, ouvertes le 4 août au soir en rangeant ce plan dans le dépôt :
 
