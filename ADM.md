@@ -364,10 +364,12 @@ sur l'outil, lui : `pre_tool_call`. Un greffon qui répond `{"action":"approve"}
 force *n'importe quel* appel à passer par la porte humaine — et sur ACP cette
 porte est déjà pontée vers `session/request_permission`.
 
-Éprouvé à l'écran : la même commande qui, trois heures plus tôt, s'exécutait sans
-qu'aucune carte n'apparaisse, a été **refusée par le Hub**, avec son nom dans le
-bandeau. Hermès l'a lu comme une décision — *« tu as bloqué l'exécution de `echo
-bonjour`, je ne l'ai donc pas lancée »* — et non comme une panne.
+Éprouvé à l'écran, **en mode Atelier, dans les deux sens** : la même commande
+qui, trois heures plus tôt, s'exécutait sans qu'aucune carte n'apparaisse, a été
+classée **rouge** et a **posé une carte**. Laissée sans réponse, elle s'est
+fermée seule au bout de 60 s et Hermès n'a rien lancé ; répondue *Allow*, elle a
+donné `bonjour` et `exit_code 0`. Les deux tours sur l'ancienne interface — la
+carte se rendait déjà.
 
 *Ce qu'on en retire, et qui vaut au-delà d'ici :* **« il n'y a pas de
 configuration » n'est pas « il n'y a pas de moyen ».** La recherche portait sur
@@ -381,9 +383,25 @@ c'étaient les greffons.
 `arbitrer()` comme n'importe quel autre outil. Le chaînon manquait au
 laissez-passer entier.
 
-*Non éprouvé :* le mode Atelier — la carte à boutons n'a été ni vue ni
-répondue —, et la livraison chez un client, le greffon vivant dans le home
-d'Hermès et non dans le dépôt du Hub.
+*Non éprouvé :* le mode Discussion lui-même, jamais activé de la soirée — la
+branche haute d'`arbitrer()` reste non jouée ; le **volume**, une carte par
+commande étant intenable pour un agent au travail ; et la livraison chez un
+client, le greffon vivant dans le home d'Hermès et non dans le dépôt du Hub.
+
+### On a lu sa propre phrase comme un verdict de la machine *(05/08/2026)*
+Le greffon d'essai annonçait « le mode Discussion est actif » dans le texte qu'il
+envoyait à la porte d'autorisation. Ce texte est remonté à l'écran, Hermès l'a
+recopié dans sa réponse — et il en est redescendu comme un **fait mesuré**. Le
+plan a été écrit et commité sur cette lecture : *le Hub a refusé parce que le
+mode Discussion était actif*. Il n'y avait aucun `mode-conversation.json` sur le
+disque ; le Hub était en Atelier depuis le début, et le refus venait d'un délai
+de 60 s dépassé sur une carte que personne n'avait ouverte.
+
+**Un banc d'essai ne doit rien affirmer qu'il ne mesure.** Le texte d'une sonde
+décrit ce qu'elle fait, jamais l'état qu'elle suppose — sinon l'hypothèse
+voyage jusqu'à l'écran et revient déguisée en preuve. Et ce qui a fini par
+trancher n'était pas une relecture du raisonnement, mais **l'absence d'un
+fichier** : ce que la machine n'a pas écrit dit autant que ce qu'elle affiche.
 
 ### `git add -A` ramasse ce que personne n'a décidé *(05/08/2026)*
 Trois fois dans la même soirée. `.claude/` — des autorisations par poste — a

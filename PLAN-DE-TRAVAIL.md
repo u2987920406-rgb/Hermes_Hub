@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **02:45**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **02:55**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -224,25 +224,63 @@ sur la machine de kuchu avec un greffon jetable (`sonde-terminal`) :
 Hermès veut lancer echo bonjour
   → pre_tool_call intercepte (session ACP, commande anodine)
   → « approve » → request_tool_approval → session/request_permission
-  → le Hub arbitre : enDiscussion() && risque ≠ vert  →  REFUS EXPLICITE
-  → Hermès ne lance rien, et le DIT
+  → le Hub arbitre : classer({kind:'execute'}) → ROUGE → carte posée
+  → tu réponds — et ce que tu réponds décide
 ```
 
-À l'écran : le bandeau porte la demande refusée **avec le nom de la commande**,
+~~À l'écran : le bandeau porte la demande refusée **avec le nom de la commande**,
 et Hermès répond *« La commande a été refusée par ton terminal (mode Discussion
 actif) — tu as bloqué l'exécution de `echo bonjour`. Je ne l'ai donc pas
 lancée. »* Il l'a lu comme une **décision**, pas comme une panne — ce que
-`laissez-passer.js` cherchait à obtenir. Réponse en 71,7 s.
+`laissez-passer.js` cherchait à obtenir. Réponse en 71,7 s.~~
+
+⚠ **Cette lecture était fausse, corrigée à 02:55 — et l'erreur mérite d'être
+gardée.** Le Hub n'était pas en Discussion : il n'existe aucun
+`mode-conversation.json` dans `.hub/`, donc `lireMode()` rendait `atelier`. La
+phrase « le mode Discussion est actif » était **le texte du greffon d'essai**,
+recopié par Hermès. Ce qui s'est réellement passé : `classer({kind:'execute'})`
+rend **rouge**, `arbitrer()` a donc **posé une carte** — repliée derrière le
+chevron du bandeau, que personne n'a ouverte. Au bout des **60 s** du pont ACP
+(`make_approval_callback`, délai par défaut), la porte s'est fermée seule,
+fail-closed, et Hermès a rapporté un refus. D'où les 71,7 s.
+
+*La leçon vaut plus que la mesure :* **on a lu sa propre phrase comme un verdict
+de la machine.** Le greffon d'essai portait un texte qui décrivait une hypothèse
+non vérifiée, il est remonté à l'écran, et il en est redescendu comme un fait.
+Un banc d'essai ne doit rien affirmer qu'il ne mesure.
+
+**Les deux sens sont éprouvés, à l'écran, en mode Atelier :**
+
+| | 02:38 | 02:50 |
+|---|---|---|
+| la carte | posée, jamais ouverte | **posée, ouverte, cliquée** |
+| la réponse | délai de 60 s → refus | **Allow** |
+| la commande | jamais lancée | **exécutée, `bonjour`, `exit_code 0`** |
+
+Les deux tours ont eu lieu sur l'**ancienne** interface (`dist/` du 3 août) : la
+carte se rend et se clique déjà, ce n'est pas un acquis du chantier 2.
 
 **`mode-conversation.js` n'est plus une moitié de porte.** Il ne lui manquait pas
-une réécriture : il lui manquait que le terminal vienne frapper.
+une réécriture : il lui manquait que le terminal vienne frapper. *(Son en-tête
+porte encore la conclusion du 5 août à 02:05 — à barrer sur place.)*
 
-*Dire où la vérification s'arrête.* Trois choses ne sont **pas** éprouvées :
-le **mode Atelier** — personne n'a vu la carte à boutons ni répondu dessus, et la
-sonde escalade *chaque* appel terminal, donc le volume reste à juger ; la
-**livraison chez un client** — le greffon vit dans le home d'Hermès, hors du
-dépôt du Hub, et le distribuer est une question à part entière ; et le greffon
-d'essai n'est **pas** du code de production.
+*Dire où la vérification s'arrête.* Le mode Atelier **est** éprouvé, refus et
+accord compris. Restent quatre choses qui ne le sont pas :
+
+- le **mode Discussion lui-même** n'a jamais été activé. Le refus du 02:38 vient
+  d'un délai dépassé, pas de `enDiscussion()`. La branche du haut d'`arbitrer()`
+  reste non jouée — c'est maintenant la mesure la moins chère et la plus utile ;
+- le **volume**. La sonde escalade *chaque* appel terminal, et un agent au
+  travail en enchaîne des dizaines. Une carte par commande est intenable : il
+  faudra soit s'appuyer sur « pour la session », soit n'escalader qu'en
+  Discussion. **Non tranché, et ça touche le dessin du chantier 3** ;
+- le **délai de 60 s**. `make_approval_callback` est construit sans timeout
+  explicite, donc une carte non vue se referme en une minute. C'est court pour
+  quelqu'un qui a quitté l'écran, et le refus qui s'ensuit ressemble à une
+  panne. À confronter à `approvals.timeout` (300 s) ;
+- la **livraison chez un client** — le greffon vit dans le home d'Hermès, hors
+  du dépôt du Hub. Le distribuer est une question à part entière, et le greffon
+  d'essai n'est **pas** du code de production.
 
 **⚠ Une conséquence qui déborde ce chantier, pour la version livrée.** Le
 classement du laissez-passer — vert / orange / rouge, « exige ton accord »,
