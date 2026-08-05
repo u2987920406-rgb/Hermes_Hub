@@ -1,6 +1,6 @@
 # Démarrer une séance sur Hermès Hub
 
-> ⏱ **Achevé** le 4 août 2026 à **14:42** · **révisé** le 4 août 2026 à **22:33**
+> ⏱ **Achevé** le 4 août 2026 à **14:42** · **révisé** le 5 août 2026 à **18:15**
 > détail : `git log --follow -- DEMARRER-ICI.md`
 > **Le document le plus récent l'emporte.** Compare cette ligne avant d'appliquer.
 
@@ -34,6 +34,7 @@ ce qui est livré aux clients.
 | 8 | `Hermes-Hub/DESIGN.md` | **à lire avant de toucher à l'interface** — index des zones |
 | 9 | `ADM.md` | les décisions durables et leurs raisons |
 | 10 | `PLAN-V2.md` | l'étude V2 d'ensemble (31 juillet) — le périmètre large, dont la refonte n'est qu'une part |
+| 11 | `CONFRONTATION-HERMES-WEBUI.md` | ce qu'on a trouvé **dans le code d'Hermès et d'une interface tierce** (5 août). À lire avant le chantier 5 : le cerveau par tâche, le YOLO gelé, le journal `task_events`. Porte aussi ses trois erreurs, gardées exprès |
 
 **L'état ne vit qu'aux points 1 et 2.** Tout le reste est durable et ne périme
 pas.

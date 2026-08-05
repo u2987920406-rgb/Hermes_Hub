@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **17:05**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **18:15**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -707,6 +707,32 @@ Studio, alors que c'est le chantier le plus simple des trois.
 
 Deux questions, aucune bloquante.
 
+### Deux orphelins remontés de `CONFRONTATION-HERMES-WEBUI.md`, le 5 août à 18:10
+
+Ils viennent d'une lecture du code d'`hermes-webui` **et d'Hermès lui-même**.
+Ni vrais ni faux : **rien ne les porte aujourd'hui**, et ils touchent tous les
+deux le chantier 5. Le raisonnement complet est dans le document ; ici, la
+question seule.
+
+5. **Le cerveau se choisit-il par agent, ou aussi par tâche ?** La table `tasks`
+   du kanban porte une colonne `model_override`, et `equipe.js:585` **la lit
+   déjà** sans rien en faire. Le §7 ne raisonne qu'en « par agent » — donc en
+   réécriture des treize `config.yaml`, avec toute la difficulté du « qui ne pas
+   écraser ». Une échelle par tâche n'a aucun de ces coûts.
+   *À trancher au chantier 5 — mais **mesurer d'abord** qui écrit cette colonne
+   et si le dispatcher l'honore. Sans ça, c'est une hypothèse, pas une piste.*
+6. **Le Hub peut-il poser `HERMES_YOLO_MODE` au lancement de chaque agent ?** La
+   variable est **gelée à l'import** côté Hermès, et le Hub lance un processus
+   par agent : il tiendrait donc un désarmement par agent qu'aucune injection ne
+   peut retourner en cours de route — une garantie que le webui n'a pas, faute
+   d'avoir plusieurs processus. *Non joué.* Ça ne répond qu'au cas « je fais
+   confiance sur cette tâche », pas au volume de cartes qu'on veut **garder**.
+
+*Et un renfort, qui n'ouvre rien mais durcit ce qui est déjà écrit :* le code
+d'Hermès appelle **« unpaired theater »** un refus d'écriture qui n'est pas
+doublé côté terminal. C'est mot pour mot l'état assumé au §7 — le laissez-passer
+aveugle au shell en Atelier.
+
 1. **L'interrupteur de rappel de mémoire** reste-t-il allumé d'une conversation
    à l'autre ? Penchant : oui, parce que le poids s'affiche à chaque usage.
 2. **Le mot « Orchestration »** *(F16)* ne dit pas ce qu'il y a derrière. Mineur,
@@ -924,6 +950,17 @@ un réglage que quelqu'un avait posé exprès.
 **toute l'équipe d'avance** et laisse décocher les exceptions. Même grammaire,
 rien à inventer — voir `OutilsEquipe.tsx` et la note « le défaut y est celui qui
 marche ».
+
+**⚠ ET IL EXISTE PEUT-ÊTRE UNE SECONDE ÉCHELLE, QU'ON LIT DÉJÀ SANS S'EN SERVIR
+— relevé le 5 août à 18:10.** La table `tasks` du kanban porte une colonne
+`model_override`, et `equipe.js:585` la sélectionne dans sa requête. **Un cerveau
+par tâche ne demande aucune réécriture de `config.yaml`, aucune boucle sur treize
+profils, et ne peut écraser aucun réglage posé exprès** — c'est-à-dire qu'il
+esquive toute la difficulté décrite juste au-dessus. Ça ne remplace pas le
+cerveau universel : une tâche sans override doit bien hériter de quelque chose.
+Mais ça fait deux échelles au lieu d'une, et la plus fine est déjà outillée.
+*Reste à mesurer qui écrit cette colonne et si le dispatcher l'honore* — c'est
+l'orphelin 5 du §6, et tant que ce n'est pas mesuré, ce n'est qu'une hypothèse.
 
 **Ce qui existe déjà et qu'il ne faut pas réécrire :** la bascule automatique de
 `modeles.js` a parfaitement fonctionné ce jour-là — elle a vu le fournisseur
