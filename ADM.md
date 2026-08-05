@@ -319,6 +319,57 @@ troisième mois.
 
 ## Les pièges appris à la dure
 
+### Une porte ne garde que ceux qui frappent *(05/08/2026)*
+Le mode Discussion du chantier 3 devait tenir une promesse : *l'agent ne peut que
+lire*. Le mécanisme paraissait solide — l'agent demande, le Hub répond, donc le
+Hub refuse. Éprouvé en vrai : Hermès demande l'autorisation d'`edit`, le Hub
+refuse, **puis Hermès écrit le même fichier par le terminal**, sans aucune
+demande. `exit_code 0`, et il conclut « Fait ».
+
+**Le refus côté Hub est réel, et il ne couvre que ce qui frappe à la porte.** La
+faute de raisonnement tient dans une phrase qu'on n'avait pas écrite parce
+qu'elle semblait aller de soi : *toute action passe par la demande
+d'autorisation*. Elle n'y passe pas.
+
+La conséquence dépasse le chantier : **le classement du laissez-passer est
+aveugle au shell**, dans la version livrée. Vérifié en mode Atelier —
+`terminal: echo bonjour` s'exécute sans qu'aucune carte n'apparaisse. Vert,
+orange, rouge, « exige ton accord », l'option « toujours » retirée : tout cela
+dit vrai des outils qui demandent, et ne voit pas passer un `printf > fichier`.
+
+*Ce qu'on en retire, et qui vaut au-delà d'ici :* **avant de promettre qu'une
+chose est impossible, faire la chose.** Aucune relecture de code n'aurait trouvé
+ça — le code faisait exactement ce qu'il annonçait. C'est le second chemin qui
+manquait au raisonnement, et seul un essai réel pouvait le montrer.
+
+### Mieux vaut pas d'interrupteur qu'un interrupteur qui ment *(05/08/2026)*
+Une fois la faille connue, la tentation était d'écrire le mode Discussion quand
+même, avec une promesse plus molle. On ne le fait pas. Un interrupteur qui
+annonce une garantie qu'il ne tient pas est **pire que son absence** : sans lui
+on reste prudent, avec lui on se croit couvert. Le module reste au dépôt, avec sa
+mesure et son avertissement en tête — c'est une moitié de porte, et elle se
+présente comme telle.
+
+### `git add -A` ramasse ce que personne n'a décidé *(05/08/2026)*
+Trois fois dans la même soirée. `.claude/` — des autorisations par poste — a
+failli partir chez les clients ; trois scripts d'outillage sont entrés sans
+décision ; et un commit a annoncé une correction que sa mise en scène ne portait
+pas, le fichier ayant été écrit après le `add`.
+
+**Le remède n'est pas de bannir `add -A`, c'est de lire ce que git a répondu.**
+Les `??` du `status` autant que les `M`, et la ligne `n files changed` du commit
+plutôt que l'intention qu'on avait en tapant. Trois symptômes, une seule cause :
+on regarde la commande qu'on écrit, pas la réponse qu'on reçoit.
+
+### Un garde-fou qui mord son auteur le jour de sa naissance a bien été écrit *(05/08/2026)*
+Le cliquet des tailles a refusé cinq fichiers du chantier qui l'introduisait, et
+le détecteur d'exports morts a signalé trois exports nés dans l'heure. Ce n'est
+pas un défaut de réglage : c'est la preuve qu'ils regardent le vrai code et non
+une idée du code. Deux des cinq refus étaient justes et ont fait sortir du code
+dans son propre fichier ; les trois autres étaient de la prose, et les marques
+ont été relevées à la main **en le disant dans le commit**. Un garde-fou qu'on
+relève en silence est un compteur.
+
 ### Rediriger la sortie d'une commande ne la rend pas muette, ça la rend aveugle
 `>nul 2>&1` détourne stdout et stderr, **jamais stdin**. Rencontré trois fois le
 03/08/2026 : `hermes mcp add` prend EOF pour une annulation *en sortant par 0*,

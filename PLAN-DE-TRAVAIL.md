@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **00:30**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **02:05**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -128,7 +128,9 @@ elles peuvent le changer. Chacune se lève en une expérience courte et jetable.
 | **V3** | Que rend `server/competences.js` ? Assez pour dessiner la carte des compétences **depuis les vraies données** ? | La carte devrait être tenue à la main, donc elle mentirait. Mieux vaudrait ne pas la faire |
 | **V4** | Le chargement paresseux du Studio : combien gagne-t-on vraiment sur les 573 Ko ? | Rien de cassé — mais on saura si ça vaut le détour |
 
-**V1 et V2 sont bloquantes** pour les chantiers 3 et 4. V3 l'est pour le
+**V1 et V2 sont bloquantes** pour les chantiers 3 et 4. *(V2 a été rouverte le
+5 août — voir son paragraphe. Le chantier 3 démarre donc amputé de son premier
+point, et se reprend par la carte de plan, qui ne dépend que de V1.)* V3 l'est pour le
 chantier 5. V4 ne bloque rien.
 
 ### Résultats — chantier 1, fait le 4 août
@@ -159,16 +161,48 @@ déjà ailleurs avec `PLAFOND_DECOUPAGE_S` — et il faut se demander si la
 préparation d'un plan ne devrait pas être **asynchrone**, c'est-à-dire qu'on
 puisse continuer d'écrire pendant. *À trancher au chantier 3.*
 
-**V2 — couper les outils. Non, mais la garantie s'obtient autrement.**
+**V2 — couper les outils. ~~Non, mais la garantie s'obtient autrement.~~
+⚠ NON, ET LA GARANTIE NE S'OBTIENT PAS — rouvert le 5 août à 02:05.**
+
 La session ACP s'ouvre par `session/new { cwd, mcpServers: [] }` : **il n'existe
 aucun paramètre de panoplie par tour.** En revanche l'agent demande, et le Hub
-répond — `session/request_permission`. La garantie du mode Discussion s'obtient
-donc **en refusant côté Hub toute demande qui n'est pas une lecture.** Ce n'est
-pas une consigne dans un prompt, c'est le Hub qui décide : la garantie tient. Et
-les mentions sont lues par le Hub (`lireMentions`), donc ne réveiller personne
-est entièrement sous notre contrôle.
-*Nuance à écrire dans l'interface :* la promesse exacte est « rien ne s'écrit »,
-pas « les outils n'existent pas ».
+répond — `session/request_permission`.
+~~La garantie du mode Discussion s'obtient donc **en refusant côté Hub toute
+demande qui n'est pas une lecture.** Ce n'est pas une consigne dans un prompt,
+c'est le Hub qui décide : la garantie tient.~~
+~~*Nuance à écrire dans l'interface :* la promesse exacte est « rien ne s'écrit »,
+pas « les outils n'existent pas ».~~
+
+**Ce raisonnement supposait que toute action passe par `request_permission`.
+Elle n'y passe pas.** Éprouvé sur la machine de kuchu, mode Discussion posé :
+Hermès demande l'autorisation d'`edit`, le Hub refuse — puis Hermès écrit **le
+même fichier par le terminal**, sans aucune demande. Zéro carte, `exit_code 0`,
+et il conclut « Fait ». Le refus côté Hub est réel : il ne couvre que ce qui
+frappe à la porte.
+
+**La piste ACP est morte aussi.** Hermès n'annonce que trois modes —
+`default` (« Ask before edits »), `accept_edits`, `dont_ask` — et **les trois
+vont dans le sens permissif** : aucun mode lecture seule, aucun ne parle du
+terminal. `session/set_mode` ne donnera pas la garantie. *(Mesuré par la route
+`/api/chat/modes`, lecture pure, ajoutée pour ça.)*
+
+*Ce qui reste vrai de V2 :* les mentions sont lues par le Hub (`lireMentions`),
+donc **ne réveiller personne est entièrement sous notre contrôle**. C'est la
+moitié qui tient, et le chantier 3 s'y appuie encore.
+
+*Ce qui reste à chercher, et ce n'est plus du Hub :* une configuration côté
+Hermès qui soumette le terminal à permission. Sans elle, l'interrupteur
+Discussion ne peut rien promettre — et **mieux vaut pas d'interrupteur qu'un
+interrupteur qui ment.** Le module `mode-conversation.js` reste au dépôt avec sa
+mesure en tête : c'est une moitié de porte, et elle se présente comme telle.
+
+**⚠ Une conséquence qui déborde ce chantier, pour la version livrée.** Le
+classement du laissez-passer — vert / orange / rouge, « exige ton accord »,
+l'option « toujours » retirée sur le rouge — **est aveugle au shell.** Vérifié
+en mode Atelier, celui des clients : `terminal: echo bonjour` s'exécute sans
+qu'aucune carte n'apparaisse. Un agent qui écrit par `printf > fichier` ne
+croise aucune des portes qu'on croyait poser. Ce n'est pas une régression du
+chantier 3 : c'est l'état d'aujourd'hui, découvert en l'éprouvant.
 
 **V3 — la carte des compétences. À moitié seulement.**
 `lireCompetences()` existe et rend des fiches structurées — frontmatter, tags,
