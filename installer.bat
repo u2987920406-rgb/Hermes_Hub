@@ -1029,9 +1029,20 @@ echo thematiques et Resumes-Sessions/ - lui survit, et c'est elle le garant.
 echo.
 echo Le mode d'emploi complet est dans **memoire/MODE-D-EMPLOI.md**, a la racine
 echo de l'espace de travail. Va le lire quand je demande de retrouver un sujet
-echo ancien, d'en ouvrir un nouveau, de nourrir le Coffre, ou de brancher un
-echo outil MCP. Ne le charge pas autrement : ce qui est ecrit ici se relit a
-echo chaque demarrage, lui non.
+echo ancien, d'en ouvrir un nouveau, de nourrir le Coffre, de brancher un
+echo outil MCP, ou **de produire un PDF**. Ne le charge pas autrement : ce qui
+echo est ecrit ici se relit a chaque demarrage, lui non.
+echo.
+REM Une seule ligne pour le PDF, et c'est celle qui evite de rendre un echec :
+REM la recette est dans le mode d'emploi, mais le REFLEXE DE VERIFIER doit etre
+REM en contexte toujours - on ne va pas chercher « verifie ton livrable » au
+REM moment ou l'on croit avoir fini.
+echo ## PDF
+echo.
+echo Un PDF se fabrique en HTML/CSS imprime par Chrome - recette dans le mode
+echo d'emploi. **Ouvre toujours celui que tu viens de produire avant de le
+echo rendre** : un PDF de moins de 30 Ko est presque toujours une page d'erreur
+echo du navigateur imprimee telle quelle. C'est arrive deux fois.
 echo.
 REM Une seule ligne pour les MCP, et c'est celle qui evite la panne : le reste
 REM - pourquoi, comment reparer, ce que voit l'ecran - est dans le mode
@@ -1119,6 +1130,18 @@ echo   pas" : son secret ne se relit pas depuis la ligne de commande. Il faut
 echo   l'ajouter agent par agent.
 echo - Les agents chargent leurs outils AU REVEIL : un agent en train de
 echo   travailler garde les anciens jusqu'a sa prochaine tache.
+echo.
+REM La recette PDF n'est PAS echo-ee ici, et c'est deliberé : elle contient des
+REM parentheses, des crochets, des esperluettes et des pourcents, tous a
+REM echapper dans un bloc .bat - et un echappement rate ne se voit qu'a
+REM l'installation, chez un client. Elle vit donc en clair dans
+REM memoire-kit\memoire\FABRIQUER-UN-PDF.md, que xcopy depose tel quel. Un
+REM fichier versionne se relit, se compare et ne s'abime pas au passage.
+echo ## Fabriquer un PDF
+echo.
+echo Voir **memoire/FABRIQUER-UN-PDF.md**, a cote de ce fichier. Chrome imprime
+echo une page HTML/CSS - il n'y a pas d'autre generateur sur ce poste, et il
+echo n'en faut pas.
 ) > "%WORKSPACE%\memoire\MODE-D-EMPLOI.md"
 goto :eof
 
