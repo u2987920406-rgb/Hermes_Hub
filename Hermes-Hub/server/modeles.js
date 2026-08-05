@@ -24,6 +24,104 @@ import { HUB_DIR, readJson, writeJson } from './workspace.js'
 const HERMES_HOME = path.join(process.env.LOCALAPPDATA || os.homedir(), 'hermes')
 const CACHE_NOUS = path.join(HERMES_HOME, 'cache', 'nous_recommended_cache.json')
 const FICHIER_BASCULE = path.join(HUB_DIR, 'bascule.json')
+const AUTH_HERMES = path.join(HERMES_HOME, 'auth.json')
+
+// -----------------------------------------------------------------------------
+// La session du fournisseur - « Internal error » a une vraie cause, sur le disque
+// -----------------------------------------------------------------------------
+/**
+ * POURQUOI CE BOUT DE CODE EXISTE, ET CE QU'IL A COUTE DE NE PAS L'AVOIR.
+ *
+ * Le 05/08/2026 a 16:09 (UTC 14:09), la session Nous a ete revoquee. Douze
+ * agents sur treize, Hermes lui-meme compris, se sont tus. Ce que le Hub
+ * affichait :
+ *
+ *     Hermes n'a pas pu repondre : Internal error
+ *
+ * Ce que Hermes avait ecrit, tout seul, dans `auth.json`, au meme instant :
+ *
+ *     provider : nous          code : invalid_grant
+ *     message  : « Refresh session has been revoked »
+ *     reason   : credential_pool_refresh_failure
+ *     relogin_required : True
+ *
+ * **L'information exacte etait sur le disque, en clair, et personne ne la
+ * lisait.** Le matin meme, le §7 du plan avait diagnostique « credit error » -
+ * un probleme d'argent. C'etait faux : c'est une reconnexion, et elle est
+ * gratuite. On a failli rebasculer douze profils sur un autre modele pour
+ * reparer une session expiree.
+ *
+ * `relogin_required` est le mot qui manquait a l'ecran. Un agent muet dont on
+ * ignore la cause envoie chercher partout ; le meme agent avec « reconnecte-toi »
+ * se repare en une commande.
+ *
+ * ⚠ On ne lit JAMAIS le jeton lui-meme, seulement le constat d'echec. Le
+ * contenu d'`auth.json` n'a rien a faire dans un evenement qui part vers un
+ * navigateur.
+ */
+export function lireSessionFournisseur() {
+  const brut = readJson(AUTH_HERMES, null)
+  const erreur = brut?.providers?.[brut?.active_provider]?.last_auth_error
+  if (!erreur) return null
+
+  // `relogin_required` est le seul champ qui commande un geste. Sans lui, une
+  // erreur d'authentification ancienne et deja resolue ferait dire au Hub de se
+  // reconnecter alors que tout marche - et une consigne qui se trompe une fois
+  // n'est plus suivie ensuite.
+  if (erreur.relogin_required !== true) return null
+
+  return {
+    fournisseur: String(brut.active_provider || 'le fournisseur'),
+    code: erreur.code ? String(erreur.code) : null,
+    quand: erreur.at ? String(erreur.at) : null,
+  }
+}
+
+/**
+ * La commande de reconnexion - **et elle est recopiee d'Hermes, pas inventee.**
+ *
+ * ⚠ CE COMMENTAIRE EXISTE PARCE QU'ON S'EST TROMPE, LE 05/08/2026 A 20:50.
+ * La premiere version de ce fichier disait `hermes auth login <fournisseur>`.
+ * **Cette sous-commande n'existe pas** - `hermes auth` n'offre que `add`,
+ * `list`, `remove`, `reset`, `status`, `logout` et `spotify`. La commande avait
+ * ete repetee quatre fois a kuchu, puis ECRITE DANS LE MESSAGE D'ERREUR DU
+ * PRODUIT, sans jamais avoir ete lancee une seule fois.
+ *
+ * Un message d'erreur qui envoie taper une commande inexistante est pire que
+ * « Internal error » : le second n'aide pas, le premier fait perdre du temps en
+ * promettant de l'aide. C'est la meme faute que le bouton « Ouvrir le dossier »
+ * qui ne pouvait pas marcher, et que le §2 du plan resume ainsi - prouver que la
+ * donnee existe n'est pas prouver que le geste aboutit.
+ *
+ * `hermes model` est verifie deux fois : son `--help` existe et annonce
+ * « Interactively select your inference provider and default model » avec les
+ * options de connexion Nous, et c'est **le mot d'Hermes lui-meme** dans son
+ * refus - « No access token found for Nous Portal login. Run `hermes model` to
+ * re-authenticate. » On recopie sa phrase plutot que d'en fabriquer une.
+ *
+ * On ne nomme donc PAS de commande par fournisseur : `hermes model` est le
+ * selecteur interactif qui les couvre tous, et deviner la porte de chacun
+ * refabriquerait exactement l'erreur qu'on repare ici.
+ */
+const COMMANDE_RECONNEXION = 'hermes model'
+
+/**
+ * Le message brut d'Hermes, enrichi de la cause quand elle est connue.
+ *
+ * `Internal error` est le cas qui a coute cher, mais on n'essaie pas de
+ * reconnaitre les messages opaques un par un : des qu'une session demande une
+ * reconnexion, TOUTE panne d'agent a de bonnes chances d'en venir. On ajoute
+ * donc la phrase sans remplacer le message d'origine - qui reste la seule piste
+ * si la vraie cause est ailleurs.
+ */
+export function expliquerPanne(message) {
+  const session = lireSessionFournisseur()
+  if (!session) return message
+  return (
+    `${message} — la session ${session.fournisseur} a expire. ` +
+    `Lance ${COMMANDE_RECONNEXION} dans un terminal pour te reconnecter.`
+  )
+}
 
 // -----------------------------------------------------------------------------
 // Reconnaitre une panne de modele

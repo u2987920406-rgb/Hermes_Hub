@@ -13,6 +13,7 @@
  * peu pour qu'une equipe entiere reste en memoire toute la journee.
  */
 import { PontAcp } from './acp.js'
+import { expliquerPanne } from './modeles.js'
 
 /** Silence au-dela duquel un agent se rendort. */
 const DELAI_SOMMEIL = 120000
@@ -414,10 +415,15 @@ export class Equipage {
           await pont.envoyer(aEnvoyer)
           await this.#deleguer(pont, agent, { profondeur, tous, groupes, convoques: compte })
         } catch (err) {
+          // `expliquerPanne` va chercher dans `auth.json` la cause qu'Hermes y
+          // a ecrite lui-meme. Sans elle, une session expiree remonte ici en
+          // « Internal error » - ce qui n'envoie chercher nulle part. Mesure du
+          // 05/08 : douze agents muets, la cause en clair sur le disque, et une
+          // demi-journee passee a soupconner un probleme de credits.
           this.diffuser({
             type: 'panne',
             agent: agent.id,
-            message: `${agent.nom} n'a pas pu repondre : ${err.message}`,
+            message: expliquerPanne(`${agent.nom} n'a pas pu repondre : ${err.message}`),
           })
         } finally {
           this.#reporterSommeil(agent.id)
