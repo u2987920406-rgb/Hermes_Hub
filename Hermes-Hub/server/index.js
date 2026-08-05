@@ -769,11 +769,48 @@ function diagnostics() {
     return String(r.stdout || '').split(/\r?\n/)[0].trim() || null
   }
 
+  /**
+   * bash ne se cherche PAS dans le PATH, et c'est la difference avec git.
+   *
+   * L'installateur de Git pose `cmd\git.exe` dans le PATH mais laisse
+   * `bin\bash.exe` en dehors. Un simple `spawnSync('bash')` echoue donc sur une
+   * machine ou bash est parfaitement installe - constate le 05/08/2026 : le
+   * Diagnostic annoncait « introuvable » pendant que
+   * `C:\Program Files\Git\bin\bash.exe` repondait « GNU bash 5.3.15 ».
+   *
+   * ⚠ C'EST LE PIRE ENDROIT OU MENTIR. Ce panneau s'annonce comme « ce qu'il
+   * faut verifier en premier quand quelque chose ne demarre pas » : un faux
+   * negatif y envoie chercher un probleme qui n'existe pas, avec assurance,
+   * pendant que la vraie panne reste entiere. Il a coute une demi-heure le jour
+   * meme, sur une panne qui n'avait aucun rapport.
+   *
+   * On regarde donc le disque d'abord, comme `trouverHermes()` dans
+   * `outils.js`, et le PATH seulement en dernier recours - l'ordre inverse
+   * ferait reapparaitre exactement le meme faux negatif.
+   */
+  const bash = () => {
+    const bases = [
+      process.env.ProgramFiles,
+      process.env['ProgramFiles(x86)'],
+      process.env.ProgramW6432,
+      path.join(process.env.LOCALAPPDATA || '', 'Programs'),
+    ].filter(Boolean)
+
+    for (const base of bases) {
+      const candidat = path.join(base, 'Git', 'bin', 'bash.exe')
+      if (fs.existsSync(candidat)) {
+        const v = outil(candidat, ['--version'])
+        if (v) return v
+      }
+    }
+    return outil('bash', ['--version'])
+  }
+
   return {
     hermes: hermes.status === 0 && versionHermes ? versionHermes.trim() : null,
     node: process.version,
     git: outil('git', ['--version']),
-    bash: outil('bash', ['--version']),
+    bash: bash(),
     terminal: windowsTerminalPath() !== null,
     profiles: noms,
     port: PORT,
