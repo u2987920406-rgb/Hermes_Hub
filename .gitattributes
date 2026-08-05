@@ -1,3 +1,17 @@
+# Tout le texte est en LF DANS LE DEPOT, quel que soit l'editeur qui l'ecrit.
+#
+# Ajoute le 05/08/2026, apres que `design/atelier.js` et `Organigramme.tsx` sont
+# apparus modifies avec 1442 lignes ajoutees et 1442 retirees CHACUN - sans
+# qu'une seule ligne de contenu ait bouge (`git diff --ignore-all-space` etait
+# vide). Un editeur les avait reecrits en CRLF. Les commiter aurait noye le
+# travail du jour sous 2884 lignes de bruit ; les laisser dehors rendait
+# `git status` illisible a chaque seance.
+#
+# Demander « attention aux fins de ligne » a chaque outil est un voeu. Ceci est
+# une garde : git normalise a l'entree, personne n'a rien a penser. Le dossier
+# de travail, lui, garde ce que le systeme attend.
+* text=auto eol=lf
+
 # core.autocrlf=true reecrit les fins de ligne a la sortie du depot. Un PDF
 # ReportLab ne contient aucun octet nul : git le prend pour du texte, convertit
 # ses LF en CRLF au clone et decale toutes les positions de sa table xref, ce
