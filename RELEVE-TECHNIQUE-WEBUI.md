@@ -1,6 +1,6 @@
 # Audit technique — `hermes-webui`
 
-> ⏱ **Achevé** le 5 août 2026 à **19:05** · **révisé** le 5 août 2026 à **20:40**
+> ⏱ **Achevé** le 5 août 2026 à **19:05** · **révisé** le 5 août 2026 à **21:20**
 >
 > Audit de code d'un projet tiers. Dépôt `github.com/nesquena/hermes-webui`,
 > clone `master` du 5 août 2026. Build annoncé dans leur documentation :
@@ -252,8 +252,117 @@ onglets sont **non déplaçables et non masquables**, en dur : `chat` et
 
 Modèle : **un dossier = un manifeste + un front compilé + un back Python.**
 
-⚠ *Non vérifié* : le chargeur côté Hermès — qui lit ce manifeste, comment
-`entry` est injecté, quel objet global il reçoit.
+### 1.7 Le chargeur de greffons d'Hermès — et c'est un vrai SDK versionné
+
+Il ne vit ni dans le WebUI ni dans les greffons : il est dans **l'application
+web propre d'Hermès**, `web/` — un projet **React + Vite + TypeScript**, distinct
+du WebUI audité ici. Le chargeur tient en sept fichiers, `web/src/plugins/`,
+573 lignes au total.
+
+**Les deux globales exposées au greffon**, `web/src/plugins/sdk.d.ts:153` :
+
+```ts
+declare global {
+  interface Window {
+    __HERMES_PLUGIN_SDK__?: HermesPluginSDK;
+    __HERMES_PLUGINS__?: PluginRegistry;
+  }
+}
+```
+
+**Le contrat d'enregistrement**, intégral :
+
+```ts
+export interface PluginRegistry {
+  /** Register the plugin's main tab component by manifest name. */
+  register(name: string, component: ComponentType<Record<string, never>>): void;
+  /** Register a component into a named host slot. */
+  registerSlot(slot: string, name: string, component: ComponentType): void;
+}
+```
+
+**Ce que l'hôte fournit**, `web/src/plugins/registry.ts:104` — pour que le
+greffon n'embarque ni React ni le design system :
+
+```ts
+export const SDK_CONTRACT_VERSION = "1.1.0";
+
+export function exposePluginSDK() {
+  window.__HERMES_PLUGINS__ = {
+    register: registerPlugin,
+    registerSlot,
+  };
+
+  window.__HERMES_PLUGIN_SDK__ = {
+    sdkVersion: SDK_CONTRACT_VERSION,
+    React,
+    hooks: { useState, useEffect, useCallback, useMemo, useRef, useContext, createContext },
+    api,
+    fetchJSON,
+    authedFetch,
+    buildWsUrl,
+    buildWsAuthParam,
+    components: {
+      Card, CardHeader, CardTitle, CardContent, Badge, Button, Checkbox,
+      Input, Label, Select, SelectOption, Separator, Tabs, TabsList,
+      TabsTrigger, PluginSlot,
+    },
+    utils: { cn, timeAgo, isoTimeAgo },
+    useI18n,
+  };
+}
+```
+
+Le type est **écrit à la main plutôt que dérivé du runtime**, et le fichier dit
+pourquoi :
+
+> *« A hand-authored contract is the **versioned API boundary** — changing it is
+> a deliberate act, visible in review, not an accidental consequence of
+> refactoring an internal helper. »*
+
+Trois helpers d'authentification sont imposés au greffon — `fetchJSON`,
+`authedFetch`, `buildWsUrl` — avec une consigne explicite : *« Plugins MUST use
+this […] instead of calling `fetch` with a hand-read
+`window.__HERMES_SESSION_TOKEN__` »*. Ils gèrent les deux modes (jeton de
+session en loopback, cookie en mode protégé) et la redirection 401.
+
+**L'injection**, `web/src/plugins/usePlugins.ts` — quatre étapes, et **rien
+n'est scanné côté front** :
+
+```
+1. GET /api/dashboard/plugins            → la liste des manifestes
+2. <link rel=stylesheet>                 → /dashboard-plugins/<name>/<css>
+3. <script async data-hermes-plugin>     → /dashboard-plugins/<name>/<entry>
+4. attente de l'appel à register()
+```
+
+Le manifeste peut déclarer une empreinte SRI, honorée à l'injection :
+
+```ts
+// SRI integrity verification — defense against compromised plugin
+// delivery. […] Without this, a man-in-the-middle or compromised plugin
+// server can substitute the JS bundle silently. Opt-in: when no integrity
+// is declared in the manifest, behavior is unchanged.
+if (manifest.integrity && typeof manifest.integrity === "string") {
+  script.integrity = manifest.integrity;
+  script.crossOrigin = "anonymous";
+}
+```
+
+**Deux échecs nommés**, distingués — c'est le détail qui rend le système
+diagnosticable :
+
+| Code | Cause |
+|---|---|
+| `LOAD_FAILED` | `script.onerror` — le bundle n'a pas chargé |
+| `NO_REGISTER` | le bundle a chargé mais n'a **rien enregistré**, constaté par un `queueMicrotask` après `onload` |
+
+Plafond de 2 s avant de quitter l'état « chargement ». En développement, l'URL
+est cache-bustée (`?hermes_dv=<timestamp>`) pour que le HMR de Vite puisse
+réexécuter un bundle déjà chargé.
+
+⚠ *Non lu* : `slots.ts` (184 lignes) — un greffon peut s'insérer dans des
+emplacements nommés de l'hôte, pas seulement occuper un onglet.
 
 Le WebUI possède par ailleurs son propre système d'extensions
 (`api/extensions.py`, manifestes plafonnés à 64 Ko, `window.HermesExtensionSettings`
@@ -263,10 +372,16 @@ exposé par `static/extension_settings.js`, 304 lignes). ⚠ *Non lu.*
 
 ## 2. Arborescence et dépendances
 
-### 2.1 Étape de build : **non**
+### 2.1 Étape de build : **non — pour `hermes-webui`**
 
-Aucun bundler, aucun module ES, aucune compilation. Balises classiques avec
-`defer`, dans l'ordre de dépendance :
+⚠ **La portée de cette réponse compte.** Elle vaut pour le dépôt audité ici.
+**L'application web d'Hermès (`web/`) est, elle, un projet Vite + React +
+TypeScript avec `node_modules` et compilation** — et les greffons livrent un
+`dist/` compilé contre son SDK (§1.7). Deux interfaces web coexistent dans
+l'écosystème, avec deux philosophies opposées.
+
+Pour `hermes-webui` : aucun bundler, aucun module ES, aucune compilation.
+Balises classiques avec `defer`, dans l'ordre de dépendance :
 
 ```html
 <script src="static/i18n.js?v=__WEBUI_VERSION__" defer></script>
@@ -1052,7 +1167,8 @@ par `i18n.js` (26 032 lignes).
 ## Portée de l'audit
 
 **Lu intégralement :** `api/route_approvals.py` (639), `api/kanban_bridge.py`
-(1 197), `BUGS.md`, `plugins/kanban/dashboard/manifest.json`.
+(1 197), `BUGS.md`, `plugins/kanban/dashboard/manifest.json`, et — côté Hermès —
+`web/src/plugins/sdk.d.ts` (161), `registry.ts` (169), `usePlugins.ts` (134).
 
 **Lu en grande partie :** `ARCHITECTURE.md` (~830 sur 1 274).
 
@@ -1070,5 +1186,6 @@ plus le bloc d'approbation), `api/streaming.py` (émission SSE),
 Hermès.
 
 **Points explicitement non vérifiés :** le mécanisme `delegate` (§4.6) ; le
-rendu des huit codes d'erreur de sonde (§5.2) ; le chargement de `entry` depuis
-un manifeste Hermès (§1.6) ; l'intégration Mermaid (§2.2).
+rendu des huit codes d'erreur de sonde (§5.2) ; l'intégration Mermaid (§2.2) ;
+`web/src/plugins/slots.ts` (§1.7) ; et l'application web d'Hermès dans son
+ensemble — seul son chargeur de greffons a été lu, pas ses pages.
