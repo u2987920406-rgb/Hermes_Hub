@@ -7,10 +7,10 @@
   "src/components/BoutonRepli.tsx": 107,
   "src/components/ChampRecherche.tsx": 96,
   "src/components/CommandPalette.tsx": 204,
-  "src/components/Conversation.tsx": 1407,
+  "src/components/Conversation.tsx": 1432,
   "src/components/EditeurEquipe.tsx": 164,
   "src/components/FenetreSimulation.tsx": 655,
-  "src/components/InterrupteurMode.tsx": 170,
+  "src/components/InterrupteurMode.tsx": 132,
   "src/components/LigneAlerte.tsx": 226,
   "src/components/LivrableScenario.tsx": 110,
   "src/components/MemoireEquipe.tsx": 120,
@@ -46,6 +46,6 @@
   "src/pages/TrashView.tsx": 128,
   "src/pages/VaultView.tsx": 297,
   "src/store/alertes.ts": 62,
-  "src/store/useHubStore.ts": 371,
+  "src/store/useHubStore.ts": 428,
   "src/types/index.ts": 936
 }

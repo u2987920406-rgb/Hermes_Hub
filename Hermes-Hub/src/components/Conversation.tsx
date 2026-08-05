@@ -36,6 +36,7 @@ import { cleAccord, sansAccord } from '../lib/accords'
 import { api } from '../lib/api'
 import { ChampRecherche, aplatir } from './ChampRecherche'
 import { InterrupteurMode } from './InterrupteurMode'
+import { useHubStore } from '../store/useHubStore'
 import { GENRES_OUTIL } from '../types'
 import type {
   Agent,
@@ -510,9 +511,20 @@ export function Conversation({
       ? agents.filter((a) => equipeChoisie.membres.includes(a.id))
       : agents
 
+  /**
+   * En Discussion, l'annuaire disparait - meme defaut que le menu d'equipes,
+   * trouve en regardant : proposer « Chercher un nom ou un metier » sous une
+   * phrase qui promet « personne ne se reveille » invite a un geste qui ne peut
+   * pas aboutir. La maquette ne le montre qu'en Atelier (`sous-champ`).
+   *
+   * Mode inconnu (`null`) : on garde l'annuaire. Faire disparaitre l'equipe sur
+   * un doute serait pire que de la laisser.
+   */
+  const enDiscussion = useHubStore((s) => s.modeConversation)?.mode === 'discussion'
+
   /** La rangee de pastilles est-elle a l'ecran ? Le menu d'equipes suit, parce
       qu'un filtre sans la liste qu'il trie n'a pas d'objet. */
-  const rangeeVisible = Boolean(deplie || terme || equipeChoisie)
+  const rangeeVisible = Boolean((deplie || terme || equipeChoisie) && !enDiscussion)
 
   /**
    * Combien d'agents ce message va-t-il reveiller ?
@@ -676,7 +688,11 @@ export function Conversation({
         >
           <InterrupteurMode centre={centre} />
 
-          <div className={`flex flex-wrap items-center gap-2 ${centre ? 'order-last' : ''}`}>
+          <div
+            className={`flex flex-wrap items-center gap-2 ${centre ? 'order-last' : ''} ${
+              enDiscussion ? 'hidden' : ''
+            }`}
+          >
             {/**
              * Le menu d'equipes ne parait qu'avec la rangee qu'il filtre.
              *
@@ -815,7 +831,16 @@ export function Conversation({
                   void envoyer()
                 }
               }}
-              placeholder="Ecris a ton equipe. @nom pour appeler quelqu un."
+              /* F2 - « ton equipe » designait des inconnus, et en Discussion
+                 elle ne se reveille meme pas. L'invite suit donc le mode :
+                 promettre « personne ne se reveille » au-dessus d'un champ qui
+                 dit « ecris a ton equipe » demandait de choisir laquelle des
+                 deux phrases croire. Voir `maquette-parcours.html`, PLACEHOLDER. */
+              placeholder={
+                enDiscussion
+                  ? 'Pose une question a Hermes.'
+                  : 'Ecris a ton equipe. @nom pour appeler quelqu un.'
+              }
               className="input max-h-40 min-h-[42px] flex-1 resize-y py-2.5"
             />
 

@@ -4,6 +4,7 @@ import type {
   AccordEnAttente,
   AppConfig,
   EtatAutomatisations,
+  ModeConversation,
   Project,
   ProjectStatus,
   Skin,
@@ -14,6 +15,31 @@ import type {
 } from '../types'
 import { THEMES } from '../types'
 import { ecrireTraces, lireTraces, TRACES_GARDEES, type ScenarioFini } from './alertes'
+
+/**
+ * Le mode, ramene a une forme sure.
+ *
+ * ⚠ ECRIT APRES UN ECRAN BLANC : une route mal adressee n'echoue pas, elle est
+ * repondue par le bloc voisin - objet valide, `greffon` absent, `catch` muet,
+ * application par terre. `request<T>` affirme, il ne verifie pas. Le recit
+ * complet est en tete de `server/mode-conversation.js` ; ne pas le recopier
+ * ici, une lecon en trois exemplaires se contredit au premier changement.
+ *
+ * Une forme inattendue rend `null` ou « greffon absent », jamais une promesse.
+ */
+function sur(brut: unknown): ModeConversation | null {
+  const o = brut as Partial<ModeConversation> | null
+  if (!o || (o.mode !== 'atelier' && o.mode !== 'discussion')) return null
+  const g = o.greffon
+  return {
+    mode: o.mode,
+    greffon: {
+      present: g?.present === true,
+      nom: typeof g?.nom === 'string' ? g.nom : 'heurtoir',
+      raison: g?.present === true ? null : (g?.raison ?? 'config-introuvable'),
+    },
+  }
+}
 
 export type ToastKind = 'success' | 'error' | 'info'
 
@@ -80,6 +106,25 @@ interface HubState {
    */
   alerteEssai: boolean
   basculerAlerteEssai: () => void
+
+  /**
+   * Discussion ou Atelier - et ce que ce mode a le droit de promettre.
+   *
+   * IL VIT ICI ET PAS DANS L'INTERRUPTEUR, parce que trois surfaces le lisent
+   * pour des raisons differentes : le bouton l'affiche, le champ de saisie
+   * change son invite (F2 - « ecris a ton equipe » n'a aucun sens quand
+   * personne ne se reveille), et l'annuaire des agents disparait sous un mode
+   * ou mentionner quelqu'un ne convoque personne. Le laisser dans le composant
+   * obligeait a le redescendre en props a travers un fichier deja signale pour
+   * decoupe.
+   *
+   * `null` tant qu'on ne sait pas : on n'affiche alors ni interrupteur ni
+   * promesse, plutot que de supposer Atelier. Le serveur, lui, tranche
+   * toujours - c'est `lireMode()` qui fait autorite, pas cette copie.
+   */
+  modeConversation: ModeConversation | null
+  chargerMode: () => Promise<void>
+  poserMode: (mode: ModeConversation['mode']) => Promise<void>
 
   loading: boolean
   toasts: Toast[]
@@ -165,6 +210,7 @@ export const useHubStore = create<HubState>((set, get) => {
     scenariosFinis: lireTraces(),
     automatisations: null,
     alerteEssai: false,
+    modeConversation: null,
 
     loading: false,
     toasts: [],
@@ -195,6 +241,17 @@ export const useHubStore = create<HubState>((set, get) => {
     },
 
     basculerAlerteEssai: () => set((s) => ({ alerteEssai: !s.alerteEssai })),
+
+    chargerMode: async () => {
+      set({ modeConversation: sur(await api.modeConversation().catch(() => null)) })
+    },
+
+    poserMode: async (mode) => {
+      const rendu = sur(await api.setModeConversation(mode).catch(() => null))
+      // Une reponse illisible ne doit pas laisser l'ecran affirmer l'ancien
+      // mode : on se tait plutot que d'afficher une garantie perimee.
+      set({ modeConversation: rendu })
+    },
 
     notify,
     dismiss: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),

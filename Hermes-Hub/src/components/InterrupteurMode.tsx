@@ -34,7 +34,7 @@
  */
 import { useEffect, useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
-import { api } from '../lib/api'
+import { useHubStore } from '../store/useHubStore'
 import type { ModeConversation } from '../types'
 
 /**
@@ -45,39 +45,6 @@ import type { ModeConversation } from '../types'
  * mentions, donc il decide - et elle est donc vraie partout. La moitie « rien
  * ne s'ecrit » ne l'est qu'avec la piece posee.
  */
-/**
- * Ce que le serveur a rendu, ramene a une forme sure.
- *
- * ⚠ ECRIT APRES UN ECRAN BLANC, ET LA LECON VAUT PLUS QUE LE CORRECTIF. Le
- * chemin de la route etait faux - `/config/` au lieu de `/chat/` - et la
- * requete n'a PAS echoue : elle est tombee dans un autre bloc du serveur, qui a
- * repondu un objet parfaitement valide, sans `greffon`. Le `catch` ne s'est
- * jamais declenche, `etat` etait vrai, et `etat.greffon.present` a fait tomber
- * l'application entiere.
- *
- * `request<ModeConversation>` n'est pas une verification : c'est une
- * AFFIRMATION sur ce que le serveur rendra. TypeScript la croit sur parole et
- * ne franchit pas le reseau. Une reponse d'une version future, d'une route
- * voisine ou d'un mandataire passe donc au travers.
- *
- * D'ou ce filtre. Une forme inattendue rend « greffon absent » plutot que de
- * casser : le doute retombe du cote qui ne promet rien, exactement comme
- * `lireMode()` retombe sur Atelier cote serveur.
- */
-function sur(brut: unknown): ModeConversation | null {
-  const o = brut as Partial<ModeConversation> | null
-  if (!o || (o.mode !== 'atelier' && o.mode !== 'discussion')) return null
-  const g = o.greffon
-  return {
-    mode: o.mode,
-    greffon: {
-      present: g?.present === true,
-      nom: typeof g?.nom === 'string' ? g.nom : 'heurtoir',
-      raison: g?.present === true ? null : (g?.raison ?? 'config-introuvable'),
-    },
-  }
-}
-
 function garantie(etat: ModeConversation): string {
   if (etat.mode === 'atelier') {
     return "L equipe : les mentions reveillent, les plans se proposent."
@@ -94,17 +61,17 @@ function garantie(etat: ModeConversation): string {
  * cesserait de se lire comme une condition de ce qu'on ecrit.
  */
 export function InterrupteurMode({ centre = false }: { centre?: boolean }) {
-  const [etat, setEtat] = useState<ModeConversation | null>(null)
+  const etat = useHubStore((s) => s.modeConversation)
+  const chargerMode = useHubStore((s) => s.chargerMode)
+  const poserMode = useHubStore((s) => s.poserMode)
   const [enVol, setEnVol] = useState(false)
 
   useEffect(() => {
-    // Un echec de lecture ne doit pas faire disparaitre le champ de saisie :
-    // on reste muet plutot que de poser un interrupteur dont on ignore l'etat.
-    api
-      .modeConversation()
-      .then((r) => setEtat(sur(r)))
-      .catch(() => setEtat(null))
-  }, [])
+    // Un echec de lecture ne doit pas faire disparaitre le champ de saisie : le
+    // magasin reste a `null` et on ne pose rien, plutot que d'afficher un
+    // interrupteur dont on ignore l'etat.
+    void chargerMode()
+  }, [chargerMode])
 
   if (!etat) return null
 
@@ -112,12 +79,7 @@ export function InterrupteurMode({ centre = false }: { centre?: boolean }) {
     if (mode === etat?.mode || enVol) return
     setEnVol(true)
     try {
-      const rendu = sur(await api.setModeConversation(mode))
-      // Une reponse illisible ne doit pas laisser l'interrupteur affirmer
-      // l'ancien mode : on se tait plutot que d'afficher une garantie perimee.
-      setEtat(rendu)
-    } catch {
-      setEtat(null)
+      await poserMode(mode)
     } finally {
       setEnVol(false)
     }
