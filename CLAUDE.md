@@ -1,6 +1,6 @@
 # Hermès Hub — à lire en ouvrant ce dépôt
 
-> ⏱ **Écrit** le 4 août 2026 à **20:18** · **révisé** le 4 août 2026 à **23:40**
+> ⏱ **Écrit** le 4 août 2026 à **20:18** · **révisé** le 5 août 2026 à **12:10**
 > détail : `git log --follow -- CLAUDE.md`
 >
 > **Convention d'horodatage du dépôt.** Tout document porte, sous son titre,
@@ -54,7 +54,7 @@ quand on en a besoin. Le dépôt est la mémoire.
 
 ---
 
-## Quatre règles qui coûtent cher si on les oublie
+## Cinq règles qui coûtent cher si on les oublie
 
 - **Aucune commande git sans accord explicite.** Ni `add`, ni `commit`, ni
   `push`. Le dépôt versionne `dist/` : un commit automatique embarquerait une
@@ -73,6 +73,37 @@ quand on en a besoin. Le dépôt est la mémoire.
   d'abord être confronté aux plus récents : ranger et valider sont deux gestes
   différents, et le premier fait passer le second pour acquis. Le protocole est
   juste en dessous, et il n'est pas facultatif.
+
+---
+
+## En Cowork : les commandes se donnent entières — **et seulement là**
+
+**En ligne de commande, cette section ne s'applique pas.** kuchu y est déjà dans
+un terminal : il voit son dossier courant, il enchaîne, un fragment suffit et
+tout marche tout seul. C'est en **Cowork** que le fragment coûte, parce qu'il se
+colle à l'aveugle dans une fenêtre séparée — et parce que **kuchu n'est pas
+développeur** : ce qui va de soi pour qui vit dans un shell ne va pas de soi.
+
+Quatre règles, toutes payées le 5 août 2026 :
+
+- **Le bloc entier, jamais un morceau.** `cd` compris, chemin complet entre
+  guillemets, prêt à coller d'un geste. Un `npm run build` sans son `cd` suppose
+  qu'on sait où l'on est — c'est justement ce qu'on ne sait pas.
+- **Annoncer combien d'étapes avant la première.** « Deux blocs, dans cet
+  ordre » permet de savoir qu'il y a deux choses à coller. Sans ça, chaque bloc
+  ressemble au dernier.
+- **Dire ce qu'on doit voir**, et ce que ça veut dire si on voit autre chose.
+  Une sortie vide est une information, pas un échec.
+- **Dire quelle fenêtre est laquelle.** `dev-v2.ps1` occupe la sienne tant que
+  le serveur tourne : taper quoi que ce soit dedans l'éteint. Ça a tué le serveur
+  **deux fois dans la même séance** avant qu'on l'écrive. D'où
+  `Hermes-Hub/Lancer-le-Hub-V2.bat` — un double-clic, une fenêtre à part, plus
+  rien à coller pour lancer.
+
+**Et ce que l'agent peut faire lui-même, il le fait** plutôt que de le déléguer :
+lire un fichier, lancer les tests, vérifier le rendu dans Chrome. On ne demande à
+kuchu que ce qui ne passe pas par le bac à sable — ce qui, aujourd'hui, se réduit
+à `npm run build` et au lancement du serveur.
 
 ---
 
