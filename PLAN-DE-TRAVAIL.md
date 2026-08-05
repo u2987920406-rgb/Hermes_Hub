@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **16:45**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 5 août 2026 à **17:05**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -817,8 +817,42 @@ de penser, et aucun moyen de le réparer sans terminal.** Le Hub affichait
 2. **des exceptions déclarées** : un agent très spécialisé, sur une tâche
    étroite et agentique, tourne **en local**. Gratuit, hors ligne, insensible
    aux crédits. Mesuré le 5 août : `glm-5.2:cloud` répond en **1,9 s** avec
-   outils et raisonnement ; `qwen3.5:4b` est le vrai repli hors ligne, sans
-   aucun compte.
+   outils et raisonnement ; ~~`qwen3.5:4b` est le vrai repli hors ligne, sans
+   aucun compte.~~
+
+**⚠ « LE VRAI REPLI HORS LIGNE » NE TIENT PAS SUR LE DÉCOMPOSEUR — mesuré le
+5 août à 16:55.** L'expérience V1 du 4 août — trois tâches, quatre champs,
+`hermes -z` — rejouée sur les quatre cerveaux locaux de cette machine. La
+mesure de 15:10 portait sur un **temps de réponse en conversation** ; celle-ci
+porte sur le **contrat structuré**, et les deux ne disent pas la même chose :
+
+| cerveau | durée | bloc structuré |
+|---|---|---|
+| `glm-5.2:cloud` | **14,1 s** | 3 tâches, **3/3 aux quatre champs** ✅ |
+| `qwen3:4b-thinking-2507` | **182,5 s** | 3/3 ✅ — mais **trois minutes** |
+| `qwen3.5:4b` | 19,0 s | 2 tâches, **0/4 champs** ⚠ |
+| `gemma3:4b` | 5,5 s | aucun tableau ❌ |
+
+**`qwen3.5:4b` est inconstant, et c'est pire qu'un échec franc :** au passage
+manuel juste avant, il avait rendu trois tâches aux quatre champs, proprement.
+Un cerveau qui tient le contrat une fois sur deux fait un décomposeur qui
+échoue sans motif — exactement la variance déjà notée à V1 (19,7 · 26,4 · 95,8
+· 270 s sur la même phrase).
+
+*Conséquence pour le dessin, et elle est nette :* **le cerveau universel et le
+repli hors ligne ne peuvent pas être le même réglage.** `glm-5.2:cloud` est le
+seul qui décompose vite et juste — mais il passe par Ollama **en nuage**, donc
+il n'est pas à l'abri d'une coupure, ce qui est toute la raison de ce chantier.
+Et les 4B locaux, eux, tiennent une conversation sans tenir le décompte.
+
+**Ce qui doit donc apparaître dans le panneau :** le décomposeur — Hermès —
+n'est pas un agent comme les autres. C'est celui qu'on veut le moins voir
+tomber sur un 4B, et c'est justement celui que « tout le monde coché d'avance »
+écraserait en premier.
+
+*⚠ Ce qui n'est pas mesuré :* ces chiffres portent sur **un seul énoncé**, une
+passe chacun. `qwen3.5:4b` a été vu dans les deux états ; les trois autres n'ont
+pas été rejoués. Avant d'en faire un défaut livré, il faut plusieurs passes.
 
 **⚠ ET CE N'EST PLUS UNE GÊNE, C'EST UN BLOCAGE — mesuré le 5 août à 16:30.**
 La panne n'a pas été réparée depuis 15:10, et elle a **empêché de jouer le
@@ -838,6 +872,36 @@ est mort avec les autres** — donc aucun scénario ne peut même être découp�
 le chantier 5 n'est plus seulement une commodité : il conditionne toute épreuve
 de bout en bout sur cette machine. *Le contournement du jour a été de tout jouer
 sur le Maquettiste, seul agent capable de penser.*
+
+**⚠ ET LA CAUSE N'EST PAS CELLE QU'ON CROYAIT — relevée le 5 août à 17:00 dans
+`auth.json`, écrite par Hermès lui-même :**
+
+```
+provider : nous          code : invalid_grant
+message  : « Refresh session has been revoked »
+reason   : credential_pool_refresh_failure     relogin_required : True
+at       : 2026-08-05T14:09:01Z   (16:09 heure locale, le jour même)
+```
+
+Le §7 parlait de *credit error* et de *HTTP 401 — out of funds*. **C'était vrai
+d'OpenRouter, pas de Nous** : la session Nous a été **révoquée**, et
+`credential_pool` est vide pour les trois fournisseurs. Ce n'est donc ni un
+problème de modèle, ni un problème d'argent — c'est une **reconnexion**, et
+elle ne coûte rien.
+
+*Deux conséquences, et la seconde compte pour le produit :*
+
+- **changer le cerveau des douze n'aurait rien réparé.** Ils sont déjà sur
+  `tencent/hy3:free` ; le basculement était un geste sans effet. On a failli le
+  faire ;
+- **le Hub ne sait pas dire ça.** Il affichait « Internal error » le matin, et
+  rien du tout l'après-midi. L'information exacte était sur le disque, en clair,
+  dans un fichier qu'Hermès tient à jour — `relogin_required: True` est
+  exactement le mot qui manquait à l'écran. **Le chantier 5 doit donc porter
+  deux choses, pas une** : choisir un cerveau à la souris, *et* lire
+  `auth.json` pour dire quand le cerveau ne répond pas parce qu'il faut se
+  reconnecter. Le second est plus urgent que le premier : sans lui, un client
+  dont la session expire voit treize agents muets et aucune raison.
 
 **⚠ MESURÉ LE 5 AOÛT À 15:20 — LA CASCADE N'EXISTE PAS.** L'aide d'Hermès
 décrit `config get` comme *« Print a **resolved** configuration value »*, ce qui
