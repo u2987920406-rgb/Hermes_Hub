@@ -892,3 +892,32 @@ Le serveur refusait, il ne se passait RIEN — ni action, ni message, ni trace.
 Il n'y a qu'une lecture possible pour qui regarde l'écran, et c'est celle qui a
 été faite. Corrigé le soir même ; **le correctif a attrapé le bug de son auteur
 dans l'heure** — l'`await` manquant ci-dessus se serait perdu en silence.
+
+### Un panneau qui montre le **prouvé** n'offre pas de l'inventer *(06/08/2026)*
+Le plan demandait « les compétences d'un agent, à la création et après, avec un
+enregistrement explicite ». Ce qui a été construit ne permet **pas** d'en
+ajouter : on **oublie**, c'est tout. Une fiche créée à la main naîtrait sans le
+scénario qui la justifie, et « la dernière fois, voilà ce qui avait marché »
+deviendrait une phrase sans dernière fois. L'enregistrement explicite existait
+déjà, ailleurs et au bon moment — « Mettre en mémoire », à la fin d'un scénario,
+dans le Studio.
+
+**Deux choses portent le mot compétence** : le *déclaré* (la description d'un
+agent, seul texte que le décomposeur lit) et le *prouvé* (les fiches du Coffre).
+Les confondre aurait donné un formulaire de plus, qui aurait menti.
+
+Et un panneau vide doit **nommer l'endroit du geste** : sans la phrase qui
+renvoie au Studio, une liste vide passe pour un bouton manquant.
+
+### Côté serveur aussi, `return []` sur une panne est un mensonge *(06/08/2026)*
+`lireCompetences()` rendait `[]` pour **toute** erreur de lecture. Mesuré en
+remplaçant `Vault/Skills` par un fichier : la route répond **200 et zéro fiche**,
+donc l'écran affirme « aucune fiche » alors que le Coffre est peut-être plein.
+C'est l'avaleur d'erreur du Studio, un étage plus bas, là où il a l'air
+légitime : **pas de dossier = pas de fiche** est vrai pour une installation
+neuve, et cette vérité-là couvrait tout le reste. Désormais `ENOENT` seul rend
+`[]` ; droit refusé, disque absent, fichier à la place du dossier remontent en
+500 et s'affichent dans le panneau.
+
+*(Au passage : un fichier nommé `Skills` empêche le Hub de démarrer —
+`ensureLayout()` ne peut plus créer le dossier. Trouvé en sabotant, pas prévu.)*

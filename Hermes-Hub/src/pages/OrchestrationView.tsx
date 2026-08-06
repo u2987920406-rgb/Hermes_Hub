@@ -35,6 +35,8 @@ import { Organigramme } from '../components/Organigramme'
 import type { EtatNoeud, LienOrg, NoeudOrg } from '../components/Organigramme'
 import { NouvelAgent } from '../components/NouvelAgent'
 import { CerveauEquipe } from '../components/CerveauEquipe'
+import { CompetencesEquipe } from '../components/CompetencesEquipe'
+import { DescriptionAgent } from '../components/DescriptionAgent'
 import { OutilsEquipe } from '../components/OutilsEquipe'
 import { PageHeader } from '../components/PageHeader'
 import { sansAccord } from '../lib/accords'
@@ -628,6 +630,14 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
                   <div className="border-t border-slate-200 pt-4 dark:border-navy-800">
                     <CerveauEquipe nomsAgents={new Map(agents.map((a) => [a.id, a.nom]))} />
                   </div>
+
+                  {/* Et ce qu'ils ont DEJA REUSSI, en dernier - c'est la seule
+                      des quatre sections qui ne se regle pas : elle se
+                      constate. Les descriptions au-dessus disent le declare,
+                      celle-ci dit le prouve. */}
+                  <div className="border-t border-slate-200 pt-4 dark:border-navy-800">
+                    <CompetencesEquipe />
+                  </div>
                 </>
               )}
 
@@ -998,13 +1008,15 @@ function LigneAgent({ agent, onFait }: { agent: Agent; onFait: () => void }) {
           {!agent.pretAServir && <span className="puce sens-alerte">sans cle</span>}
         </div>
 
-        <p className="texte-corps mt-0.5 muted">
-          {agent.description || (
-            <span className="sens-alerte teinte-sens">
-              Sans description : le decomposeur ne saura pas quoi lui confier.
-            </span>
-          )}
-        </p>
+        {/* La description se modifie ICI, la ou elle se lit - et pas dans une
+            fenetre : c'est en comparant les descriptions de la liste qu'on voit
+            ce qui manque a celle-ci. Voir `DescriptionAgent.tsx`. */}
+        <DescriptionAgent
+          id={agent.id}
+          nom={agent.nom}
+          description={agent.description || ''}
+          onFait={onFait}
+        />
 
         <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] muted">
           {agent.modele && (

@@ -134,3 +134,18 @@ test('pas de dossier Skills : aucune competence, pas une erreur', () => {
   assert.deepEqual(lireCompetences(), [])
   assert.deepEqual(proposerPour('une demande quelconque sur les ventes'), [])
 })
+
+test('un Coffre illisible remonte, il ne rend pas une liste vide', () => {
+  // Le 06/08/2026, `lireCompetences()` avalait TOUTE erreur de lecture : la
+  // route repondait 200 et zero fiche, et l'ecran affirmait « aucune fiche »
+  // alors que le Coffre pouvait etre plein. Un fichier a la place du dossier
+  // reproduit la panne sans droits a truquer.
+  vider()
+  fs.mkdirSync(path.dirname(SKILLS), { recursive: true })
+  fs.writeFileSync(SKILLS, 'pas un dossier')
+  try {
+    assert.throws(() => lireCompetences(), /Coffre n'a pas pu etre lu/)
+  } finally {
+    fs.rmSync(SKILLS, { force: true })
+  }
+})

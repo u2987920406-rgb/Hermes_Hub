@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **18:20**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **21:15**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -878,10 +878,20 @@ mal emportait le Hub.
   **déclaré** vient de `hermes profile describe`, le **prouvé** de
   `lireCompetences()` (Coffre). **Pas** du dossier `skills/` d'un profil — voir
   §2, V3 ;
-- les **portes de modification manquantes** : décrire un agent — la route existe,
-  le geste manque —, et modifier une automatisation, qui n'a ni route ni geste ;
-- les compétences d'un agent, à la création et après, avec un **enregistrement
-  explicite**.
+- les **portes de modification manquantes** : ~~décrire un agent — la route existe,
+  le geste manque~~ ✅ **fait le 6 août** (`DescriptionAgent.tsx`, crayon sur la
+  fiche, ouvert **en place et pas en fenêtre** : c'est en comparant aux
+  descriptions voisines qu'on voit ce qui manque à celle-ci ; aller-retour joué à
+  l'écran sur le géographe, puis remis dans son état d'origine) —, et **modifier
+  une automatisation, qui n'a toujours ni route ni geste** ;
+- ~~les compétences d'un agent, à la création et après, avec un enregistrement
+  explicite~~ ✅ **fait le 6 août**, mais **pas comme écrit ici** :
+  `CompetencesEquipe.tsx` montre le **prouvé** — les fiches du Coffre — et on n'y
+  **ajoute rien, on oublie**. Une fiche créée à la main naîtrait sans le scénario
+  qui la justifie ; « la dernière fois, voilà ce qui avait marché » deviendrait
+  une phrase sans dernière fois. L'enregistrement explicite existe déjà, ailleurs
+  et au bon moment : « Mettre en mémoire », à la fin d'un scénario, dans le
+  Studio. Le panneau vide **nomme cet endroit**, sinon il a l'air cassé.
 
 **Porte :** on compose une équipe, on corrige la description d'un agent, on
 modifie une automatisation — sans jamais ouvrir de terminal.

@@ -224,8 +224,17 @@ export function lireCompetences() {
   let noms
   try {
     noms = fs.readdirSync(DOSSIER).filter((n) => n.toLowerCase().endsWith('.md'))
-  } catch {
-    return []
+  } catch (e) {
+    // PAS DE DOSSIER = PAS DE FICHE, et c'est l'etat normal d'une installation
+    // neuve : `[]` dit vrai. Tout le reste - un fichier a la place du dossier,
+    // un droit refuse, un disque reseau absent - est une PANNE, et la rendre
+    // comme une liste vide ferait dire a l'ecran « aucune fiche » alors que le
+    // Coffre est peut-etre plein. Le 06/08/2026, c'est exactement ce qu'on a
+    // mesure en remplacant `Skills` par un fichier : 200 et zero fiche.
+    if (e.code === 'ENOENT') return []
+    const err = new Error(`Le Coffre n'a pas pu etre lu : ${e.message}`)
+    err.status = 500
+    throw err
   }
 
   const fiches = []

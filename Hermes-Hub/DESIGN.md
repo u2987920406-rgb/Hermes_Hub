@@ -77,10 +77,13 @@ pour le nommer quand on veut demander une modification.
 | Le formulaire « Un agent de plus » | `nouvel-agent` | — | `NouvelAgent.tsx` |
 | Composer une equipe : cocher des agents, la nommer | `editeur-equipe` | — | `EditeurEquipe.tsx` — ouvrir une vignette d'equipe l'ouvre ici |
 | Une fiche dans la liste des agents | `fiche-agent` | `--agent-lisere`, `--agent-point`, `--densite` | `OrchestrationView.tsx` |
+| Reecrire ce qu'un agent sait faire, **sur sa fiche** | `description-agent` | — | `DescriptionAgent.tsx` — s'ouvre en place et **pas en fenetre** : c'est en comparant aux descriptions voisines qu'on voit ce qui manque a celle-ci. Sans description, l'agent n'est pas casse, il est **oisif** — le decomposeur ne lit que ce texte |
 | Les outils MCP, sous les agents | `outils-equipe` | — | `OutilsEquipe.tsx` |
 | La ligne d'un outil, avec « qui l'a » | `ligne-outil` | `--densite` | idem — l'ambre signale un outil incomplet |
 | Le cerveau de l'equipe, sous les outils | `cerveau-equipe` | — | `CerveauEquipe.tsx` — **meme grammaire que les outils** : toute l'equipe herite, on declare les exceptions. La liste des modeles vient des sessions ACP ouvertes, jamais d'une copie tenue ici — vide tant que personne n'est eveille, et il le dit |
 | La ligne d'un choix de cerveau | `ligne-cerveau` | — | idem — le vide est une **valeur** (« comme toute l'equipe »), sinon une exception ne se retirerait jamais |
+| Ce que l'equipe a deja reussi, sous le cerveau | `competences-equipe` | — | `CompetencesEquipe.tsx` — le **prouve**, la ou `description-agent` porte le **declare**. Seule des quatre sections qui ne se regle pas : on n'y ajoute rien, on y **oublie**. Le vide nomme l'endroit du geste (« Mettre en memoire », dans le Studio), sinon le panneau a l'air casse |
+| La ligne d'une fiche apprise | `ligne-competence` | — | idem — les mots-cles ne decorent pas : le rapprochement se fait sur eux, donc ils disent **pourquoi** une fiche reviendra |
 | Le formulaire « Brancher un outil » | `nouvel-outil` | — | idem |
 | Une vignette de scenario | `vignette-scenario` | `--agent-lisere-vignette` | idem |
 | Une vignette d'equipe | `vignette-equipe` | `--agent-lisere-vignette` | idem |
@@ -259,7 +262,9 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `carte-projet` | `src/components/ProjectCard.tsx` |
 | `cerveau-equipe` | `src/components/CerveauEquipe.tsx` |
 | `champ-recherche` | `src/components/ChampRecherche.tsx` |
+| `competences-equipe` | `src/components/CompetencesEquipe.tsx` |
 | `decompte-decoupage` | `src/components/DecompteDecoupage.tsx` |
+| `description-agent` | `src/components/DescriptionAgent.tsx` |
 | `destinataires` | `src/components/Conversation.tsx` |
 | `developpement` | `src/pages/ConfigView.tsx` |
 | `echec-plan` | `src/components/Conversation.tsx` |
@@ -282,6 +287,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `ligne-alerte` | `src/components/LigneAlerte.tsx` |
 | `ligne-banc` | `src/components/BancEssai.tsx` |
 | `ligne-cerveau` | `src/components/CerveauEquipe.tsx` |
+| `ligne-competence` | `src/components/CompetencesEquipe.tsx` |
 | `ligne-contexte` | `src/components/LigneContexte.tsx` |
 | `ligne-historique` | `src/components/VoletHistorique.tsx` |
 | `ligne-outil` | `src/components/OutilsEquipe.tsx` |
