@@ -273,7 +273,6 @@ export interface Fil extends FilResume {
 /** Ce que rend la decomposition : un pole neuf, et de quoi le simuler. */
 export interface Decomposition {
   pole: string
-  titre: string
   /** Faux quand la demande etait deja assez simple pour tenir en une tache. */
   decoupe: boolean
   enfants: string[]

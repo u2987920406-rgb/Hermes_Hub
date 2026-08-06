@@ -282,6 +282,29 @@ lancer dans le Studio.
 friction dont l'argument repose sur une pièce non encore posée ne se règle pas
 avant elle.
 
+### Une dette peut devenir une fonction, et ça se décide *(06/08/2026)*
+Le retrait de la boîte a laissé `/api/demande` sans appelant. Trois issues :
+supprimer, laisser mourir sur pied, ou **lui ouvrir une porte**. La troisième a
+été choisie parce que le code mort cachait une capacité qui n'a pas
+d'équivalent : `poserScenario` **enchaîne** — le plan d'Hermès donne des étapes
+et une prose, sans notion de dépendance — quand `kanban decompose` produit un
+**graphe**. Le jeter aurait rendu le séquentiel définitif.
+
+La porte est le Studio, sur une demande qu'Hermès n'a pas découpée : c'est le
+seul endroit où le geste a un sens, et il n'y apparaît que là.
+
+*Ce qui vaut au-delà d'ici :* **avant de supprimer du code mort, se demander ce
+qu'il sait faire que le reste ne sait pas.** Souvent rien, et il part. Parfois
+c'est une capacité qu'on allait perdre sans le voir, parce qu'elle n'était plus
+atteignable — et l'inatteignable se confond avec l'inutile.
+
+*⚠ Et la mesure a nuancé l'argument qui l'avait fait garder.* Sur les quinze
+scénarios du bac à sable, ceux nés du découpeur branchent vraiment — jusqu'à
+`fanout = 5`, et quatre ont une convergence hors tête. Mais la demande jouée le
+jour même, celle qui semblait la plus parallélisable, a rendu **une chaîne**.
+**Le graphe parallèle est une possibilité du découpeur, pas une propriété** —
+et un argument mesuré à moitié reste un argument à moitié.
+
 ### Un geste retiré se suit jusqu'à ce qu'il emporte *(06/08/2026)*
 Retirer la boîte « Décris ce que tu veux » paraissait être une suppression de
 trois lignes. Elle emporte `preparer()`, donc `api.demande`, donc la route et

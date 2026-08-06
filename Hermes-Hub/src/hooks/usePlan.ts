@@ -27,8 +27,20 @@ export function usePlan({
   eveilles: number
   /** Combien de tours se sont termines. C'est LE signal de depart. */
   toursFinis: number
-  onErreur: (message: string) => void
-  /** Remet la demande dans le champ, pour F7. */
+  /**
+   * ⚠ LA DEMANDE VOYAGE AVEC LE MESSAGE, ET C'EST F20.
+   *
+   * Un plan qui n'aboutit pas laissait une phrase d'erreur seule. Celle du
+   * serveur nomme le Studio - « ou ouvre le Studio pour la construire a la
+   * main » - alors que RIEN n'a ete cree : elle decrivait donc un chemin sans
+   * l'offrir, et l'ouvrir vraiment menerait a « Aucun scenario ouvert ».
+   *
+   * Le geste le moins couteux est le meme que pour F7 : le champ, avec la
+   * demande dedans. Encore faut-il ne pas l'avoir perdue - d'ou ce second
+   * argument, qui la porte jusqu'au bandeau.
+   */
+  onErreur: (message: string, demande: string) => void
+  /** Remet la demande dans le champ, pour F7 et F20. */
   onReformuler: (texte: string) => void
 }) {
   /**
@@ -59,8 +71,10 @@ export function usePlan({
         await api.plan(texte)
       } catch (e) {
         // Un plan qui n'aboutit pas ne casse pas la conversation : Hermes a
-        // deja repondu. On le dit sans transformer ca en panne du fil.
-        onErreur(e instanceof Error ? e.message : String(e))
+        // deja repondu. On le dit sans transformer ca en panne du fil - et on
+        // rend la demande avec, sans quoi le message ne pourrait que decrire un
+        // chemin (F20).
+        onErreur(e instanceof Error ? e.message : String(e), texte)
       } finally {
         setDepuis(null)
       }
@@ -109,7 +123,11 @@ export function usePlan({
     try {
       await api.poserPlan(tour.id, tour.plan)
     } catch (e) {
-      onErreur(e instanceof Error ? e.message : String(e))
+      // Poser le scenario echoue APRES qu'un plan a ete lu et valide : la
+      // demande n'est plus la bonne chose a reprendre, le plan l'est. Pas de
+      // second argument, donc pas de bouton - on ne propose pas un geste qui
+      // ne repare rien.
+      onErreur(e instanceof Error ? e.message : String(e), '')
     } finally {
       setEnVol(null)
     }

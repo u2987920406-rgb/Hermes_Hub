@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **16:14**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **17:59**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -923,7 +923,7 @@ ne s'évapore dans l'exécution.
 | F17 | Personne ne dit que l'équipe ne sait pas faire | 4 *(= C4)* — **✅ réglé le 6 août** : le plan nomme les étapes qui reviennent à l'agent par défaut, la tête de pôle exclue |
 | F18 | « le tableau » est un mot du dedans, dans le jalon d'attente | 3 — **✅ réglé le 6 août**, aux deux endroits où le mot sortait |
 | F19 | Rien ne dit qu'on peut écrire pendant qu'un plan se prépare | 3 — **✅ réglé, et joué à l'écran le 6 août** : « 0 s / 90 s — tu peux continuer à écrire pendant ce temps » |
-| F20 | Le message de dépassement décrit le chemin sans l'offrir | 3 — ~~✅ réglé le 6 août~~ **⚠ ROUVERTE le 6 août au soir : le bouton n'existait que sur le chemin de la boîte, retirée depuis. Voir §6** |
+| F20 | Le message de dépassement décrit le chemin sans l'offrir | 3 — ~~✅ réglé le 6 août~~ ~~⚠ rouverte le 6 août au soir avec le retrait de la boîte~~ **✅ REFERMÉE le 6 août : « Reformuler la demande », qui remet la phrase dans le champ — décision de kuchu** |
 | C1 | La carte de plan porte son état dans le fil, et cite la demande | 3 — ✅ réglé |
 | C2 | L'autorisation apparaît là où l'on est | 2 — ✅ réglé |
 | C3 | Ligne du plan ↔ nœud du graphe | 4 — **✅ réglé le 6 août, dans les deux sens** |
@@ -974,14 +974,67 @@ donc de dessin, pas de branchement : **que doit offrir le Hub quand Hermès rend
 un plan sans étapes ?** Reformuler dans le champ ? Un Studio qui sait naître
 vide ? Rien, et une phrase qui ne promet pas ?
 
-*À trancher avant de clore le chantier 5.*
+**✅ TRANCHÉ PAR KUCHU LE 6 AOÛT : reformuler dans le champ.**
+
+Le bandeau d'échec porte désormais « Reformuler la demande », qui remet la phrase
+dans le champ et y met le curseur — **la même réponse que F7, pour la même
+raison** : rien n'a été écrit sur le disque à ce stade, il n'y a donc rien à
+défaire, seulement une phrase à reprendre. C'est aussi le geste le moins coûteux
+des trois envisagés, et le seul qui mène quelque part qui existe.
+
+*La demande devait survivre pour ça :* `usePlan` la rend maintenant avec le
+message d'erreur. Sans ce second argument, le bandeau ne pouvait que décrire ce
+qu'il aurait fallu refaire.
+
+*Et le bouton ne paraît pas toujours* : poser un scénario qui échoue **après**
+qu'un plan a été lu et validé ne rend pas la demande — à ce moment, ce qu'on
+voudrait reprendre est le plan, pas la phrase. On ne propose pas un geste qui ne
+répare rien.
+
+*Dire où la vérification s'arrête :* **écrit, non joué à l'écran.** Il faut
+qu'Hermès rende un plan sans aucune étape, ce qui ne se commande pas. Même
+situation que F19 hier — qui, lui, a fini par être joué.
 
 ### Trois choses à balayer, nées du même retrait *(6 août)*
 
-- **`api.demande`, la route `/api/demande` et `decomposer()`** n'ont plus aucun
+- ~~**`api.demande`, la route `/api/demande` et `decomposer()`** n'ont plus aucun
   appelant. C'est le **dernier chemin qui passe par `hermes kanban decompose`** :
   le supprimer retire une capacité du produit, même si plus personne ne peut
-  l'atteindre. *Décision de kuchu, comme la distribution du greffon* ;
+  l'atteindre. *Décision de kuchu, comme la distribution du greffon* ;~~
+  **✅ TRANCHÉ PAR KUCHU LE 6 AOÛT : on garde la capacité, on lui ouvre une
+  porte.** `decomposer()` a perdu sa première moitié — celle qui *créait* la
+  tâche, pour la boîte — et garde la seconde, qui découpe. La route
+  `/api/demande` est **remplacée** par `POST /api/orchestration/decouper`, qui
+  prend une tâche existante. Le geste vit dans la barre du Studio,
+  **« Laisse Hermès la découper »**, et n'apparaît que sur une demande seule —
+  une tâche dont l'identifiant est celui du pôle, donc qui n'a rien sous elle.
+
+  *Pourquoi ça valait mieux que supprimer :* `poserScenario` **enchaîne**,
+  délibérément — le plan d'Hermès donne des étapes et une prose, sans aucune
+  notion de dépendance, et on ne devine pas des parallèles depuis un paragraphe.
+  `kanban decompose` produit un vrai **graphe**. Le jeter aurait rendu le
+  séquentiel définitif, et un travail parallélisable prend alors autant de fois
+  plus longtemps qu'il a de branches. **Une dette est devenue une fonction** ;
+
+  **Mesuré sur les quinze scénarios du bac à sable, et ça nuance des deux
+  côtés.** Les trois nés du chat sont des **chaînes**, sans exception —
+  `fanout = 0`, comme le code l'annonce. Ceux nés du découpeur branchent
+  vraiment : jusqu'à `fanout = 5` sur « Écris une chanson sur la pluie »
+  (8 tâches, 14 liens), et **quatre d'entre eux ont une convergence hors tête**,
+  c'est-à-dire une étape qui attend deux étapes différentes — du parallélisme,
+  pas seulement un ramassage final.
+
+  *⚠ Mais ce n'est pas automatique, et le run d'aujourd'hui le montre.* « Cherche
+  sur les 5 sites » — l'exemple de la maquette, celui qui semblait le plus
+  parallélisable — a rendu **une chaîne** : chercher, rédiger, mettre en page.
+  Le découpeur suit ce que la demande impose, et cette demande-là est
+  séquentielle malgré ses cinq sites. **Le graphe parallèle est une possibilité
+  du découpeur, pas une propriété.** *Découpage en ~20 s, agents choisis seul.*
+
+  *La question qui reste ouverte, et qui rendrait le découpeur superflu :* si on
+  demandait à Hermès de **dire les dépendances** dans son plan au lieu de les
+  décrire, `poserScenario` saurait poser le graphe lui-même. Une demi-journée de
+  mesure, du même genre que celles du chantier 1 ;
 - **`FenetreSimulation.onOuvrirEchouee`** est retiré côté appelant ; la prop
   optionnelle reste, sans personne pour la remplir ;
 - **le détecteur d'exports morts ne voit rien de tout ça.** Il compare des noms

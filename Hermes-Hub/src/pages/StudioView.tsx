@@ -55,6 +55,7 @@ import {
   Eye,
   EyeOff,
   FlaskConical,
+  Split,
   LayoutGrid,
   Maximize2,
   Menu,
@@ -781,6 +782,30 @@ function Studio({ poleId, onQuitter, plein, onPlein, onMenu }: Props) {
   /** Tout est fait : le pole a une forme dont on peut apprendre. */
   const abouti = !!pole?.taches.length && pole.taches.every((t) => t.etat === 'done')
 
+  /**
+   * Une demande seule, que personne n'a decoupee.
+   *
+   * C'est le cas construit par `seule()` : une tache isolee dont l'identifiant
+   * EST celui du pole, donc qui n'a rien sous elle. Ni une chaine posee par le
+   * chat, ni un graphe d'Hermes - juste une phrase qui attend.
+   */
+  const seulement =
+    !!pole && pole.taches.length === 1 && pole.taches[0].id === pole.id && !chantier?.actif
+
+  /**
+   * Le decoupeur d'Hermes, appele sur cette demande.
+   *
+   * `agir` releit le pole apres coup, que l'appel reussisse ou non : c'est lui
+   * qui fait apparaitre les etapes sans recharger la page. Et le refus dit sa
+   * raison - « Hermes n'a pas decoupe cette demande, pour lui elle tient en une
+   * seule tache » n'est pas une panne, c'est une reponse.
+   */
+  const decouper = () =>
+    agir(async () => {
+      const r = await api.decouper(poleId!)
+      if (!r.decoupe) throw new ApiError(r.raison, 200)
+    }, 'Hermes a decoupe la demande.')
+
   const tacheChoisie = pole?.taches.find((t) => t.id === choisi)
   const agentChoisi = agents.find((a) => a.id === (tacheChoisie?.agent || 'default'))
   /** Un pole au travail se regarde, il ne se remanie pas - le serveur refuse
@@ -863,6 +888,32 @@ function Studio({ poleId, onQuitter, plein, onPlein, onMenu }: Props) {
           <LayoutGrid className="h-3.5 w-3.5" />
           Ranger
         </button>
+        {/*
+          UNE DEMANDE QU'HERMES N'A PAS DECOUPEE - et le seul endroit d'ou son
+          decoupeur reste atteignable.
+
+          Le chat pose des scenarios EN CHAINE : le plan d'Hermes donne des
+          etapes et une prose, sans notion de dependance, et on ne devine pas des
+          paralleles depuis un paragraphe. `kanban decompose`, lui, produit un
+          vrai graphe - plusieurs branches qui partent ensemble et se rejoignent.
+          C'est la seule facon d'obtenir ca, et c'est pour ca qu'on ne l'a pas
+          jete avec la boite le 6 aout.
+
+          Il n'apparait que sur une demande SEULE : une tache dont l'identifiant
+          est celui du pole, donc qui n'a rien sous elle. Ailleurs il n'aurait
+          rien a decouper, et un bouton sans effet est pire qu'un bouton absent.
+        */}
+        {seulement && (
+          <button
+            onClick={() => void decouper()}
+            disabled={occupe}
+            className="btn-ghost gap-1.5 px-2 py-1.5 text-[11px] disabled:opacity-40"
+            title="Hermes lit la demande et la casse en etapes, en choisissant les agents. Peut prendre une a trois minutes."
+          >
+            {occupe ? <Attente actif /> : <Split className="h-3.5 w-3.5" />}
+            Laisse Hermes la decouper
+          </button>
+        )}
         {/* Eprouver avant de lancer, et voir le banc des essais precedents.
             Gratuit : la simulation ne rejoue que ce qui est deja sur le disque. */}
         <button

@@ -1512,31 +1512,34 @@ function hermesLent(args, delai) {
 }
 
 /**
- * Une demande en francais devient un graphe de taches assignables.
+ * UNE TACHE SEULE DEVIENT UN GRAPHE - par le decoupeur d'Hermes.
  *
- * Le titre est la premiere ligne, coupee : c'est ce qui nommera le pole dans
- * l'interface. Le corps garde la demande entiere, parce que c'est lui que le
- * decomposeur lit pour repartir le travail.
+ * ⚠ CETTE FONCTION A PERDU SA PREMIERE MOITIE LE 6 AOUT, ET GARDE SA RAISON
+ * D'ETRE. Elle creait la tache PUIS la decoupait, pour la boite « Decris ce que
+ * tu veux ». La boite est partie - le chat pose desormais les scenarios - mais
+ * le DECOUPAGE, lui, n'a pas d'equivalent :
+ *
+ *   - `poserScenario` (`plan.js`) ENCHAINE, deliberement. Le plan d'Hermes donne
+ *     des etapes et une prose, sans aucune notion de dependance, et on ne devine
+ *     pas des paralleles depuis un paragraphe ;
+ *   - `kanban decompose` produit un vrai GRAPHE - plusieurs branches partent
+ *     ensemble et se rejoignent. C'est ce qu'on voit sur les anciens scenarios,
+ *     trois noeuds qui convergent vers un PDF.
+ *
+ * Le supprimer aurait rendu le sequentiel definitif, et un travail
+ * parallelisable prend alors autant de fois plus longtemps qu'il a de branches.
+ * On garde donc la capacite et on lui ouvre une porte : le Studio, sur une
+ * demande qu'Hermes n'a pas decoupee. **Une dette devient une fonction.**
  *
  * Combien de temps ? La reponse honnete est : on ne sait pas. Quatre essais du
  * 02/08/2026 sur la meme phrase, avec le meme cerveau, ont donne 19,7 s, 26,4 s,
  * 95,8 s et 270 s. L'interface n'annonce donc plus une duree - elle compte, et
  * elle montre ou est le plafond.
  */
-async function decomposer(texte) {
-  const titre = texte.split(/\r?\n/)[0].slice(0, 120).trim() || texte.slice(0, 120)
-
-  const cree = await hermesLent(
-    ['kanban', 'create', titre, '--body', texte, '--triage', '--json'],
-    30000,
-  )
-  const tache = dernierJson(cree.sortie)
-  const id = tache?.task_id || tache?.id
+async function decouperTache(id) {
   if (!id) {
-    const err = new Error(
-      "La tache n'a pas pu etre creee sur le tableau. Verifie que `hermes kanban init` a ete lance.",
-    )
-    err.status = 502
+    const err = new Error('Tache non precisee')
+    err.status = 400
     throw err
   }
 
@@ -1559,12 +1562,9 @@ async function decomposer(texte) {
   // rassure. Ce qu'il faut dire n'est pas OU c'est range, c'est **que ce n'est
   // pas perdu**. Meme famille que « pole », traitee au chantier 2.
   //
-  // ⚠ F20 - ET LA PHRASE NE PORTE PLUS LE CHEMIN. Elle disait « ouvre-la dans
-  // le Studio » sans qu'aucun bouton n'y mene : `ADM.md` le dit deja - une
-  // consigne ne remplace pas un chemin qui manque. Le geste est desormais un
-  // bouton, pose par l'interface a cote de ce message ; `pole` est rendu pour
-  // ca, meme quand le decoupage echoue.
-  const suite = 'Ta demande est enregistree, elle ne se perdra pas : tu peux la decouper a la main.'
+  // On est deja DANS le Studio quand on lit ceci : la demande est sous les yeux,
+  // il n'y a plus a dire ou elle est rangee - seulement ce qu'on peut en faire.
+  const suite = 'Elle ne se perd pas : tu peux la construire a la main, ou reessayer.'
   let raison = ''
   if (decoupe) raison = plan.reason || ''
   else if (dec.tue) {
@@ -1577,7 +1577,6 @@ async function decomposer(texte) {
 
   return {
     pole: id,
-    titre,
     decoupe,
     enfants: plan?.child_ids || [],
     raison,
@@ -1943,20 +1942,21 @@ async function handleApi(req, res, url) {
       return sendJson(res, 200, livrableDuPole(p) || { dossier: null, fichiers: [] })
     }
 
-    // La demande en francais devient un graphe de taches assignables.
-    //
-    // C'est le seul appel modele de toute la phase, et il est ici plutot que
-    // dans la conversation parce qu'il ne produit pas une reponse : il produit
-    // un plan, que la simulation qui suit rejouera sans rien appeler.
-    if (rest[1] === 'demande' && method === 'POST') {
+    /**
+     * DECOUPER UNE DEMANDE QU'HERMES N'A PAS DECOUPEE.
+     *
+     * ⚠ CETTE ROUTE REMPLACE `/api/demande`, elle ne s'y ajoute pas. L'ancienne
+     * creait la tache et la decoupait dans la foulee, pour la boite « Decris ce
+     * que tu veux » ; la boite est partie le 6 aout, le chat pose les scenarios.
+     * Ce qui restait d'utile est la SECONDE moitie - le decoupeur d'Hermes, seul
+     * a produire un graphe parallele la ou `poserScenario` enchaine.
+     *
+     * Elle prend donc une tache qui existe deja, et c'est tout ce qui change :
+     * on ne cree plus rien ici, on decoupe ce qui attend.
+     */
+    if (rest[1] === 'decouper' && method === 'POST') {
       const body = await readBody(req)
-      const texte = String(body.texte || '').trim()
-      if (!texte) {
-        const err = new Error('Demande vide')
-        err.status = 400
-        throw err
-      }
-      return sendJson(res, 200, await decomposer(texte))
+      return sendJson(res, 200, await decouperTache(String(body.tache || '').trim()))
     }
 
     // -------------------------------------------------------------------------

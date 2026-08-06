@@ -53,6 +53,7 @@ pour le nommer quand on veut demander une modification.
 | « X voulait appeler Y, la limite est atteinte » | `trace-refus` | — | idem, composant `TraceRefus` |
 | « X demande une autorisation », ses boutons et son compte a rebours | `carte-autorisation` | — | idem, composant `Autorisation`. Le compte a rebours n'est pas decoratif : Hermes referme la demande a l'echeance et repart **sans reponse**. Passe ce delai la carte reste, ses boutons partent, et elle dit pourquoi — voir `DELAI_AUTORISATION` dans `server/acp.js` |
 | La carte de plan : qui, quoi, comment, resultat attendu, et ses trois boutons | `carte-plan` | — | `CartePlan.tsx`. Les boutons n'existent QUE parce qu'un plan existe — c'est la regle de kuchu du 4 aout, et elle n'a pas d'exception. La carte ne disparait dans aucun de ses etats : validee elle montre son scenario, refusee elle le dit (F8) |
+| Le bandeau rouge quand aucun plan n'a pu etre lu | `echec-plan` | — | `Conversation.tsx` — **F20** : il porte « Reformuler la demande », qui remet la phrase dans le champ. Pas de bouton vers le Studio, parce que rien n'a ete cree et qu'il n'y aurait rien a y ouvrir |
 | « Ca demande un vrai plan. Je bascule en Atelier ? » | `bascule-proposee` | — | idem — c'est ce que la carte devient en mode Discussion, ou valider reveillerait l'equipe. Le plan est deja calcule : basculer ne rappelle aucun modele |
 | « Je regarde si ca merite un plan — 12 s / 90 s » | `attente-plan` | — | idem, composant `AttentePlan`. Le plafond est visible parce qu'aucune moyenne ne predit la duree : dix mesures du 6 aout vont de 8,5 s a 54,2 s. Voir `PLAFOND_PLAN` dans `server/plan.js` |
 | « Tu appelles 12 agents » avant d'envoyer | `avertissement-convocation` | — | idem, seuil en dur : `mentionnes > 10` |
@@ -261,6 +262,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `decompte-decoupage` | `src/components/DecompteDecoupage.tsx` |
 | `destinataires` | `src/components/Conversation.tsx` |
 | `developpement` | `src/pages/ConfigView.tsx` |
+| `echec-plan` | `src/components/Conversation.tsx` |
 | `ecran-accueil` | `src/pages/HomeView.tsx` |
 | `ecran-clean` | `src/pages/CleanView.tsx` |
 | `ecran-coffre` | `src/pages/VaultView.tsx` |

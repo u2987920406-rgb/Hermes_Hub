@@ -97,7 +97,18 @@ export function Conversation({
   const [vises, setVises] = useState<string[]>([])
   const [groupesVises, setGroupesVises] = useState<string[]>([])
   const [envoi, setEnvoi] = useState(false)
-  const [erreur, setErreur] = useState<string | null>(null)
+  /**
+   * L'erreur, ET LA DEMANDE QUI L'A PROVOQUEE (F20).
+   *
+   * Sans la seconde, le bandeau ne peut que decrire ce qu'il faudrait refaire.
+   * Avec elle, il porte le geste - le champ, avec la phrase dedans, comme F7.
+   * `demande` est vide pour les erreurs qui ne viennent pas d'un plan.
+   */
+  const [erreur, setErreur] = useState<{ message: string; demande: string } | null>(null)
+  /** Le cas ordinaire : une panne sans demande a reprendre, donc sans bouton. */
+  const direErreur = useCallback((message: string, demande = '') => {
+    setErreur({ message, demande })
+  }, [])
   const [eveilles, setEveilles] = useState<Set<string>>(() => new Set())
   /**
    * ⚠ LES DEMANDES EN ATTENTE NE SONT PAS UN ETAT DE CE COMPOSANT - on lit, on
@@ -217,7 +228,7 @@ export function Conversation({
       }
       appliquer(e)
     }
-    source.onerror = () => setErreur('Le flux du serveur est interrompu. Recharge la page.')
+    source.onerror = () => direErreur('Le flux du serveur est interrompu. Recharge la page.')
 
     return () => source.close()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -383,7 +394,7 @@ export function Conversation({
         )
 
       case 'panne':
-        setErreur(e.message)
+        direErreur(e.message)
         return setTours((t) =>
           t.map((tour) => (tour.role === 'agent' && !tour.fini ? { ...tour, fini: true } : tour)),
         )
@@ -401,7 +412,7 @@ export function Conversation({
   const plan = usePlan({
     eveilles: eveilles.size,
     toursFinis,
-    onErreur: setErreur,
+    onErreur: direErreur,
     onReformuler: (texte) => {
       setSaisie(texte)
       champ.current?.focus()
@@ -425,7 +436,7 @@ export function Conversation({
       setVises([])
       setGroupesVises([])
     } catch (e) {
-      setErreur(e instanceof Error ? e.message : String(e))
+      direErreur(e instanceof Error ? e.message : String(e))
     } finally {
       setEnvoi(false)
       champ.current?.focus()
@@ -493,7 +504,7 @@ export function Conversation({
       setFilVu(id)
       filVuRef.current = id
     } catch (e) {
-      setErreur(e instanceof Error ? e.message : String(e))
+      direErreur(e instanceof Error ? e.message : String(e))
     }
   }
 
@@ -683,9 +694,30 @@ export function Conversation({
           ))}
 
           {erreur && (
-            <div className="bandeau sens-danger">
+            <div data-zone="echec-plan" className="bandeau sens-danger">
               <AlertTriangle className="h-4 w-4 flex-none teinte-sens" />
-              <span>{erreur}</span>
+              <span className="min-w-0 flex-1">{erreur.message}</span>
+              {/*
+                F20 - LE MESSAGE PORTE LE GESTE, et le geste est le champ.
+                Le serveur nomme le Studio, mais rien n'a ete cree : il n'y a
+                aucun scenario a y ouvrir, et l'y envoyer donnerait l'ecran vide
+                qu'on a corrige le 6 aout au matin. Reformuler est le geste le
+                moins couteux, et le seul qui existe vraiment ici - meme reponse
+                que F7, pour la meme raison : rien n'a ete ecrit sur le disque,
+                il n'y a donc rien a defaire, seulement une phrase a reprendre.
+              */}
+              {erreur.demande && (
+                <button
+                  onClick={() => {
+                    setSaisie(erreur.demande)
+                    champ.current?.focus()
+                    setErreur(null)
+                  }}
+                  className="btn-ghost flex-none px-2.5 py-1 text-[11px]"
+                >
+                  Reformuler la demande
+                </button>
+              )}
             </div>
           )}
 

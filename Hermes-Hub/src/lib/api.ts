@@ -226,15 +226,20 @@ export const api = {
   // --- Orchestration : l'equipe et ses poles -----------------------------------
   orchestration: () => request<Orchestration>('/orchestration'),
 
-  // --- La demande, la simulation, la porte -------------------------------------
-  // `demande` est le seul appel modele de la phase, et le seul appel long de
-  // tout le Hub. Sa duree n'est pas annoncable : quatre essais du 02/08/2026 sur
-  // la meme phrase ont donne 19,7 s, 26,4 s, 95,8 s et 270 s. Le serveur coupe a
-  // 180 s. D'ou le decompte plutot qu'une estimation, dans `FenetreSimulation`.
-  // Tout ce qui suit est local - la simulation ne rejoue que ce qui est deja sur
-  // le disque, et valider n'execute rien.
-  demande: (texte: string) =>
-    request<Decomposition>('/orchestration/demande', { method: 'POST', body: body({ texte }) }),
+  // --- Le decoupage, la simulation, la porte -----------------------------------
+  // `decouper` est un appel modele, et le seul appel long qui reste dans le Hub.
+  // Sa duree n'est pas annoncable : quatre essais du 02/08/2026 sur la meme
+  // phrase ont donne 19,7 s, 26,4 s, 95,8 s et 270 s. Le serveur coupe a 180 s.
+  // D'ou le decompte plutot qu'une estimation. Tout ce qui suit est local - la
+  // simulation ne rejoue que ce qui est deja sur le disque, et valider n'execute
+  // rien.
+  //
+  // ⚠ Il a remplace `demande`, qui creait la tache ET la decoupait pour la boite
+  // « Decris ce que tu veux ». La boite est partie ; le decoupeur d'Hermes reste,
+  // parce qu'il est le seul a produire un graphe PARALLELE la ou le chat
+  // enchaine. Il prend donc une tache qui existe deja.
+  decouper: (tache: string) =>
+    request<Decomposition>('/orchestration/decouper', { method: 'POST', body: body({ tache }) }),
   simulation: (pole: string) =>
     request<Simulation>(`/orchestration/simulation?pole=${enc(pole)}`),
 
