@@ -96,6 +96,10 @@ export interface EtatMemoireEquipe {
   partage: boolean
   aJour: string[]
   enRetard: string[]
+  /** Une section marquee `hermes-seul` ne part pas a l'equipe. L'ecran doit le
+      dire : « Envoyer a toute l'equipe » laisse sinon croire que tout part, et
+      quelqu'un croirait avoir diffuse une consigne que personne n'a recue. */
+  retenu?: boolean
 }
 
 export interface Propagation {

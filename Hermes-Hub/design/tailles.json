@@ -14,7 +14,7 @@
   "src/components/InterrupteurMode.tsx": 132,
   "src/components/LigneAlerte.tsx": 234,
   "src/components/LivrableScenario.tsx": 110,
-  "src/components/MemoireEquipe.tsx": 120,
+  "src/components/MemoireEquipe.tsx": 136,
   "src/components/Modal.tsx": 100,
   "src/components/NewProjectModal.tsx": 108,
   "src/components/NoeudStudio.tsx": 257,
@@ -49,5 +49,5 @@
   "src/pages/VaultView.tsx": 297,
   "src/store/alertes.ts": 62,
   "src/store/useHubStore.ts": 428,
-  "src/types/index.ts": 1016
+  "src/types/index.ts": 1020
 }

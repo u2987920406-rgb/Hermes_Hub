@@ -129,6 +129,39 @@ Chaque commit finit par les deux prochains coups, une phrase chacun. Le journal
 raconte ce qui a été *fait* ; cette ligne est le seul endroit où vit ce qui était
 *prévu*. Voir plus haut pour ce que `REPRISE-AGORA.md` a coûté.
 
+### Les règles de commit ne descendent pas aux exécutants *(06/08/2026)*
+`MEMORY.md` portait les règles de git — `Ensuite :`, `ADM.md` cumulatif, pas de
+`REPRISE.md`. Elles sont justes, et elles ne concernent **que l'orchestrateur** :
+un rédacteur qui exécute une tâche du tableau ne commite pas. Propagées telles
+quelles, elles coûtaient ~185 jetons à chaque démarrage de chacun des onze
+agents, pour une consigne qu'aucun n'appliquera jamais.
+
+**On ne pouvait pas les retirer du fichier : `default` *est* Hermès.** Son
+`MEMORY.md` est à la fois sa mémoire et la source de celle des autres. Ce n'est
+donc pas le fichier qu'on a changé, **c'est la copie** — une marque
+`<!-- hermes-seul -->` sur un titre, et `propager()` laisse la section derrière.
+
+Trois conséquences, chacune payée par un raisonnement :
+
+- la marque porte sur une **section**, pas sur une ligne : retenir des puces une
+  par une serait fragile, déplacer une ligne suffirait à la faire partir ;
+- `etatPropagation()` compare à **ce qui sera copié**, pas au fichier d'Hermès.
+  Comparer au brut afficherait « en retard » à jamais, et un compteur qui ne
+  retombe jamais à zéro est un compteur qu'on cesse de lire ;
+- l'écran **dit** qu'une section est retenue. « Envoyer à toute l'équipe »
+  mentirait sinon, et quelqu'un croirait avoir diffusé une consigne que personne
+  n'a reçue.
+
+### CRLF : cinq tests verts sur un fichier que rien ne coupait *(06/08/2026)*
+La coupe ci-dessus a retenu **un seul caractère** au lieu d'une section, sur le
+vrai `MEMORY.md`. En JavaScript **`.` ne franchit pas un `\r`** — c'est un
+terminateur de ligne — et `$` sans le drapeau `m` exige la fin de la chaîne :
+`/^(#{1,6})\s+(.*)$/` ne reconnaît **aucun titre** dans un fichier CRLF.
+
+Les cinq tests étaient verts : ils sont écrits en `\n` pur. **Sur Windows, ne
+tester qu'en `\n` revient à ne tester aucun fichier réel.** Tout découpage de
+lignes se fait sur `\r?\n`, et un cas CRLF accompagne désormais la règle.
+
 ### Un garde-fou n'est pas un goût *(03/08/2026)*
 Le socle — huit règles — se pose **toujours**, sans question. Les habitudes
 d'atelier logiciel se proposent. Auparavant une seule question gouvernait les

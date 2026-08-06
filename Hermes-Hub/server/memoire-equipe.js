@@ -50,6 +50,90 @@ export function estPartage(nom) {
   return PARTAGES.has(nom)
 }
 
+// -----------------------------------------------------------------------------
+// Ce qui reste chez Hermes
+// -----------------------------------------------------------------------------
+/**
+ * LA MARQUE QUI RETIENT UNE SECTION.
+ *
+ * POURQUOI ELLE EXISTE, mesure le 06/08/2026. `MEMORY.md` porte des regles de
+ * commit - « sous git, finir chaque commit par "Ensuite :" », « ADM.md en
+ * cumulatif ». Elles sont justes, et elles ne concernent QUE l'orchestrateur :
+ * un redacteur qui execute une tache du tableau ne commite pas, n'ecrit pas de
+ * REPRISE.md, ne tient aucun ADM.md. Propagees telles quelles, elles coutaient
+ * environ 103 jetons a chaque demarrage de chacun des onze agents, pour une
+ * consigne qu'aucun d'eux n'appliquera jamais.
+ *
+ * ⚠ ET ON NE POUVAIT PAS SIMPLEMENT LES RETIRER DU FICHIER : `default` **est**
+ * Hermes. Son `MEMORY.md` est a la fois sa memoire et la source de celle des
+ * autres. Enlever les lignes les lui aurait enlevees a lui aussi. Ce n'est donc
+ * pas le fichier qu'il fallait changer, c'est la COPIE.
+ *
+ * LA MARQUE EST UN COMMENTAIRE HTML SUR LE TITRE. Trois raisons :
+ *
+ *   - elle se voit dans l'editeur - c'est la que kuchu ecrit - et disparait a
+ *     l'affichage markdown, donc elle n'encombre pas la lecture ;
+ *   - elle porte sur une SECTION, pas sur une ligne. Retenir des puces une par
+ *     une serait fragile : deplacer une ligne suffirait a la faire partir ;
+ *   - un fichier sans marque se propage entier, exactement comme avant. Rien de
+ *     ce qui existe ne change de comportement.
+ *
+ * On coupe du titre marque jusqu'au prochain titre de niveau egal ou superieur.
+ */
+export const MARQUE = 'hermes-seul'
+
+const TITRE = /^(#{1,6})\s+(.*)$/
+
+/**
+ * Le texte tel que l'equipe doit le recevoir : sans les sections marquees.
+ *
+ * Rend le texte inchange quand il n'y a aucune marque - et c'est le cas de
+ * `USER.md` comme de tout fichier ecrit avant cette regle.
+ */
+export function pourEquipe(texte) {
+  const source = String(texte ?? '')
+  if (!source.includes(MARQUE)) return source
+
+  /**
+   * ⚠ ON DECOUPE SUR `\r?\n`, ET CE N'EST PAS UN DETAIL DE CONFORT.
+   *
+   * Premiere version : `split('\n')`, donc chaque ligne d'un fichier Windows
+   * gardait son `\r` final. Or en JavaScript **`.` ne franchit pas un `\r`** -
+   * c'est un terminateur de ligne - et `$` sans le drapeau `m` exige la fin de
+   * la chaine. Le motif de titre ne reconnaissait donc AUCUN titre dans un
+   * fichier CRLF, et `pourEquipe()` rendait le texte entier.
+   *
+   * Les tests etaient verts : ils sont ecrits en `\n` pur. C'est le vrai
+   * `MEMORY.md` de kuchu - CRLF, comme tout ce que Windows ecrit - qui l'a
+   * montre, en retenant **un seul caractere** au lieu d'une section. Le test
+   * CRLF plus bas existe pour que ca ne repasse pas.
+   */
+  const lignes = source.split(/\r?\n/)
+  const gardees = []
+  /** Le niveau du titre qu'on saute, ou 0 quand on ne saute rien. */
+  let saut = 0
+
+  for (const ligne of lignes) {
+    const titre = ligne.match(TITRE)
+    if (titre) {
+      const niveau = titre[1].length
+      // Un titre de niveau egal ou superieur referme la section sautee.
+      if (saut && niveau <= saut) saut = 0
+      if (!saut && ligne.includes(MARQUE)) {
+        saut = niveau
+        continue
+      }
+    }
+    if (!saut) gardees.push(ligne)
+  }
+
+  // Une section retiree laisse deux lignes vides collees : on les resserre, et
+  // on garde exactement un saut de ligne final. Un fichier qui differe de sa
+  // source par un blanc ferait afficher « en retard » a tout le monde, pour
+  // rien.
+  return gardees.join('\n').replace(/\n{3,}/g, '\n\n').replace(/\s*$/, '\n')
+}
+
 /** Ou vit le fichier d'un agent. `default` est le home lui-meme. */
 export function cheminAgent(nom, agent, home = HERMES_HOME) {
   return agent === 'default'
@@ -77,8 +161,14 @@ function lire(chemin) {
 export function etatPropagation(nom, agents, { home = HERMES_HOME } = {}) {
   if (!estPartage(nom)) return { partage: false, aJour: [], enRetard: [] }
 
-  const source = lire(cheminAgent(nom, 'default', home))
-  if (source === null) return { partage: true, aJour: [], enRetard: [] }
+  const brut = lire(cheminAgent(nom, 'default', home))
+  if (brut === null) return { partage: true, aJour: [], enRetard: [] }
+
+  // ⚠ On compare a ce qui SERA copie, pas au fichier d'Hermes. Comparer au brut
+  // afficherait « en retard » pour les onze agents a jamais, puisqu'aucun ne
+  // recevra jamais la section retenue - et un compteur qui ne retombe jamais a
+  // zero est un compteur qu'on cesse de lire.
+  const source = pourEquipe(brut)
 
   const aJour = []
   const enRetard = []
@@ -87,7 +177,7 @@ export function etatPropagation(nom, agents, { home = HERMES_HOME } = {}) {
     if (lire(cheminAgent(nom, agent, home)) === source) aJour.push(agent)
     else enRetard.push(agent)
   }
-  return { partage: true, aJour, enRetard }
+  return { partage: true, aJour, enRetard, retenu: source !== brut }
 }
 
 /**
@@ -106,12 +196,15 @@ export function propager(nom, agents, { home = HERMES_HOME } = {}) {
   if (!estPartage(nom)) return { fichier: nom, partage: false, portee: [], echecs: [] }
 
   const cheminSource = cheminAgent(nom, 'default', home)
-  const source = lire(cheminSource)
-  if (source === null) {
+  const brut = lire(cheminSource)
+  if (brut === null) {
     const err = new Error(`${nom} n'existe pas encore : rien a propager.`)
     err.status = 404
     throw err
   }
+  // Ce qui part n'est pas ce qu'Hermes garde : les sections marquees restent
+  // chez lui. Voir `MARQUE`, plus haut.
+  const source = pourEquipe(brut)
 
   const portee = []
   const echecs = []
@@ -128,5 +221,5 @@ export function propager(nom, agents, { home = HERMES_HOME } = {}) {
       echecs.push({ agent, message: e.message })
     }
   }
-  return { fichier: nom, partage: true, portee, echecs }
+  return { fichier: nom, partage: true, portee, echecs, retenu: source !== brut }
 }

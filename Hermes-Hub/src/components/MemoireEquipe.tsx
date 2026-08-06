@@ -47,8 +47,24 @@ export function MemoireEquipe({ memoire, onFait }: { memoire: MemoryFile; onFait
     )
   }
 
-  const { aJour, enRetard } = memoire.equipe
+  const { aJour, enRetard, retenu } = memoire.equipe
   const total = aJour.length + enRetard.length
+
+  /**
+   * UNE SECTION RETENUE DOIT SE DIRE, SINON LE BOUTON MENT.
+   *
+   * « Envoyer a toute l equipe » laisse croire que tout part. Depuis le
+   * 06/08/2026, une section marquee `hermes-seul` reste chez Hermes - les
+   * regles de commit, par exemple, qui ne concernent pas un agent qui execute
+   * une tache. Sans cette ligne, quelqu un croirait avoir diffuse une consigne
+   * que personne n a recue, et c est le pire genre de silence : celui qui
+   * ressemble a une reussite.
+   */
+  const noteRetenue = retenu ? (
+    <span className="muted">
+      {' '}Une section marquee <code className="text-[10px]">hermes-seul</code> reste chez Hermes.
+    </span>
+  ) : null
 
   const envoyer = async () => {
     setOccupe(true)
@@ -82,7 +98,7 @@ export function MemoireEquipe({ memoire, onFait }: { memoire: MemoryFile; onFait
     return (
       <p data-zone="memoire-equipe" className="mt-2 text-[11px] text-emerald-700 dark:text-emerald-400">
         <Check className="mr-1 inline h-3 w-3" />
-        Les {total} agents de l equipe ont cette version.
+        Les {total} agents de l equipe ont cette version.{noteRetenue}
       </p>
     )
   }
@@ -102,7 +118,7 @@ export function MemoireEquipe({ memoire, onFait }: { memoire: MemoryFile; onFait
           <p className="mt-0.5 text-[11px] leading-relaxed">
             {citer(enRetard)} {enRetard.length > 1 ? 'ne lisent' : 'ne lit'} pas ce que tu viens
             d ecrire. Ils ne tomberont pas en panne pour autant : ils repondront a cote, sans que
-            rien ne le signale.
+            rien ne le signale.{noteRetenue}
           </p>
         </div>
         <button
