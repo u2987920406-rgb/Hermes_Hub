@@ -13,6 +13,7 @@
  * peu pour qu'une equipe entiere reste en memoire toute la journee.
  */
 import { PontAcp } from './acp.js'
+import { modelePour } from './cerveau.js'
 import { expliquerPanne } from './modeles.js'
 
 /** Silence au-dela duquel un agent se rendort. */
@@ -553,6 +554,63 @@ export class Equipage {
       })
     }
     return { agents, aucunPontOuvert: agents.length === 0 }
+  }
+
+  /**
+   * Quel cerveau tourne chez qui, et lesquels sont disponibles.
+   *
+   * ⚠ `disponibles` VIENT DES SESSIONS OUVERTES, ET DE RIEN D'AUTRE. C'est
+   * Hermes qui annonce son inventaire a `session/new` - le meme que celui de
+   * `hermes model`. Le Hub n'en tient aucune copie : une liste de modeles
+   * recopiee ici serait vraie le jour ou on l'ecrit et fausse au premier
+   * fournisseur ajoute, et elle enverrait choisir un modele qui n'existe plus.
+   *
+   * Consequence assumee : tant qu'aucun agent n'est eveille, la liste est vide.
+   * Le dire est plus honnete que de la deviner, et l'ecran propose alors de
+   * reveiller quelqu'un pour la lire.
+   */
+  cerveaux() {
+    const agents = []
+    const vus = new Map()
+    for (const [id, { pont }] of this.ponts) {
+      const s = pont.session
+      agents.push({ agent: id, ouvert: !!s, modele: s?.modeleActuel ?? null })
+      for (const m of s?.modeles || []) if (!vus.has(m.id)) vus.set(m.id, m)
+    }
+    return { agents, disponibles: [...vus.values()], aucunPontOuvert: agents.length === 0 }
+  }
+
+  /**
+   * Appliquer le choix aux sessions DEJA ouvertes.
+   *
+   * Sans ca, changer le cerveau ne ferait rien jusqu'au prochain reveil - et
+   * comme un agent au travail ne se rendort pas, on regarderait un reglage
+   * annonce que personne n'applique. C'est la meme famille que l'interrupteur
+   * qui ment : ce qui est affiche doit etre ce qui tourne.
+   *
+   * Les echecs ne remontent pas en exception : un agent dont la session refuse
+   * le modele emet deja `cerveau-refuse` ou `cerveau-absent` de son cote, et
+   * faire echouer le reglage entier parce qu'UN agent n'a pas suivi
+   * empecherait de regler les douze autres.
+   */
+  async appliquerCerveau() {
+    const essais = []
+    for (const [id, { pont }] of this.ponts) {
+      const voulu = modelePour(id)
+      const s = pont.session
+      if (!s || !voulu || voulu === s.modeleActuel) continue
+      if (!s.modeles.some((m) => m.id === voulu)) {
+        pont.emettre({ type: 'cerveau-absent', modele: voulu, garde: s.modeleActuel })
+        continue
+      }
+      essais.push(
+        pont.choisirModele(voulu).catch((err) => {
+          pont.emettre({ type: 'cerveau-refuse', modele: voulu, message: err.message })
+        }),
+      )
+    }
+    await Promise.all(essais)
+    return this.cerveaux()
   }
 
   /** Ce qu'un flux qui arrive en cours de route doit savoir. */

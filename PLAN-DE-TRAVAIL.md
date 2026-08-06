@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **13:16**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **14:14**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -953,13 +953,61 @@ Ni vrais ni faux : **rien ne les porte aujourd'hui**, et ils touchent tous les
 deux le chantier 5. Le raisonnement complet est dans le document ; ici, la
 question seule.
 
-5. **Le cerveau se choisit-il par agent, ou aussi par tâche ?** La table `tasks`
-   du kanban porte une colonne `model_override`, et `equipe.js:585` **la lit
-   déjà** sans rien en faire. Le §7 ne raisonne qu'en « par agent » — donc en
+5. ~~**Le cerveau se choisit-il par agent, ou aussi par tâche ?** La table
+   `tasks` du kanban porte une colonne `model_override`, et `equipe.js:585` **la
+   lit déjà** sans rien en faire. Le §7 ne raisonne qu'en « par agent » — donc en
    réécriture des treize `config.yaml`, avec toute la difficulté du « qui ne pas
    écraser ». Une échelle par tâche n'a aucun de ces coûts.
    *À trancher au chantier 5 — mais **mesurer d'abord** qui écrit cette colonne
-   et si le dispatcher l'honore. Sans ça, c'est une hypothèse, pas une piste.*
+   et si le dispatcher l'honore.*~~
+   **✅ MESURÉ LE 6 AOÛT — et la réponse déplace la question. Voir juste en
+   dessous : ce n'est ni par agent ni par tâche, c'est par session, et le Hub
+   sait déjà le faire.**
+
+#### La mesure de l'orphelin 5 — et elle retourne le §7 *(6 août 2026)*
+
+**Trois choses mesurées, la troisième compte le plus.**
+
+**1. `model_override` est réel, et honoré — mais pas par nous.** La colonne est
+écrite par `hermes kanban set-model` et par `create --model` *(et par le tableau
+de bord greffon d'Hermès)*. Le dispatcher d'Hermès l'honore vraiment :
+`kanban_db.py:8933` ajoute `-m <modèle>` à la ligne de commande de l'ouvrier, et
+`--provider` avec, quand `provider_override` est posé — une seconde colonne que
+le Hub ne lit pas. **Mais le Hub ne dispatche pas par là.** Il ouvre ses propres
+sessions ACP (`PontAcp`), et `execution.js` ne parle de modèle nulle part.
+Écrire cette colonne depuis le Hub ne changerait donc **rien** aujourd'hui.
+
+**2. ACP porte le choix du modèle, et le Hub le lit déjà.** La réponse à
+`session/new` contient la liste des modèles *(`res.models.availableModels`)* et
+le courant — `acp.js:540` les range depuis le premier jour. Mesuré sur le profil
+par défaut : **session ouverte en 4,2 s, 36 modèles annoncés**, identifiants de
+la forme `provider:modèle` — `nous:anthropic/claude-opus-5`,
+`custom:glm-5.2:cloud`…
+
+**3. Et `session/set_model` marche.** `PontAcp.choisirModele()` existe,
+appelle `session/set_model`, et **il n'a qu'un seul appelant : la bascule
+automatique en cas de panne.** Aucune route, aucun geste. Mesuré :
+`custom:glm-5.2:cloud → nous:anthropic/claude-haiku-4.5`, **accepté en 2,4 s**,
+modèle courant changé, **aucun `config.yaml` touché**.
+
+*Ce que ça change au plan, et c'est net :* **la « vraie difficulté » du §7 —
+savoir qui ne pas écraser — ne se pose pas pour le choix d'exécution.** Un choix
+porté par la session n'écrase personne : il dure ce que dure la session, et le
+fichier du profil n'est jamais ouvert. La boucle sur treize `config.yaml` n'a
+plus lieu d'être ; ce qui reste à écrire est **une route, un sélecteur, et un
+endroit à nous où garder le choix** — dans `.hub`, pas dans le profil.
+
+*⚠ Deux réserves, et la première est un piège à éviter.* Les 36 modèles sont
+l'**inventaire configuré**, pas une preuve de disponibilité : les `nous:` y
+figuraient alors que la session Nous est révoquée. Le sélecteur ne doit donc
+rien promettre — c'est exactement le rôle du bandeau posé le même jour. Et un
+choix de session **ne survit pas au redémarrage** : le « cerveau universel »
+demande un fichier à nous, ce qui est de toute façon préférable.
+
+*Relevé au passage, et le §7 est périmé là-dessus :* le profil par défaut tourne
+sur `custom:glm-5.2:cloud`, pas sur `tencent/hy3:free`. Le tableau du 5 août à
+16:30 ne dit plus vrai — c'est pour ça qu'Hermès a répondu toute la journée du
+6 malgré la session Nous révoquée.
 6. **Le Hub peut-il poser `HERMES_YOLO_MODE` au lancement de chaque agent ?** La
    variable est **gelée à l'import** côté Hermès, et le Hub lance un processus
    par agent : il tiendrait donc un désarmement par agent qu'aucune injection ne
@@ -1198,6 +1246,13 @@ elle ne coûte rien.
   souris**, avec sa difficulté écrite plus bas — savoir qui ne pas écraser — et
   l'échelle par tâche à mesurer d'abord (orphelin 5 du §6).
 
+**⚠ ET TOUT CE QUI SUIT EST À LIRE AVEC LA MESURE DU 6 AOÛT (§6, orphelin 5).**
+La difficulté décrite ci-dessous — réécrire treize `config.yaml`, savoir qui ne
+pas écraser — **ne concerne que la persistance**, pas le choix d'exécution :
+ACP porte le modèle par session, le Hub sait déjà l'appeler, et rien n'est
+écrasé. Les paragraphes restent, ils ne sont pas faux ; ils ne sont plus le
+chemin.
+
 **⚠ MESURÉ LE 5 AOÛT À 15:20 — LA CASCADE N'EXISTE PAS.** L'aide d'Hermès
 décrit `config get` comme *« Print a **resolved** configuration value »*, ce qui
 laissait espérer un héritage profil → racine. Éprouvé sur le géographe :
@@ -1239,6 +1294,45 @@ aucun modèle local, et qu'aucun geste d'interface n'existe.
 
 *Chantier 5.* La porte : on change le cerveau d'un agent, on le voit répondre,
 sans jamais ouvrir de terminal.
+
+#### ✅ **FAIT LE 6 AOÛT — les deux étages, éprouvés à l'écran**
+
+`server/cerveau.js` porte le choix, six tests le tiennent. Deux étages, comme
+kuchu les avait décrits : **un cerveau universel** dont toute l'équipe hérite, et
+**des exceptions déclarées** par agent — la grammaire du panneau des outils MCP,
+« le défaut est celui qui marche ».
+
+**Rien n'est écrit chez Hermès, et c'est vérifié.** Le choix vit dans
+`.hub/cerveau.json` ; ACP l'applique par session, à `ouvrirSession()` — le seul
+endroit que *toute* session traverse, chat, délégation et exécution comprises.
+*Mesuré :* un universel posé à `nous:anthropic/claude-haiku-4.5` a fait basculer
+la session ouverte en direct, une exception sur Hermès l'a ramenée à
+`custom:glm-5.2:cloud` — et `config.yaml` n'a pas bougé d'une seconde, son
+`model.default` disant toujours autre chose. **La « vraie difficulté » — savoir
+qui ne pas écraser — a disparu au lieu d'être résolue : ce qu'on n'écrit pas ne
+peut écraser personne.**
+
+**Trois refus assumés, chacun contre un mensonge possible :**
+
+- **la liste ne vient jamais d'une copie tenue ici.** C'est l'inventaire annoncé
+  par Hermès à `session/new` — le même que `hermes model`. Une liste recopiée
+  serait vraie le jour où on l'écrit et fausse au premier fournisseur ajouté ;
+- **le panneau ne réveille personne tout seul.** Lire l'inventaire demande une
+  session, donc un processus — 4,2 s mesurées. Il propose, il ne fait pas ;
+  tant que personne n'est éveillé la liste est vide, et il le dit ;
+- **il ne promet pas qu'un modèle répond.** Les `nous:` figuraient dans la liste
+  pendant que la session Nous était révoquée. Promettre referait l'interrupteur
+  qui ment ; c'est le bandeau de session qui dit quand plus rien ne répond.
+
+*⚠ Et un défaut trouvé à l'écran, pas à la relecture.* Le premier jet listait une
+ligne par **session ouverte** : une ligne sur treize, et à côté de la question.
+On vient ici parce qu'un agent **ne répond pas**, donc parce qu'il dort. La liste
+vient maintenant de l'annuaire ; les sessions ouvertes n'ajoutent que « sur quoi
+il tourne en ce moment ».
+
+*Ce qui reste de la porte :* « on le **voit répondre** ». Le changement est
+appliqué et mesuré ; le tour complet — changer le cerveau d'un agent endormi puis
+lui parler — demande une session Nous valide, donc la reconnexion.
 
 Trois de plus, ouvertes le 4 août au soir en rangeant ce plan dans le dépôt :
 

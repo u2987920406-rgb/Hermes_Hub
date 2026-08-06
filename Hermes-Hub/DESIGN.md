@@ -78,6 +78,8 @@ pour le nommer quand on veut demander une modification.
 | Une fiche dans la liste des agents | `fiche-agent` | `--agent-lisere`, `--agent-point`, `--densite` | `OrchestrationView.tsx` |
 | Les outils MCP, sous les agents | `outils-equipe` | — | `OutilsEquipe.tsx` |
 | La ligne d'un outil, avec « qui l'a » | `ligne-outil` | `--densite` | idem — l'ambre signale un outil incomplet |
+| Le cerveau de l'equipe, sous les outils | `cerveau-equipe` | — | `CerveauEquipe.tsx` — **meme grammaire que les outils** : toute l'equipe herite, on declare les exceptions. La liste des modeles vient des sessions ACP ouvertes, jamais d'une copie tenue ici — vide tant que personne n'est eveille, et il le dit |
+| La ligne d'un choix de cerveau | `ligne-cerveau` | — | idem — le vide est une **valeur** (« comme toute l'equipe »), sinon une exception ne se retirerait jamais |
 | Le formulaire « Brancher un outil » | `nouvel-outil` | — | idem |
 | Une vignette de scenario | `vignette-scenario` | `--agent-lisere-vignette` | idem |
 | Une vignette d'equipe | `vignette-equipe` | `--agent-lisere-vignette` | idem |
@@ -256,6 +258,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `carte-autorisation` | `src/components/Conversation.tsx` |
 | `carte-plan` | `src/components/CartePlan.tsx` |
 | `carte-projet` | `src/components/ProjectCard.tsx` |
+| `cerveau-equipe` | `src/components/CerveauEquipe.tsx` |
 | `champ-recherche` | `src/components/ChampRecherche.tsx` |
 | `decompte-decoupage` | `src/components/DecompteDecoupage.tsx` |
 | `destinataires` | `src/components/Conversation.tsx` |
@@ -278,6 +281,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `interrupteur-mode` | `src/components/InterrupteurMode.tsx` |
 | `ligne-alerte` | `src/components/LigneAlerte.tsx` |
 | `ligne-banc` | `src/components/BancEssai.tsx` |
+| `ligne-cerveau` | `src/components/CerveauEquipe.tsx` |
 | `ligne-contexte` | `src/components/LigneContexte.tsx` |
 | `ligne-historique` | `src/components/VoletHistorique.tsx` |
 | `ligne-outil` | `src/components/OutilsEquipe.tsx` |

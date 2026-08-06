@@ -9,6 +9,7 @@
   "src/components/BilanRendu.tsx": 152,
   "src/components/BoutonRepli.tsx": 107,
   "src/components/CartePlan.tsx": 222,
+  "src/components/CerveauEquipe.tsx": 201,
   "src/components/ChampRecherche.tsx": 96,
   "src/components/CommandPalette.tsx": 204,
   "src/components/Conversation.tsx": 1580,
@@ -44,13 +45,13 @@
   "src/hooks/usePlan.ts": 143,
   "src/hooks/useRoute.ts": 47,
   "src/lib/accords.ts": 33,
-  "src/lib/api.ts": 536,
+  "src/lib/api.ts": 547,
   "src/lib/dates.ts": 11,
   "src/main.tsx": 17,
   "src/pages/CleanView.tsx": 95,
   "src/pages/ConfigView.tsx": 916,
   "src/pages/HomeView.tsx": 163,
-  "src/pages/OrchestrationView.tsx": 1345,
+  "src/pages/OrchestrationView.tsx": 1354,
   "src/pages/ProjectDetail.tsx": 317,
   "src/pages/ProjectsView.tsx": 141,
   "src/pages/StudioView.tsx": 1139,
@@ -58,5 +59,5 @@
   "src/pages/VaultView.tsx": 297,
   "src/store/alertes.ts": 62,
   "src/store/useHubStore.ts": 461,
-  "src/types/index.ts": 1044
+  "src/types/index.ts": 1063
 }

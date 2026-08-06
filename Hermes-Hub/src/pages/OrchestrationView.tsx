@@ -34,6 +34,7 @@ import { Modal } from '../components/Modal'
 import { Organigramme } from '../components/Organigramme'
 import type { EtatNoeud, LienOrg, NoeudOrg } from '../components/Organigramme'
 import { NouvelAgent } from '../components/NouvelAgent'
+import { CerveauEquipe } from '../components/CerveauEquipe'
 import { OutilsEquipe } from '../components/OutilsEquipe'
 import { PageHeader } from '../components/PageHeader'
 import { sansAccord } from '../lib/accords'
@@ -626,6 +627,14 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
                       un trou de competence, pas un reglage. */}
                   <div className="border-t border-slate-200 pt-4 dark:border-navy-800">
                     <OutilsEquipe nomsAgents={new Map(agents.map((a) => [a.id, a.nom]))} />
+                  </div>
+
+                  {/* Le cerveau tient au meme endroit, et pour la meme raison :
+                      « qui ai-je, et que savent-ils faire ? ». Un agent sans
+                      cerveau qui repond n'est pas mal regle, il est muet - et
+                      c'est la panne du 5 aout, treize d'un coup. */}
+                  <div className="border-t border-slate-200 pt-4 dark:border-navy-800">
+                    <CerveauEquipe nomsAgents={new Map(agents.map((a) => [a.id, a.nom]))} />
                   </div>
                 </>
               )}

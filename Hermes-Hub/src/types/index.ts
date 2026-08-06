@@ -541,6 +541,25 @@ export interface SessionFournisseur {
   quand: string | null
 }
 
+/**
+ * Quel cerveau pense pour qui - deux etages.
+ *
+ * `universel` a `null` ne veut pas dire « aucun modele » : il veut dire **on ne
+ * touche a rien**, chaque profil garde le sien. C'est le defaut, et il doit
+ * l'etre.
+ *
+ * ⚠ `disponibles` vient des SESSIONS OUVERTES, pas d'une liste tenue par le
+ * Hub : c'est Hermes qui annonce son inventaire. Tant que personne n'est
+ * eveille, elle est vide - et l'ecran le dit plutot que de deviner.
+ */
+export interface Cerveau {
+  universel: string | null
+  exceptions: Record<string, string>
+  disponibles: { id: string; nom: string }[]
+  agents: { agent: string; ouvert: boolean; modele: string | null }[]
+  aucunPontOuvert: boolean
+}
+
 export interface Accueil {
   fenetreVue: boolean
   profilValide: boolean

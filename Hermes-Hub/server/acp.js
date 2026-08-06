@@ -17,6 +17,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { arbitrer } from './laissez-passer.js'
 import { lireMode } from './mode-conversation.js'
+import { modelePour } from './cerveau.js'
 import { estPanneModele, lireBascule, prochainGratuit } from './modeles.js'
 
 /**
@@ -547,6 +548,31 @@ export class PontAcp extends EventEmitter {
         modeActuel: res.modes?.currentModeId || null,
         cwd: this.cwd,
       }
+
+      /**
+       * LE CERVEAU CHOISI S'APPLIQUE ICI, ET NULLE PART AILLEURS.
+       *
+       * C'est le seul endroit que TOUTE session traverse - chat, delegation,
+       * execution d'un scenario. Le poser plus loin voudrait dire le poser
+       * trois fois, et en oublier une : un agent repondrait alors avec le
+       * cerveau de son profil pendant que l'ecran en annonce un autre.
+       *
+       * ⚠ ON NE POSE QUE CE QUI EST ANNONCE. Si le modele garde n'est pas dans
+       * la liste de cette session - profil sans ce fournisseur, modele retire
+       * de l'inventaire -, on laisse celui du profil et on le DIT. Insister
+       * echouerait, et se taire ferait croire au choix affiche.
+       */
+      const voulu = modelePour(this.agent)
+      if (voulu && voulu !== this.session.modeleActuel) {
+        if (this.session.modeles.some((m) => m.id === voulu)) {
+          await this.choisirModele(voulu).catch((err) => {
+            this.emettre({ type: 'cerveau-refuse', modele: voulu, message: err.message })
+          })
+        } else {
+          this.emettre({ type: 'cerveau-absent', modele: voulu, garde: this.session.modeleActuel })
+        }
+      }
+
       return this.session
     })()
 

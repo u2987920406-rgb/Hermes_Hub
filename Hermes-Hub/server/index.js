@@ -83,6 +83,7 @@ import { executer, preparer } from './masse.js'
 import { ecrireDisposition, lireDisposition, oublierDisposition } from './studio.js'
 import { lirePlanDuPole, poserScenario, preparerPlan } from './plan.js'
 import { clore, lire as lireConversation, lister as listerConversations, noter, supprimer as supprimerConversation } from './historique.js'
+import { ecrireCerveau, lireCerveau } from './cerveau.js'
 import { ecrireBascule, lireBascule, lireSessionFournisseur } from './modeles.js'
 import { projectFiles, vaultNote } from './templates.js'
 import {
@@ -2656,6 +2657,37 @@ async function handleApi(req, res, url) {
     // reveille personne - voir `Equipage.modes()` pour pourquoi ca compte.
     if (rest[1] === 'modes' && method === 'GET') {
       return sendJson(res, 200, equipage.modes())
+    }
+
+    /**
+     * QUEL CERVEAU PENSE POUR QUI - deux etages, et aucun fichier d'Hermes
+     * touche. Voir `cerveau.js` : le choix vit dans `.hub`, ACP le porte par
+     * session, et ce qu'on n'ecrit pas ne peut ecraser personne.
+     *
+     * `?reveiller=<agent>` est explicite EXPRES. Lire l'inventaire des modeles
+     * demande une session ouverte, donc un processus Hermes qui demarre - ~4 s
+     * mesurees. Le faire en silence a l'ouverture d'un ecran de reglages
+     * reveillerait quelqu'un sans qu'on l'ait demande, et c'est la regle du
+     * Hub depuis la V2 : un message sans `@nom` ne reveille personne.
+     */
+    if (rest[1] === 'cerveau') {
+      if (method === 'GET') {
+        const qui = url.searchParams.get('reveiller')
+        if (qui) {
+          const agent = listerAgents().find((a) => a.id === qui)
+          if (agent) await equipage.reveiller(agent)
+        }
+        return sendJson(res, 200, { ...lireCerveau(), ...equipage.cerveaux() })
+      }
+      if (method === 'POST') {
+        const etat = ecrireCerveau(await readBody(req))
+        // Applique tout de suite : un reglage annonce que personne n'applique
+        // est un ecran qui affirme. Puis diffuse - deux onglets ouverts sur le
+        // meme Hub ne peuvent pas montrer deux cerveaux differents.
+        const vivant = await equipage.appliquerCerveau()
+        diffuser({ type: 'cerveau', ...etat })
+        return sendJson(res, 200, { ...etat, ...vivant })
+      }
     }
 
     // Discussion ou Atelier. Voir `mode-conversation.js` pour ce que chacun

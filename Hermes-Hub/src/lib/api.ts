@@ -25,6 +25,7 @@ import type {
   ProfilTexte,
   Decomposition,
   PlanPropose,
+  Cerveau,
   NoteRetour,
   VersionBanc,
   Orchestration,
@@ -328,6 +329,14 @@ export const api = {
   // `fenetreVue` eteint le rappel du premier lancement ; `profilValide` eteint
   // le bandeau. Deux drapeaux, parce que la case « ne plus afficher » ne doit
   // pas eteindre les deux.
+  /** `reveiller` nomme l'agent dont on ouvre la session pour LIRE l'inventaire
+      des modeles. Explicite : ca demarre un processus Hermes (~4 s mesurees), et
+      rien ne doit reveiller personne sans qu'on l'ait demande. */
+  cerveau: (reveiller?: string) =>
+    request<Cerveau>(`/chat/cerveau${reveiller ? `?reveiller=${enc(reveiller)}` : ''}`),
+  poserCerveau: (patch: { universel?: string | null; agent?: string; modele?: string | null }) =>
+    request<Cerveau>('/chat/cerveau', { method: 'POST', body: body(patch) }),
+
   accueil: () => request<Accueil>('/accueil'),
   noterAccueil: (patch: Partial<Accueil>) =>
     request<Accueil>('/accueil', { method: 'POST', body: body(patch) }),

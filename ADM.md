@@ -282,6 +282,72 @@ lancer dans le Studio.
 friction dont l'argument repose sur une pièce non encore posée ne se règle pas
 avant elle.
 
+### Ce qu'on n'écrit pas ne peut écraser personne *(06/08/2026)*
+Le cerveau de chaque agent se choisit désormais à la souris, et **le Hub n'écrit
+rien dans les profils d'Hermès.** Le choix vit dans `.hub/cerveau.json`, ACP
+l'applique par session. Vérifié : un universel posé fait basculer la session en
+direct, et `config.yaml` ne bouge pas — son `model.default` continue d'annoncer
+autre chose, sans conséquence.
+
+La « vraie difficulté » que le plan redoutait — savoir **qui ne pas écraser**,
+ce spécialiste réglé exprès rattrapé en silence — n'a pas été résolue : elle a
+**disparu**. Elle n'existait que parce qu'on comptait écrire dans le fichier de
+quelqu'un d'autre.
+
+*La règle, et elle vaut au-delà d'ici :* **avant de chercher comment écrire sans
+casser, chercher si on peut ne pas écrire du tout.** Un réglage qu'on garde chez
+soi ne peut ni écraser, ni être écrasé, ni survivre à une désinstallation qu'on
+n'a pas faite. Le fichier d'un autre produit est un endroit qu'on emprunte.
+
+### Un panneau de réglage ne réveille personne, il propose *(06/08/2026)*
+Lire l'inventaire des modèles demande une session ACP ouverte — 4,2 s et un
+processus Hermès. Ouvrir un écran de réglages ne doit pas suffire à le
+déclencher : la V2 tient depuis le début qu'un message sans `@nom` ne réveille
+personne, et un écran ne vaut pas mieux qu'un message. Le panneau affiche donc
+une liste **vide**, dit pourquoi, et offre le bouton qui réveille.
+
+*Le corollaire compte autant :* **la liste ne vient jamais d'une copie tenue par
+le Hub.** C'est Hermès qui annonce son inventaire. Une liste recopiée serait
+juste le jour où on l'écrit et fausse au premier fournisseur ajouté — et elle
+enverrait choisir un modèle qui n'existe plus, avec l'assurance d'un menu.
+
+### On règle les agents qui dorment, ce sont eux qu'on vient régler *(06/08/2026)*
+Le premier jet du panneau listait **une ligne par session ouverte** : une ligne
+sur treize. Vu à l'écran, l'erreur saute — on ouvre cet écran parce qu'un agent
+**ne répond pas**, donc parce qu'il dort. Un réglage qui ne propose que ce qui
+tourne refuse précisément ce qu'on est venu faire.
+
+*La forme juste :* l'annuaire donne la liste, l'état vivant n'ajoute qu'une
+information — « sur quoi il tourne en ce moment ». **Ce qui existe ne se déduit
+pas de ce qui est actif.**
+
+### Le levier existait déjà, et il n'avait qu'un appelant automatique *(06/08/2026)*
+Le plan cherchait comment choisir le cerveau d'un agent, et redoutait la boucle
+sur treize `config.yaml` — avec sa « vraie difficulté », savoir **qui ne pas
+écraser** : un spécialiste réglé exprès rattrapé en silence par le réglage
+général. La mesure a trouvé autre chose. **ACP porte le modèle par session**, le
+Hub range déjà la liste annoncée à `session/new` *(36 modèles, mesuré)*, et
+`PontAcp.choisirModele()` appelle déjà `session/set_model` *(accepté en 2,4 s)*.
+Son seul appelant est la **bascule automatique en cas de panne**. Il manquait
+une route et un geste, pas un mécanisme.
+
+*Ce que ça change :* un choix porté par la session **n'écrase personne** — il
+dure ce que dure la session, le fichier du profil n'est jamais ouvert. La
+difficulté redoutée ne concerne que la **persistance**, et elle se règle dans
+`.hub`, chez nous, plutôt que dans un fichier qui appartient à Hermès.
+
+*Ce que ça apprend au-delà d'ici, et c'est la deuxième fois en deux jours :*
+**avant de dessiner un mécanisme, chercher qui le fait déjà pour une autre
+raison.** `lireSessionFournisseur` existait et n'avait pas de surface ;
+`choisirModele` existe et n'a pas de geste. Les deux fois, le travail n'était pas
+d'écrire la capacité mais de lui ouvrir une porte — et les deux fois on a failli
+la réécrire.
+
+*Et une réserve qui compte pour le dessin :* la liste des 36 est l'**inventaire
+configuré**, pas une preuve de disponibilité — les modèles `nous:` y figuraient
+pendant que la session Nous était révoquée. Un sélecteur qui promettrait qu'un
+modèle listé répond serait un interrupteur qui ment.
+
 ### Un seul bandeau de configuration, et le silence passe devant l'imprécision *(06/08/2026)*
 Le bandeau de session expirée partage l'emplacement du bandeau de profil, et il
 **passe devant** quand les deux sont vrais. La raison n'est pas l'ancienneté ni
