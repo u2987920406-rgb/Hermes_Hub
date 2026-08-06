@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState } from 'react'
 import { CommandPalette } from './components/CommandPalette'
 import { LigneAlerte } from './components/LigneAlerte'
 import { NewProjectModal } from './components/NewProjectModal'
+import { BandeauSession } from './components/BandeauSession'
 import { BandeauProfil, PremiereFois } from './components/PremiereFois'
 import { Sidebar } from './components/Sidebar'
 import { Toasts } from './components/Toasts'
@@ -155,6 +156,28 @@ export default function App() {
     if (route.view === 'config') return
     api.accueil().then(setAccueil).catch(() => null)
   }, [route.view])
+
+  /**
+   * UNE PANNE D'AGENT EST LE MOMENT OU UNE SESSION EXPIREE SE REVELE.
+   *
+   * Le bandeau lu au chargement ne suffit pas : une session ne meurt pas quand
+   * on ouvre le Hub, elle meurt en cours de journee - le 05/08 a 16:09, entre
+   * deux demandes. Sans cette relecture, il faudrait recharger la page pour
+   * apprendre pourquoi les agents se taisent, c'est-a-dire deviner qu'il y a
+   * quelque chose a apprendre.
+   *
+   * ⚠ ON RELIT, ON NE DEDUIT PAS. L'evenement `panne` dit qu'un agent est
+   * tombe, pas pourquoi : c'est `auth.json` qui le sait, et lui seul. Deduire
+   * la cause du message afficherait « reconnecte-toi » sur n'importe quelle
+   * panne - et une consigne qui se trompe une fois n'est plus suivie ensuite.
+   *
+   * Effet separe, et apres la declaration de `setAccueil` : un tableau de
+   * dependances qui cite une constante declaree plus bas jette a l'execution,
+   * et l'ecran resterait blanc.
+   */
+  useEffect(() => ecouterChat((e) => {
+    if (e.type === 'panne') api.accueil().then(setAccueil).catch(() => null)
+  }), [])
 
   // Ctrl+K (Cmd+K sur Mac) ouvre la recherche depuis n'importe quel ecran.
   useEffect(() => {
@@ -330,11 +353,23 @@ export default function App() {
             lire. Le Studio, qui sort de ce cadre, la repose lui-meme dans sa
             barre de scenario. */}
         <LigneAlerte />
-        {/* Sans croix, et il ne part qu'en allant choisir. La case « ne plus
-            afficher » de la fenetre n'eteint QUE la fenetre : ceux qui la
-            cochent sont exactement ceux qu'on veut atteindre. */}
-        {accueil && !accueil.profilValide && route.view !== 'config' && (
-          <BandeauProfil onAller={allerAuxQuestions} />
+        {/*
+          UN SEUL BANDEAU DE CONFIGURATION, ET LA SESSION PASSE DEVANT.
+          Un profil non choisi fait repondre Hermes A COTE ; une session expiree
+          fait qu'il NE REPOND PAS. Le silence passe devant l'imprecision, et
+          empiler les deux ferait deux affirmations sur le meme sujet - ce que
+          la grammaire refuse depuis la ligne d'alerte.
+
+          Sans croix, et il ne part qu'en reglant. La case « ne plus afficher »
+          de la fenetre n'eteint QUE la fenetre : ceux qui la cochent sont
+          exactement ceux qu'on veut atteindre.
+        */}
+        {accueil?.session ? (
+          <BandeauSession session={accueil.session} />
+        ) : (
+          accueil &&
+          !accueil.profilValide &&
+          route.view !== 'config' && <BandeauProfil onAller={allerAuxQuestions} />
         )}
         {renderView()}
       </main>

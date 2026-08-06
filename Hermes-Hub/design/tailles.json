@@ -1,10 +1,11 @@
 {
-  "src/App.tsx": 357,
+  "src/App.tsx": 392,
   "src/components/AlerteEssai.tsx": 42,
   "src/components/Attente.tsx": 63,
   "src/components/AttentePlan.tsx": 73,
   "src/components/Automatisations.tsx": 156,
   "src/components/BancEssai.tsx": 344,
+  "src/components/BandeauSession.tsx": 105,
   "src/components/BilanRendu.tsx": 152,
   "src/components/BoutonRepli.tsx": 107,
   "src/components/CartePlan.tsx": 222,
@@ -57,5 +58,5 @@
   "src/pages/VaultView.tsx": 297,
   "src/store/alertes.ts": 62,
   "src/store/useHubStore.ts": 461,
-  "src/types/index.ts": 1024
+  "src/types/index.ts": 1044
 }

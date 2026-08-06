@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **14:35**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **13:16**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -1177,6 +1177,26 @@ elle ne coûte rien.
   `auth.json` pour dire quand le cerveau ne répond pas parce qu'il faut se
   reconnecter. Le second est plus urgent que le premier : sans lui, un client
   dont la session expire voit treize agents muets et aucune raison.
+
+  **✅ LE SECOND EST FAIT — 6 août 2026, éprouvé à l'écran sur la vraie panne.**
+  La lecture existait depuis le 5 août (`lireSessionFournisseur`, sept tests) et
+  `equipage.js` collait déjà la cause au message d'un agent qui tombe. **Ce qui
+  manquait était le moment** : il fallait envoyer quelque chose, attendre, et
+  échouer pour l'apprendre. Un bandeau le dit maintenant **avant** — il partage
+  l'emplacement du bandeau de profil et passe devant lui, parce qu'un profil non
+  choisi fait répondre Hermès *à côté* quand une session expirée fait qu'il *ne
+  répond pas*. Son bouton **ouvre un terminal sur `hermes model`**, la commande
+  qu'Hermès recommande lui-même — suivie jusqu'à son arrivée, terminal compris.
+  Relu à chaque événement `panne` : une session ne meurt pas au chargement du
+  Hub, elle meurt en cours de journée, le 5 août à 16:09 entre deux demandes.
+
+  *Éprouvé sur le vrai cas, sans décor :* la session de ce poste est révoquée
+  depuis le 5 août, et les deux conditions étaient vraies en même temps — ce qui
+  a vérifié la priorité du même coup.
+
+  *Reste du §7, et c'est le premier des deux :* **choisir le cerveau à la
+  souris**, avec sa difficulté écrite plus bas — savoir qui ne pas écraser — et
+  l'échelle par tâche à mesurer d'abord (orphelin 5 du §6).
 
 **⚠ MESURÉ LE 5 AOÛT À 15:20 — LA CASCADE N'EXISTE PAS.** L'aide d'Hermès
 décrit `config get` comme *« Print a **resolved** configuration value »*, ce qui

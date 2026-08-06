@@ -523,9 +523,29 @@ export interface ProfilTexte {
  * `profilValide`, donc eteint le bandeau. Une case qui eteindrait les deux
  * annulerait l'objectif - ceux qui la cochent sont ceux qu'on veut atteindre.
  */
+/**
+ * La session du fournisseur de modeles, quand elle demande une reconnexion.
+ *
+ * `null` le reste du temps - et c'est le sens qui compte le plus. Le Hub ne
+ * porte ce constat que lorsque `relogin_required` est vrai dans l'`auth.json`
+ * d'Hermes : une erreur ancienne et deja resolue y traine, et envoyer se
+ * reconnecter alors que tout marche est le genre de consigne qu'on suit une
+ * fois, puis plus jamais.
+ *
+ * ⚠ Aucun jeton n'y figure, jamais. Ce qui part vers un navigateur ne porte que
+ * le constat d'echec - un test de `session-fournisseur.test.js` ne tient que ca.
+ */
+export interface SessionFournisseur {
+  fournisseur: string
+  code: string | null
+  quand: string | null
+}
+
 export interface Accueil {
   fenetreVue: boolean
   profilValide: boolean
+  /** Ce qu'on constate, a cote de ce qu'on retient. Voir la route `/accueil`. */
+  session: SessionFournisseur | null
 }
 
 /**

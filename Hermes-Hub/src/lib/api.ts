@@ -207,7 +207,9 @@ export const api = {
       method: 'DELETE',
     }),
 
-  launchHermes: (input: { projectId?: string; profile?: string } = {}) =>
+  /** `commande: 'model'` ouvre le selecteur de fournisseur - la reconnexion.
+      C'est la seule valeur que le serveur reconnaisse : voir `launchHermes`. */
+  launchHermes: (input: { projectId?: string; profile?: string; commande?: 'model' } = {}) =>
     request<{ launched: string; cwd: string }>('/launch/hermes', {
       method: 'POST',
       body: body(input),

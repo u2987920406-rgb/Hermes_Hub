@@ -282,6 +282,47 @@ lancer dans le Studio.
 friction dont l'argument repose sur une pièce non encore posée ne se règle pas
 avant elle.
 
+### Un seul bandeau de configuration, et le silence passe devant l'imprécision *(06/08/2026)*
+Le bandeau de session expirée partage l'emplacement du bandeau de profil, et il
+**passe devant** quand les deux sont vrais. La raison n'est pas l'ancienneté ni
+la gravité en général, c'est le symptôme : un profil non choisi fait répondre
+Hermès **à côté** de ce qu'on voulait ; une session expirée fait qu'il **ne
+répond pas**. Devant un écran muet, on ne cherche pas — on referme.
+
+Les empiler aurait fait deux affirmations sur le même sujet, la configuration :
+exactement ce que la grammaire refuse depuis « une seule ligne d'alerte, jamais
+deux ». Un emplacement, une phrase, un geste.
+
+### Ce qu'on retient et ce qu'on constate ne vivent pas dans le même fichier *(06/08/2026)*
+La route `/accueil` rend deux choses de nature différente : `lireAccueil()`, deux
+drapeaux **écrits sur le disque** par le Hub, et `lireSessionFournisseur()`,
+**relu dans l'`auth.json` d'Hermès à chaque appel**. Elles voyagent ensemble
+parce qu'elles commandent la même surface — deux appels pour un bandeau feraient
+deux moments où il peut se contredire.
+
+Mais elles ne sont **pas** rangées dans le même fichier, et c'est le point :
+`noterAccueil` écrit ce qu'il reçoit. Une valeur constatée qui passerait par là
+serait figée comme si elle était acquise, et le Hub annoncerait une session
+expirée le jour où elle est réparée. *Ce qu'on retient s'écrit ; ce qu'on
+constate se relit.*
+
+### Un message d'erreur ne contient ni pronom de rappel ni nom ambigu *(06/08/2026)*
+Deux fautes vues **à l'écran seulement**, dans un bandeau relu trois fois :
+
+*« La session nous a expiré »* — `nous` est le nom du fournisseur, et il se lit
+comme le pronom. Le nom propre est sorti de la phrase et posé dans un `code`, où
+il ne peut plus être pris pour un mot de la langue.
+
+*« Tes agents ne répondront pas tant qu'elle ne l'est pas »* — le seul antécédent
+disponible était « expirée ». La phrase disait donc l'inverse exact de ce qu'elle
+voulait dire. Un pronom de rappel économise trois mots et coûte une lecture ;
+dans un message qu'on lit en panique, on renomme la chose.
+
+*La règle générale :* **une phrase d'erreur se relit à voix haute, à l'écran, pas
+dans l'éditeur.** Les deux fautes étaient invisibles dans le code — l'une parce
+que la variable s'appelait `session.fournisseur`, l'autre parce que l'antécédent
+qu'on avait en tête n'était pas celui que la phrase offrait.
+
 ### Un `try/catch` ne rattrape pas une panne annoncée plus tard *(06/08/2026)*
 Le Hub est mort en plein run — `write EPIPE`, *unhandled 'error' event* — et
 avec lui les trois agents qui travaillaient. La cause : `PontAcp` écrit ses

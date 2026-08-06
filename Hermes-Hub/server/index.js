@@ -83,7 +83,7 @@ import { executer, preparer } from './masse.js'
 import { ecrireDisposition, lireDisposition, oublierDisposition } from './studio.js'
 import { lirePlanDuPole, poserScenario, preparerPlan } from './plan.js'
 import { clore, lire as lireConversation, lister as listerConversations, noter, supprimer as supprimerConversation } from './historique.js'
-import { ecrireBascule, lireBascule } from './modeles.js'
+import { ecrireBascule, lireBascule, lireSessionFournisseur } from './modeles.js'
 import { projectFiles, vaultNote } from './templates.js'
 import {
   HUB_DIR,
@@ -873,9 +873,22 @@ function applySkin(skin, profile) {
   }
 }
 
-/** Open a terminal running `hermes` in `cwd`, with an optional profile. */
-function launchHermes({ cwd, profile }) {
-  const cmd = profile ? `hermes -p ${profile}` : 'hermes'
+/**
+ * Open a terminal running `hermes` in `cwd`, with an optional profile.
+ *
+ * ⚠ `commande` N'EST PAS UN CHAMP LIBRE. Une seule valeur est reconnue,
+ * `'model'` - le selecteur interactif de fournisseur, celui qu'on propose quand
+ * la session a expire. Tout le reste retombe sur `hermes` nu. Une route qui
+ * lance ce qu'on lui passe est une porte ouverte, et le laissez-passer entier
+ * existe justement pour qu'aucune commande ne parte sans etre vue.
+ *
+ * Le profil est ignore dans ce cas, et ce n'est pas un oubli : une reconnexion
+ * vaut pour le poste, pas pour un agent. Lui coller un `-p` refabriquerait la
+ * commande par fournisseur que `modeles.js` a deja refuse d'inventer.
+ */
+function launchHermes({ cwd, profile, commande }) {
+  const cmd =
+    commande === 'model' ? 'hermes model' : profile ? `hermes -p ${profile}` : 'hermes'
   const wt = windowsTerminalPath()
   if (wt) {
     detach(wt, ['-d', cwd, 'powershell', '-NoExit', '-Command', cmd], cwd)
@@ -1744,6 +1757,7 @@ async function handleApi(req, res, url) {
         updateProject(body.projectId, { touch: true })
       }
       const profile = body.profile || null
+      const commande = body.commande === 'model' ? 'model' : null
       const config = getConfig()
       const skin =
         profile && profile === config.cleanProfile
@@ -1752,7 +1766,7 @@ async function handleApi(req, res, url) {
             ? config.skinProject
             : config.skinChat
       applySkin(skin, profile)
-      return sendJson(res, 200, launchHermes({ cwd, profile }))
+      return sendJson(res, 200, launchHermes({ cwd, profile, commande }))
     }
     if (rest[1] === 'obsidian') return sendJson(res, 200, openObsidian())
   }
@@ -1805,7 +1819,23 @@ async function handleApi(req, res, url) {
   }
 
   if (rest[0] === 'accueil') {
-    if (method === 'GET') return sendJson(res, 200, lireAccueil())
+    /**
+     * DEUX NATURES DANS UNE SEULE REPONSE, ET C'EST VOULU.
+     *
+     * `lireAccueil()` rend ce que le poste RETIENT - deux drapeaux ecrits sur le
+     * disque par `noterAccueil`. `lireSessionFournisseur()` rend ce qui est VRAI
+     * MAINTENANT, relu dans l'`auth.json` d'Hermes a chaque appel. On ne les
+     * melange pas dans le meme fichier : une valeur qu'on retient et une valeur
+     * qu'on constate n'ont pas la meme duree de vie, et `noterAccueil` ecrirait
+     * la seconde comme si elle etait acquise.
+     *
+     * Elles voyagent ensemble parce qu'elles commandent la MEME surface : le
+     * bandeau de configuration, dont il n'y a qu'un. Deux appels pour un bandeau
+     * feraient deux moments ou il peut se contredire.
+     */
+    if (method === 'GET') {
+      return sendJson(res, 200, { ...lireAccueil(), session: lireSessionFournisseur() })
+    }
     if (method === 'POST') return sendJson(res, 200, noterAccueil(await readBody(req)))
   }
 

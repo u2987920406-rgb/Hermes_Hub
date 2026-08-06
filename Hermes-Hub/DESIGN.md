@@ -148,6 +148,7 @@ partages ». Le reste revient en repartant d'une conversation neuve
 |---|---|---|---|
 | La fenetre volante du tout premier lancement | `premiere-fois` | — | `PremiereFois.tsx`, tableau `ECARTS` |
 | Le bandeau rouge « Hermes ne sait pas qui tu es » | `bandeau-profil` | — | idem — **sans croix**, il ne part qu'en choisissant un profil |
+| Le bandeau rouge « La session … a expire » | `bandeau-session` | — | `BandeauSession.tsx` — **meme emplacement que `bandeau-profil`, et il passe devant** : un profil non choisi fait repondre Hermes a cote, une session expiree fait qu'il ne repond pas. Son bouton ouvre un terminal sur `hermes model`, la commande qu'Hermes recommande lui-meme |
 | L'encart et la bulle, dans Configuration > Memoire | `profils-memoire` | — | `ProfilsMemoire.tsx`, tableau `LECON` |
 | Une ligne de la bulle : un profil et son poids | `ligne-profil` | `--densite` | idem |
 | Les sept questions, quand `USER.md` est choisi | `questions-user` | — | `QuestionsUser.tsx`, tableau `CHAMPS` |
@@ -243,6 +244,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `avertissement-convocation` | `src/components/Conversation.tsx` |
 | `banc-essai` | `src/components/BancEssai.tsx` |
 | `bandeau-profil` | `src/components/PremiereFois.tsx` |
+| `bandeau-session` | `src/components/BandeauSession.tsx` |
 | `barre-saisie` | `src/components/Conversation.tsx` |
 | `bascule-proposee` | `src/components/CartePlan.tsx` |
 | `bilan-rendu` | `src/components/BilanRendu.tsx` |
