@@ -282,6 +282,23 @@ lancer dans le Studio.
 friction dont l'argument repose sur une pièce non encore posée ne se règle pas
 avant elle.
 
+### Authentifié n'est pas disponible *(06/08/2026)*
+Après la reconnexion à Nous, le premier cerveau posé — `claude-haiku-4.5` — a
+répondu *« requires available credits »*. La session était valide **et** le
+compte sans crédits pour les modèles payants : deux pannes différentes, qu'on
+avait confondues le 5 août sous un seul « credit error ».
+
+*Pourquoi ça compte au-delà du jour :* c'est la démonstration du refus le plus
+important du panneau de cerveaux — **il ne promet pas qu'un modèle répond**. Un
+sélecteur qui l'aurait promis aurait menti ici, sur un modèle présent dans la
+liste, authentifié, et pourtant hors de portée. La règle était argumentée le
+matin ; elle est mesurée le soir.
+
+*Et la question qu'elle ouvre :* rien ne distingue un modèle payant d'un gratuit
+dans la liste — Hermès sait le dire (`build_models_payload` accepte `pricing`),
+on le lui demande à `false`. Afficher le prix est une information ; n'afficher
+que ce qui répond serait une promesse, donc le piège d'à côté.
+
 ### Une dette peut devenir une fonction, et ça se décide *(06/08/2026)*
 Le retrait de la boîte a laissé `/api/demande` sans appelant. Trois issues :
 supprimer, laisser mourir sur pied, ou **lui ouvrir une porte**. La troisième a

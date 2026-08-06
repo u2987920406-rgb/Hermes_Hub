@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **17:59**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **18:20**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -1436,9 +1436,37 @@ On vient ici parce qu'un agent **ne répond pas**, donc parce qu'il dort. La lis
 vient maintenant de l'annuaire ; les sessions ouvertes n'ajoutent que « sur quoi
 il tourne en ce moment ».
 
-*Ce qui reste de la porte :* « on le **voit répondre** ». Le changement est
-appliqué et mesuré ; le tour complet — changer le cerveau d'un agent endormi puis
-lui parler — demande une session Nous valide, donc la reconnexion.
+#### ✅ **LA PORTE EST FRANCHIE — 6 août 2026, après la reconnexion de kuchu**
+
+Tour complet, sans terminal : exception posée sur le **géographe** — muet depuis
+le 5 août —, agent réveillé, session ouverte **sur le cerveau imposé**, question
+envoyée, réponse lue. *« Hokkaido est elle-même une préfecture, la plus
+septentrionale du Japon. »*
+
+*La reconnexion d'abord :* `last_auth_error` a entièrement disparu d'`auth.json`,
+`/api/accueil` rend `session: null`, le bandeau s'efface de lui-même, et
+`hermes --profile geographe chat` tient une session de 9 s là où il rendait
+« No access token found » le 5 août.
+
+#### ⚠ Et le premier essai a échoué — ce qui valide le refus le plus important
+
+Le cerveau posé d'abord était `nous:anthropic/claude-haiku-4.5`. L'agent a
+répondu : *« Model requires available credits. Your account balance is too low to
+use paid models. »* **La session Nous est valide et le compte n'a pas de crédits
+pour les modèles payants** — deux pannes différentes qu'on avait confondues le
+5 août sous « credit error ». Cinq modèles gratuits figurent dans la liste
+(`:free`), et l'un d'eux a répondu du premier coup.
+
+*C'est exactement le cas prévu, et il est maintenant **mesuré** au lieu d'être
+argumenté :* le panneau **ne promet pas qu'un modèle répond**, parce que la liste
+est l'inventaire configuré et rien d'autre. Un sélecteur qui aurait promis aurait
+menti ici, sur un modèle présent, authentifié, et hors de portée.
+
+*Ce qui reste à instruire :* rien n'indique dans la liste qu'un modèle est
+payant. Le distinguer demanderait de lire les tarifs — `build_models_payload`
+sait le faire, il est appelé avec `pricing: false`. **À trancher : afficher le
+prix, ou n'afficher que ce qui répond ?** Le second serait une promesse ; le
+premier est une information.
 
 Trois de plus, ouvertes le 4 août au soir en rangeant ce plan dans le dépôt :
 
