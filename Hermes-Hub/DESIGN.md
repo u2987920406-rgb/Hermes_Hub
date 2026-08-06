@@ -57,6 +57,9 @@ pour le nommer quand on veut demander une modification.
 | « Je regarde si ca merite un plan — 12 s / 90 s » | `attente-plan` | — | idem, composant `AttentePlan`. Le plafond est visible parce qu'aucune moyenne ne predit la duree : dix mesures du 6 aout vont de 8,5 s a 54,2 s. Voir `PLAFOND_PLAN` dans `server/plan.js` |
 | « Tu appelles 12 agents » avant d'envoyer | `avertissement-convocation` | — | idem, seuil en dur : `mentionnes > 10` |
 | La colonne qui defile | `fil-conversation` | — | largeur : `max-w-3xl` |
+| La ligne au-dessus du fil : « En direct », Conversations, le retour | `ligne-contexte` | — | `LigneContexte.tsx` — absente au salut, et c'est voulu. Le retour **se nomme** : « Revenir a l'accueil » sur l'accueil, « Nouvelle » dans Orchestration, qui n'a pas de salut *(F4, C7)* |
+| Le volet des conversations passees, a droite | `volet-historique` | — | `VoletHistorique.tsx` — convoque, donc il se ferme : `X` ou Echap. Il a demenage d'Orchestration le 6 aout : on relit la ou l'on ecrit. Son bouton vit dans `ligne-contexte`, et au salut dans `raccourcis-accueil` |
+| Une conversation dans ce volet | `ligne-historique` | `--densite` | idem, tri : `ONGLETS` |
 | La barre du bas | `barre-saisie` | — | idem |
 | « Louise et Gabriel travaillent - 12 s » | `agents-au-travail` | `--agent-point-compact` | idem, composant `AuTravail` |
 | Le trait de fin : « 5 agents ont repondu - 24,1 s » | `fin-du-tour` | — | idem, composant `FinDuTour` |
@@ -69,14 +72,13 @@ pour le nommer quand on veut demander une modification.
 
 | Ce que tu vois | Zone a grep | Molettes | Sinon |
 |---|---|---|---|
-| Le menu de gauche (Historique, Conversation…) | `nav-orchestration` | — | l'ordre vient de `VOLETS` |
+| Le menu de gauche (Conversation, Agents, Scenarios) | `nav-orchestration` | — | l'ordre vient de `VOLETS`. **L'Historique n'y est plus** : il a rejoint l'accueil le 6 aout |
 | Le formulaire « Un agent de plus » | `nouvel-agent` | — | `NouvelAgent.tsx` |
 | Composer une equipe : cocher des agents, la nommer | `editeur-equipe` | — | `EditeurEquipe.tsx` — ouvrir une vignette d'equipe l'ouvre ici |
 | Une fiche dans la liste des agents | `fiche-agent` | `--agent-lisere`, `--agent-point`, `--densite` | `OrchestrationView.tsx` |
 | Les outils MCP, sous les agents | `outils-equipe` | — | `OutilsEquipe.tsx` |
 | La ligne d'un outil, avec « qui l'a » | `ligne-outil` | `--densite` | idem — l'ambre signale un outil incomplet |
 | Le formulaire « Brancher un outil » | `nouvel-outil` | — | idem |
-| Une conversation dans l'historique | `ligne-historique` | `--densite` | tri : `ONGLETS` |
 | Une vignette de scenario | `vignette-scenario` | `--agent-lisere-vignette` | idem |
 | Une vignette d'equipe | `vignette-equipe` | `--agent-lisere-vignette` | idem |
 | Le champ « Decris ce que tu veux » | `boite-demande` | — | idem |
@@ -96,7 +98,7 @@ par les props `accueil` / `accueilDessous` de `Conversation.tsx`.
 | Ce que tu vois | Zone a grep | Molettes | Sinon |
 |---|---|---|---|
 | Le salut « Bonjour X » et le champ au milieu | `accueil-conversation` | — | `Conversation.tsx`, condition `centre` — le contenu vient de `HomeView.tsx` |
-| Projets et Coffre, en petit sous le champ | `raccourcis-accueil` | — | `HomeView.tsx` |
+| Projets, Coffre et Conversations, en petit sous le champ | `raccourcis-accueil` | — | `HomeView.tsx`. « Conversations » est le meme bouton que celui de `ligne-contexte` — c'est le moment qui change de place, pas le geste, et il s'absente quand il n'y a rien a retrouver |
 | « Automatisations en cours », sous les raccourcis | `automatisations` | — | `Automatisations.tsx` |
 | Le bandeau ambre « elles ne partiront pas » | — | — | idem : il ne parait QUE si des taches actives existent sans passerelle |
 | Une ligne d'automatisation, suspendue ou non | — | — | idem, attribut `data-suspendue` |
@@ -168,10 +170,12 @@ obligerait le Hub a connaitre un texte que l'installateur possede.
 | Ce que tu vois | Zone a grep | Molettes | Sinon |
 |---|---|---|---|
 | L'ecran entier, sans barre laterale | `studio` | — | `StudioView.tsx` |
+| Le plan, a gauche du graphe | `panneau-plan` | — | `PanneauPlan.tsx` — **permanent, donc il se REPLIE** (`BoutonRepli`, etat retenu). Survoler une ligne allume son noeud, cliquer une ligne y amene : c'est C3, et c'est ce qui fait un instrument de deux affichages. Le « Resultat attendu » vient du plan garde sur le disque, pas du graphe |
 | Une case du canevas | `noeud-studio` | `--agent-lisere-noeud`, `--agent-point` | `NoeudStudio.tsx` |
+| Le noeud allume parce que sa ligne est survolee | — | — | classe `.noeud-vif` dans `index.css` : elle souleve et cerne, elle ne change ni la couleur ni l'etat |
+| Les reglages d'un noeud, a droite | `panneau-noeud` | `--agent-point` | `PanneauNoeud.tsx` — **convoque, donc il se FERME.** Le couple avec `panneau-plan` est le meilleur exemple de la regle |
 | La fiche « une tache de plus » | `brouillon-tache` | — | `StudioView.tsx` |
 | « 5 fichiers produits », a droite du canevas | `livrable-scenario` | — | `LivrableScenario.tsx` — absent tant que le scenario n'a jamais tourne |
-| Le panneau de reglages a droite | — | — | `StudioView.tsx`, cherche `<aside` |
 | Les traits entre les cases | — | — | pas de molette : la couleur vient de l'agent amont |
 
 ### L'organigramme
@@ -232,7 +236,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `agents-au-travail` | `src/components/Conversation.tsx` |
 | `alerte-essai` | `src/components/AlerteEssai.tsx` |
 | `attente-bouton` | `src/components/Attente.tsx` |
-| `attente-plan` | `src/components/CartePlan.tsx` |
+| `attente-plan` | `src/components/AttentePlan.tsx` |
 | `automatisations` | `src/components/Automatisations.tsx` |
 | `avertissement-convocation` | `src/components/Conversation.tsx` |
 | `banc-essai` | `src/components/BancEssai.tsx` |
@@ -248,7 +252,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `carte-plan` | `src/components/CartePlan.tsx` |
 | `carte-projet` | `src/components/ProjectCard.tsx` |
 | `champ-recherche` | `src/components/ChampRecherche.tsx` |
-| `decompte-decoupage` | `src/components/FenetreSimulation.tsx` |
+| `decompte-decoupage` | `src/components/DecompteDecoupage.tsx` |
 | `destinataires` | `src/components/Conversation.tsx` |
 | `developpement` | `src/pages/ConfigView.tsx` |
 | `ecran-accueil` | `src/pages/HomeView.tsx` |
@@ -269,7 +273,8 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `interrupteur-mode` | `src/components/InterrupteurMode.tsx` |
 | `ligne-alerte` | `src/components/LigneAlerte.tsx` |
 | `ligne-banc` | `src/components/BancEssai.tsx` |
-| `ligne-historique` | `src/pages/OrchestrationView.tsx` |
+| `ligne-contexte` | `src/components/LigneContexte.tsx` |
+| `ligne-historique` | `src/components/VoletHistorique.tsx` |
 | `ligne-outil` | `src/components/OutilsEquipe.tsx` |
 | `ligne-profil` | `src/components/ProfilsMemoire.tsx` |
 | `ligne-sauvegarde` | `src/components/Sauvegardes.tsx` |
@@ -286,6 +291,8 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `organigramme` | `src/components/Organigramme.tsx` |
 | `outils-equipe` | `src/components/OutilsEquipe.tsx` |
 | `palette-commandes` | `src/components/CommandPalette.tsx` |
+| `panneau-noeud` | `src/components/PanneauNoeud.tsx` |
+| `panneau-plan` | `src/components/PanneauPlan.tsx` |
 | `pastille-agent` | `src/components/Conversation.tsx` |
 | `premiere-fois` | `src/components/PremiereFois.tsx` |
 | `profils-memoire` | `src/components/ProfilsMemoire.tsx` |
@@ -299,6 +306,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `vignette-equipe` | `src/pages/OrchestrationView.tsx` |
 | `vignette-scenario` | `src/pages/OrchestrationView.tsx` |
 | `volet-alertes` | `src/components/VoletAlertes.tsx` |
+| `volet-historique` | `src/components/VoletHistorique.tsx` |
 <!-- ZONES:FIN -->
 
 ---

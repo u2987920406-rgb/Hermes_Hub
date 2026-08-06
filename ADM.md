@@ -227,6 +227,61 @@ les deux espaces qui l'encadrent qui le poussent au milieu. Un composant qui se
 duplique pour changer de position finit par diverger de lui-même — une
 correction posée sur un exemplaire, oubliée sur l'autre.
 
+### On relit là où l'on écrit *(06/08/2026)*
+L'historique quitte Orchestration pour l'accueil. Il était **du côté où l'on
+n'écrit plus** : on écrit à l'accueil, on relisait ailleurs — et *une mémoire
+rangée loin de l'endroit où elle se fabrique ne se consulte pas.* Il devient un
+bouton « Conversations », dans la ligne « En direct » une fois qu'on a parlé, et
+rangé avec Projets et Coffre au salut. **Un seul bouton, un seul volet, deux
+moments** : le moment change de place, pas le geste — un composant recopié aux
+deux endroits aurait divergé au premier réglage.
+
+Il ne reste pas en double dans Orchestration. C'est la règle qui avait déjà fait
+partir la bande « automatisation tombée » de l'accueil : **deux surfaces qui
+disent la même chose finissent par se contredire.**
+
+### Un bouton dit où il mène, et seulement là où il y mène *(06/08/2026)*
+Le seul chemin vers l'accueil s'appelait « Nouvelle ». Ça promet une
+conversation neuve, pas un retour — rien ne laissait deviner qu'on y retrouve
+ses raccourcis. **C'est le genre de friction dont on ne se plaint jamais : on ne
+dit pas « je n'ai pas trouvé », on croit que ça n'existe pas.** Il dit
+maintenant « Revenir à l'accueil » — mais **sur l'accueil seulement.** Dans le
+volet Conversation d'Orchestration, qui n'a pas de salut, « Nouvelle » reste
+exact. Un libellé unique aurait menti d'un côté ou de l'autre.
+
+### Un geste ajouté se suit jusqu'à son arrivée *(06/08/2026)*
+`ADM.md` disait déjà qu'*une consigne ne remplace pas un chemin qui manque*.
+D'où le bouton « Ouvrir dans le Studio » posé sur le message d'un découpage
+raté. **Il menait à un écran vide** — une demande non découpée n'est pas un
+pôle, elle vit dans `isolees`, et le Studio répondait « Aucun scénario ouvert ».
+Trouvé en cliquant, pas en écrivant. **Offrir un chemin qui ne mène nulle part
+est pire que décrire un chemin qu'on laisse chercher** : le premier ment, le
+second se contente d'être incomplet. Le Studio fait désormais de cette demande
+un scénario d'une seule tâche, ce qu'elle est.
+
+### Un couplage doit sortir la chose de la pénombre *(06/08/2026)*
+Survoler une ligne du plan allume son nœud (C3). Premier essai : la classe était
+posée, `transform` valait bien `scale(1.04)`, **et on ne voyait rien.** Une
+tâche qui attend son tour est à 55 % d'opacité et désaturée — le surlignage se
+battait contre le retrait et perdait. Il lève donc aussi l'opacité et le filtre.
+Ce qu'il ne fait toujours pas : changer la couleur ou l'état. **Survoler n'est
+pas un événement du scénario**, et un nœud qui prendrait l'air « en cours » sous
+le curseur mentirait sur ce qui se passe.
+
+### Un bouton qui ne garde plus de porte s'enlève *(06/08/2026)*
+« Valider la simulation » certifiait qu'on avait vu le plan, à l'époque où le
+plan était une fenêtre qu'on ouvrait. Depuis qu'il est un **panneau permanent**,
+il est sous les yeux : le regarder EST l'ouvrir, et le bouton ne certifie plus
+rien. Il disparaît, et le refus côté serveur avec lui — `lancer()` **date
+l'accord** au lieu de le réclamer. **La règle qui compte est conservée
+entière** : rien ne part sans un clic explicite, après avoir eu la forme du
+travail sous les yeux. Deux gestes, pas trois — valider le plan dans le chat,
+lancer dans le Studio.
+
+*Et l'ordre comptait :* F11 a dû attendre que le panneau plan existe. Une
+friction dont l'argument repose sur une pièce non encore posée ne se règle pas
+avant elle.
+
 ### On bascule à l'envoi, pas au retour du serveur *(04/08/2026)*
 Le message n'entre dans le fil que lorsque le serveur l'inscrit et le renvoie.
 En s'en remettant au fil, le salut serait resté affiché pendant l'aller-retour :

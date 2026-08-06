@@ -32,6 +32,7 @@ import { useEffect, useState } from 'react'
 import { Automatisations } from '../components/Automatisations'
 import { Conversation } from '../components/Conversation'
 import { PageHeader } from '../components/PageHeader'
+import { BoutonHistorique } from '../components/VoletHistorique'
 import { api } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
 import type { Agent, Equipe, Theme, View } from '../types'
@@ -122,6 +123,7 @@ export function HomeView({ onNavigate, onMenu }: Props) {
           Coffre
           {stats ? <span className="ml-1.5 tabular-nums opacity-60">{stats.notes}</span> : null}
         </button>
+        <BoutonHistorique />
       </div>
 
       {/* Ce qui tournera sans toi. La section s'efface d'elle-meme s'il n'y a

@@ -29,60 +29,8 @@
  * laisserait croire qu'on n'a jamais rien propose - c'est la meme lecon que la
  * carte d'autorisation perimee, qui reste elle aussi.
  */
-import { ArrowRight, FileOutput, Loader2, Shield, Sparkles, Users } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { ArrowRight, FileOutput, Shield, Sparkles, Users } from 'lucide-react'
 import type { Agent, TourPlan } from '../types'
-
-/**
- * LE PLAFOND DE LA PREPARATION D'UN PLAN, EN SECONDES.
- *
- * ⚠ Repris de `PLAFOND_PLAN` dans `server/plan.js`, qui coupe le processus. Les
- * deux se tiennent par ce commentaire et par le sien : changer l'un sans
- * l'autre ferait mentir le decompte de la pire facon, en promettant du temps
- * qui n'existe plus.
- */
-const PLAFOND_PLAN_S = 90
-
-/**
- * L'INDICATEUR D'ATTENTE - F5, friction de gravite haute.
- *
- * « Vingt-trois secondes de silence dans un chat, c'est une panne. » Dans une
- * conversation on attend une reponse : le silence ne se lit pas « je reflechis
- * a un plan », il se lit « c'est casse ».
- *
- * Dix appels mesures le 06/08/2026 sur le cerveau local : 8,5 · 8,6 · 10,3 ·
- * 13,3 · 13,3 · 14,7 · 14,8 · 16,9 · **54,2 s**. Un facteur six entre le plus
- * court et le plus long, sur la meme machine et le meme modele. **Aucune
- * estimation n'est donc annoncable** - on compte, et on montre ou est le
- * plafond. C'est ce que la grammaire exigeait deja pour le decoupage, et que le
- * Hub applique ailleurs sous le nom `PLAFOND_DECOUPAGE_S`.
- *
- * Et il DIT ce qu'il fait, pas seulement qu'il tourne : « je regarde si ca
- * merite un plan » se lit comme du travail ; une roue qui tourne, non.
- */
-export function AttentePlan({ depuis }: { depuis: number }) {
-  const [maintenant, setMaintenant] = useState(() => Date.now())
-
-  useEffect(() => {
-    const t = setInterval(() => setMaintenant(Date.now()), 1000)
-    return () => clearInterval(t)
-  }, [])
-
-  const secondes = Math.max(0, Math.round((maintenant - depuis) / 1000))
-
-  return (
-    <div data-zone="attente-plan" className="flex items-center gap-2 text-xs italic muted">
-      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      <span>Je regarde si ca merite un plan…</span>
-      <span
-        className="tabular-nums"
-        title={`Au-dela de ${PLAFOND_PLAN_S} s, la preparation est arretee.`}
-      >
-        {secondes} s / {PLAFOND_PLAN_S} s
-      </span>
-    </div>
-  )
-}
 
 /** Le nom d'affichage d'un agent, ou son identifiant si l'annuaire l'ignore. */
 function nommer(id: string, agents: Map<string, Agent>) {

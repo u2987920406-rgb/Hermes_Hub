@@ -56,6 +56,9 @@ import {
   EyeOff,
   FlaskConical,
   LayoutGrid,
+  Maximize2,
+  Menu,
+  Minimize2,
   Play,
   Plus,
   RotateCcw,
@@ -67,6 +70,9 @@ import { Attente } from '../components/Attente'
 import { LigneAlerte } from '../components/LigneAlerte'
 import { LivrableScenario } from '../components/LivrableScenario'
 import { NoeudStudio } from '../components/NoeudStudio'
+import { PanneauNoeud } from '../components/PanneauNoeud'
+import { PanneauPlan } from '../components/PanneauPlan'
+import { useRepli } from '../components/BoutonRepli'
 import type { DonneesNoeud } from '../components/NoeudStudio'
 import { FenetreSimulation } from '../components/FenetreSimulation'
 import type { EtatNoeud } from '../components/Organigramme'
@@ -82,6 +88,7 @@ import type {
   EtatTache,
   Pole,
   Simulation,
+  Tache,
 } from '../types'
 
 /** Meme geometrie que l'organigramme : un noeud fait la meme taille partout. */
@@ -148,9 +155,44 @@ interface Brouillon {
 const FICHE_L = 288
 const FICHE_H = 232
 
+/**
+ * UNE DEMANDE QU'HERMES N'A PAS DECOUPEE EST UN SCENARIO D'UNE SEULE TACHE.
+ *
+ * Elle n'est pas dans `poles` - un pole est une composante connexe, et une
+ * tache seule n'en fait pas une : elle vit dans `isolees`. Le Studio rendait
+ * donc « Aucun scenario ouvert » et un canevas vide, alors que c'est ici qu'on
+ * vient la decouper a la main.
+ *
+ * ⚠ TROUVE EN CLIQUANT LE BOUTON DE F20, LE 06/08/2026 - et c'etait le bouton
+ * qui mentait, pas le message. La phrase disait « tu peux la decouper a la
+ * main », le bouton menait a un ecran vide : offrir un chemin qui ne mene nulle
+ * part est pire que decrire un chemin qu'on laisse chercher. La lecon vaut au
+ * moins autant que la friction : **un geste ajoute doit etre suivi jusqu'a son
+ * arrivee.**
+ */
+function seule(isolees: Tache[], id?: string): Pole | null {
+  const t = isolees.find((x) => x.id === id)
+  if (!t) return null
+  return {
+    id: t.id,
+    titre: t.titre,
+    corps: t.corps,
+    taches: [t],
+    liens: [],
+    enCours: t.etat === 'running',
+    finies: t.etat === 'done' ? 1 : 0,
+    creeLe: t.creeLe,
+  }
+}
+
 interface Props {
   poleId?: string
   onQuitter: () => void
+  /** Hors du cadre commun : plus de barre laterale, donc le Studio reprend a
+      son compte ce qu'elle portait - le hamburger et la ligne d'alerte (F13). */
+  plein: boolean
+  onPlein: (plein: boolean) => void
+  onMenu: () => void
 }
 
 export function StudioView(props: Props) {
@@ -163,7 +205,7 @@ export function StudioView(props: Props) {
   )
 }
 
-function Studio({ poleId, onQuitter }: Props) {
+function Studio({ poleId, onQuitter, plein, onPlein, onMenu }: Props) {
   const [pole, setPole] = useState<Pole | null>(null)
   const [agents, setAgents] = useState<Agent[]>([])
   const [noeuds, setNoeuds] = useState<Node[]>([])
@@ -188,9 +230,11 @@ function Studio({ poleId, onQuitter }: Props) {
   const [simuOuverte, setSimuOuverte] = useState(false)
   const [simuOccupee, setSimuOccupee] = useState(false)
   const [simuErreur, setSimuErreur] = useState<string | null>(null)
-  const [validation, setValidation] = useState(false)
+  /* ⚠ F11 : plus d'etat de validation. Le bouton « Valider » de la simulation
+     a disparu le 06/08/2026 - le plan est un panneau permanent, donc il n'y a
+     plus de porte a garder. Le serveur date l'accord au clic sur Lancer. */
 
-  const { fitView, screenToFlowPosition } = useReactFlow()
+  const { fitView, screenToFlowPosition, getZoom } = useReactFlow()
   const notifier = useHubStore((s) => s.notify)
 
   /** Les positions posees a la main. Vide = on laisse le rangement auto. */
@@ -200,6 +244,20 @@ function Studio({ poleId, onQuitter }: Props) {
   const canevas = useRef<HTMLDivElement>(null)
   /** Le pole dont on a deja decide l'affichage des liens prevus. */
   const liensDecides = useRef<string | null>(null)
+
+  /**
+   * LE PLAN, A GAUCHE - permanent, donc replie et non ferme, et son etat tient
+   * d'une session a l'autre. Voir `PanneauPlan.tsx` : c'est lui qui rend F11
+   * defendable, parce qu'un plan sous les yeux n'a plus besoin d'un bouton qui
+   * certifie qu'on l'a regarde.
+   */
+  const [planReplie, basculerPlan] = useRepli('hub.studio.plan')
+  /** La ligne survolee dans le plan. C3 : son noeud s'allume dans le graphe. */
+  const [survole, setSurvole] = useState<string | null>(null)
+  /** Les livrables annonces, lus dans le plan garde a cote du scenario. Vide
+      quand il n'y en a pas - un scenario ne du decomposeur n'a jamais eu de
+      plan ecrit, et on n'en invente pas. */
+  const [resultat, setResultat] = useState<{ fichier: string; quoi: string }[]>([])
 
   const charger = useCallback(async () => {
     if (!poleId) return
@@ -217,7 +275,7 @@ function Studio({ poleId, onQuitter }: Props) {
     dispo.current = d.noeuds || {}
     setCompteurs(cp)
     setAgents(orch.agents)
-    const p = orch.poles.find((x) => x.id === poleId) || null
+    const p = orch.poles.find((x) => x.id === poleId) || seule(orch.isolees, poleId)
     setPole(p)
     const c = ch?.chantiers?.find((x) => x.pole === poleId) || null
     setChantier(c)
@@ -230,6 +288,26 @@ function Studio({ poleId, onQuitter }: Props) {
     if (p && liensDecides.current !== poleId) {
       liensDecides.current = poleId
       setVoirPrevus(p.finies === 0)
+    }
+  }, [poleId])
+
+  /**
+   * Le RESULTAT ATTENDU, lu une fois a l'ouverture.
+   *
+   * Il ne bouge pas pendant qu'un scenario tourne : c'est ce qui a ete ANNONCE,
+   * et l'annonce est figee au moment de la validation - c'est meme toute sa
+   * valeur. Le relire a chaque evenement du flux ne changerait rien et couterait
+   * un appel par trame.
+   */
+  useEffect(() => {
+    if (!poleId) return setResultat([])
+    let vivant = true
+    void api
+      .planDuPole(poleId)
+      .then((r) => vivant && setResultat(r.plan?.resultat || []))
+      .catch(() => vivant && setResultat([]))
+    return () => {
+      vivant = false
     }
   }, [poleId])
 
@@ -438,6 +516,43 @@ function Studio({ poleId, onQuitter }: Props) {
    */
   const [liaisons, setLiaisons] = useState<Edge[]>([])
   useEffect(() => setLiaisons(liensCalcules), [liensCalcules])
+
+  /**
+   * C3, SENS PLAN -> GRAPHE. Survoler une ligne allume son noeud.
+   *
+   * On ne touche QUE la classe, et seulement du noeud qui change. Refaire
+   * passer le survol par les `data` du noeud aurait reconstruit le tableau
+   * entier a chaque mouvement de souris - et repose les positions, donc un
+   * noeud qu'on venait de deplacer sauterait sous le curseur.
+   */
+  useEffect(() => {
+    setNoeuds((actuels) => {
+      let change = false
+      const suite = actuels.map((n) => {
+        const veut = n.id === survole ? 'noeud-vif' : ''
+        if ((n.className || '') === veut) return n
+        change = true
+        return { ...n, className: veut }
+      })
+      return change ? suite : actuels
+    })
+  }, [survole])
+
+  /**
+   * C3, SENS PLAN -> GRAPHE, deuxieme moitie : cliquer une ligne amene au noeud.
+   *
+   * Surligner ne suffit pas quand le noeud est hors du cadre - et un graphe de
+   * dix taches deborde toujours. On centre donc, sans changer le zoom : reposer
+   * l'echelle a chaque clic donnerait le mal de mer.
+   */
+  const allerAuNoeud = useCallback(
+    (id: string) => {
+      setChoisi(id)
+      const n = noeuds.find((x) => x.id === id)
+      if (n) void fitView({ nodes: [{ id }], duration: 300, maxZoom: getZoom(), minZoom: getZoom() })
+    },
+    [noeuds, fitView, getZoom],
+  )
 
   const surChangement = useCallback((changements: NodeChange[]) => {
     setNoeuds((n) => applyNodeChanges(changements, n))
@@ -656,8 +771,19 @@ function Studio({ poleId, onQuitter }: Props) {
   const modifiable = !!pole && !chantier?.actif
 
   return (
-    <div data-zone="studio" className="flex h-screen flex-col bg-slate-100 dark:bg-navy-950">
+    <div
+      data-zone="studio"
+      className={`flex flex-col bg-slate-100 dark:bg-navy-950 ${plein ? 'h-screen' : 'min-h-0 flex-1'}`}
+    >
       <header className="flex flex-shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-3 py-2 dark:border-navy-800 dark:bg-navy-900">
+        {/* Le hamburger cesse d'etre un geste de petit ecran pour devenir le
+            geste de « pas de barre laterale ». C'est le deuxieme trou du §5 de
+            la grammaire, et le plein ecran est justement le cas qu'il visait. */}
+        {plein && (
+          <button onClick={onMenu} className="btn-ghost px-2 py-1.5" title="Ouvrir le menu">
+            <Menu className="h-4 w-4" />
+          </button>
+        )}
         <button onClick={onQuitter} className="btn-ghost px-2 py-1.5" title="Retour">
           <ArrowLeft className="h-4 w-4" />
         </button>
@@ -710,8 +836,12 @@ function Studio({ poleId, onQuitter }: Props) {
             revient a s'aveugler au moment ou l'on regarde le plus
             attentivement. Meme composant, meme volet, meme ordre d'urgence
             que sur les trois autres ecrans - juste reduit a l'icone et au
-            compte, parce que la barre du scenario n'a pas la place du reste. */}
-        <LigneAlerte compact />
+            compte, parce que la barre du scenario n'a pas la place du reste.
+
+            ⚠ SEULEMENT EN PLEIN ECRAN, depuis que le Studio vit dans le cadre
+            commun : dans le cadre, `App` pose deja sa ligne au-dessus, et la
+            grammaire est formelle - **une seule ligne, jamais deux.** */}
+        {plein && <LigneAlerte compact />}
         <button onClick={() => void ranger()} className="btn-ghost gap-1.5 px-2 py-1.5 text-[11px]">
           <LayoutGrid className="h-3.5 w-3.5" />
           Ranger
@@ -761,7 +891,40 @@ function Studio({ poleId, onQuitter }: Props) {
             Lancer
           </button>
         )}
+
+        {/* AGRANDIR / REDUIRE - la troisieme famille de la grammaire, et la
+            seule qui manquait au Studio. Meme paire d'icones et meme sens que
+            dans la fenetre de simulation : la chose prend toute la place, le
+            reste attend, et `Minimize2` la ramene EXACTEMENT ou etait le
+            premier. L'icone montre la destination, pas l'etat courant. */}
+        <button
+          onClick={() => onPlein(!plein)}
+          className="btn-ghost px-2 py-1.5"
+          title={plein ? 'Reduire - revenir au cadre commun' : 'Agrandir - plein ecran pour editer'}
+          aria-label={plein ? 'Reduire' : 'Agrandir'}
+        >
+          {plein ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        </button>
       </header>
+
+      {/* Le plan a gauche, le graphe au centre. Les deux disent la meme chose
+          dans deux sens : le plan se lit de haut en bas, le graphe montre ce qui
+          part ensemble. C'est leur COUPLAGE qui en fait un instrument plutot que
+          deux affichages cote a cote (C3, contre F10). */}
+      <div className="flex min-h-0 flex-1">
+        {pole && (
+          <PanneauPlan
+            taches={pole.taches}
+            agents={agents}
+            rangs={rangs}
+            resultat={resultat}
+            choisi={choisi}
+            onChoisir={allerAuNoeud}
+            onSurvoler={setSurvole}
+            replie={planReplie}
+            onBasculer={basculerPlan}
+          />
+        )}
 
       <div ref={canevas} className="relative min-h-0 flex-1">
         <ReactFlow
@@ -804,78 +967,18 @@ function Studio({ poleId, onQuitter }: Props) {
           </div>
         )}
 
-        {/* Les reglages du noeud : ce qu'il est, et ce qu'il doit accomplir. */}
+        {/* Les reglages du noeud - convoques, donc ils se ferment. */}
         {tacheChoisie && (
-          <aside className="absolute right-3 top-3 max-h-[calc(100%-1.5rem)] w-80 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-navy-700 dark:bg-navy-900">
-            <div
-              className="mb-2 flex items-start gap-2"
-              style={{ ['--agent' as string]: `var(--jeton-${agentChoisi?.couleur || 'ardoise'})` }}
-            >
-              <span className="point-agent mt-1" />
-              <div className="min-w-0 flex-1">
-                <p className="titre-noeud">{tacheChoisie.titre}</p>
-                <p className="texte-detail muted">{ETATS_TACHE[tacheChoisie.etat] || tacheChoisie.etat}</p>
-              </div>
-              <button onClick={() => setChoisi(null)} className="btn-ghost px-1.5 py-1 text-[11px]">
-                Fermer
-              </button>
-            </div>
-
-            <dl className="space-y-1.5 text-[11px]">
-              <Ligne terme="Agent" valeur={agentChoisi?.nom || tacheChoisie.agent || '-'} />
-              <Ligne terme="Metier" valeur={agentChoisi?.metier || '-'} />
-              <Ligne terme="Modele" valeur={tacheChoisie.modele || agentChoisi?.modele || '-'} />
-              <Ligne terme="Identifiant" valeur={tacheChoisie.id} />
-            </dl>
-
-            {tacheChoisie.corps && (
-              <>
-                <p className="mb-1 mt-3 text-[10px] font-bold uppercase tracking-wide muted">
-                  Ce qu-il doit accomplir
-                </p>
-                <p className="whitespace-pre-wrap rounded-lg bg-slate-50 p-2 text-[11px] leading-relaxed dark:bg-navy-800">
-                  {tacheChoisie.corps}
-                </p>
-              </>
-            )}
-
-            {/* La sortie de l'impasse.
-                Le Hub bloque une tache quand elle n'a pas produit son livrable,
-                quand le fichier ecrit avoue un echec, quand un PDF n'est qu'une
-                page d'erreur. Ces refus sont justes - mais jusqu'ici rien dans
-                l'interface ne permettait de repartir : le 03/08/2026 il a fallu
-                `hermes kanban unblock` en ligne de commande pour relancer un
-                pole. Le bouton est ici, sur le noeud qui porte le blocage,
-                parce que c'est la qu'on le voit. */}
-            {modifiable && tacheChoisie.etat === 'blocked' && (
-              <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-2 dark:border-amber-500/40 dark:bg-amber-500/10">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300">
-                  Tache bloquee
-                </p>
-                <p className="mt-1 text-[11px] leading-relaxed">
-                  Elle ne repartira pas d-elle-meme. Corrige ce qui l-a fait
-                  echouer - l-enonce, l-agent, le modele - puis remets-la en
-                  circulation.
-                </p>
-                <button
-                  onClick={() => debloquerLaTache(tacheChoisie.id)}
-                  disabled={occupe}
-                  className="btn-primary mt-2 w-full justify-center gap-1.5 py-1.5 text-[11px] disabled:opacity-50"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Remettre en circulation
-                </button>
-              </div>
-            )}
-
-            {/* Retirer une tache est le seul geste du Studio qui defait du
-                travail : il porte donc un nom, une confirmation, et il n'a pas
-                de raccourci clavier. La demande d'origine, elle, ne s'enleve
-                pas - c'est elle qui tient le pole. */}
-            {modifiable && tacheChoisie.id !== pole?.id && (
-              <Retirer titre={tacheChoisie.titre} occupe={occupe} onRetirer={() => retirer(tacheChoisie.id)} />
-            )}
-          </aside>
+          <PanneauNoeud
+            tache={tacheChoisie}
+            agent={agentChoisi}
+            modifiable={modifiable}
+            occupe={occupe}
+            laDemande={tacheChoisie.id === pole?.id}
+            onFermer={() => setChoisi(null)}
+            onDebloquer={debloquerLaTache}
+            onRetirer={retirer}
+          />
         )}
 
         {simuOuverte && (
@@ -883,7 +986,6 @@ function Studio({ poleId, onQuitter }: Props) {
             simulation={simu}
             chargement={simuOccupee}
             erreur={simuErreur}
-            validation={validation}
             chantier={chantier}
             accords={accords}
             onAccord={(demande, agent, option) => {
@@ -892,10 +994,6 @@ function Studio({ poleId, onQuitter }: Props) {
             }}
             onLancer={() => void agir(() => api.lancerPole(poleId!), 'Le pole est lance.')}
             onArreter={() => void agir(() => api.arreterPole(poleId!))}
-            onValider={() => {
-              if (!poleId) return
-              void agir(() => api.validerPole(poleId).then(() => setValidation(true)))
-            }}
             // Dans le Studio, « Modifier » n'envoie nulle part : on y est deja.
             // La fenetre se ferme, et la souris reprend la main sur le graphe.
             onModifier={() => setSimuOuverte(false)}
@@ -919,6 +1017,7 @@ function Studio({ poleId, onQuitter }: Props) {
             onCreer={creer}
           />
         )}
+      </div>
       </div>
     </div>
   )
@@ -1013,63 +1112,6 @@ function FicheNouvelle({
           Creer
         </button>
       </div>
-    </div>
-  )
-}
-
-/** Deux clics, parce que le premier peut etre un accident. */
-function Retirer({
-  titre,
-  occupe,
-  onRetirer,
-}: {
-  titre: string
-  occupe: boolean
-  onRetirer: () => void
-}) {
-  const [sur, setSur] = useState(false)
-
-  // Repose la question a chaque changement de tache : une confirmation armee
-  // sur une tache et tiree sur une autre serait exactement le geste a eviter.
-  useEffect(() => setSur(false), [titre])
-
-  if (!sur) {
-    return (
-      <button
-        onClick={() => setSur(true)}
-        className="btn-ghost mt-3 w-full gap-1.5 px-2 py-1.5 text-[11px]"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-        Retirer du scenario
-      </button>
-    )
-  }
-
-  return (
-    <div className="mt-3 rounded-lg border border-red-200 p-2 dark:border-red-500/40">
-      <p className="text-[11px] leading-relaxed">
-        Retirer cette tache du scenario ? Elle est archivee sur le tableau, pas effacee - ce qu-elle a
-        deja produit reste consultable dans Hermes.
-      </p>
-      <div className="mt-2 flex justify-end gap-1.5">
-        <button onClick={() => setSur(false)} className="btn-ghost px-2 py-1 text-[11px]">
-          Non
-        </button>
-        <button onClick={onRetirer} disabled={occupe} className="btn-danger px-2.5 py-1 text-[11px]">
-          Retirer
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function Ligne({ terme, valeur }: { terme: string; valeur: string }) {
-  return (
-    <div className="flex gap-2">
-      <dt className="w-20 flex-none muted">{terme}</dt>
-      <dd className="min-w-0 flex-1 truncate font-medium" title={valeur}>
-        {valeur}
-      </dd>
     </div>
   )
 }

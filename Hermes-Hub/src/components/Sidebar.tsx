@@ -10,6 +10,17 @@ interface SidebarProps {
   open: boolean
   onClose: () => void
   onRechercher: () => void
+  /**
+   * TOUJOURS UN TIROIR, MEME SUR GRAND ECRAN.
+   *
+   * Sur grand ecran la barre est une colonne dans le flux (`lg:static`) : c'est
+   * ce qu'on veut partout, sauf quand un ecran a pris toute la place. Le Studio
+   * agrandi n'a plus de colonne a lui donner - il l'appelle au hamburger, elle
+   * glisse par-dessus, et elle repart. C'est le deuxieme trou du §5 de la
+   * grammaire : le hamburger cesse d'etre un geste de petit ecran pour devenir
+   * le geste de « pas de barre laterale ».
+   */
+  tiroir?: boolean
 }
 
 interface NavItem {
@@ -126,7 +137,7 @@ function NavButton({
 // le code qui le retient a demenage dans `useRepli`.
 const CLE_REPLI = 'hub.sidebar.collapsed'
 
-export function Sidebar({ current, onNavigate, open, onClose, onRechercher }: SidebarProps) {
+export function Sidebar({ current, onNavigate, open, onClose, onRechercher, tiroir }: SidebarProps) {
   const connected = useHubStore((s) => s.connected)
   const workspace = useHubStore((s) => s.workspace)
   const trash = useHubStore((s) => s.trash)
@@ -134,7 +145,12 @@ export function Sidebar({ current, onNavigate, open, onClose, onRechercher }: Si
   const version = useHubStore((s) => s.version)
   const launchHermes = useHubStore((s) => s.launchHermes)
 
-  const [collapsed, toggle] = useRepli(CLE_REPLI)
+  // En tiroir, le repli n'a pas d'objet : la barre est convoquee pour etre lue,
+  // et une colonne d'icones sans libelles par-dessus un ecran plein serait la
+  // pire des deux formes. Le reglage n'est pas efface pour autant - il reprend
+  // des qu'on revient dans le cadre.
+  const [replie, toggle] = useRepli(CLE_REPLI)
+  const collapsed = replie && !tiroir
 
   /**
    * Ctrl B replie la barre laterale.
@@ -162,9 +178,9 @@ export function Sidebar({ current, onNavigate, open, onClose, onRechercher }: Si
     <>
       {/* Mobile backdrop */}
       <div
-        className={`fixed inset-0 z-30 bg-navy-950/60 backdrop-blur-sm transition-opacity lg:hidden ${
-          open ? 'opacity-100' : 'pointer-events-none opacity-0'
-        }`}
+        className={`fixed inset-0 z-30 bg-navy-950/60 backdrop-blur-sm transition-opacity ${
+          tiroir ? '' : 'lg:hidden'
+        } ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -176,8 +192,9 @@ export function Sidebar({ current, onNavigate, open, onClose, onRechercher }: Si
         className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-shrink-0 flex-col border-r border-white/10
                     bg-gradient-to-b from-navy-950 via-navy-900 to-navy-800
                     transition-[transform,width] duration-200
-                    lg:static lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}
-                    ${collapsed ? 'lg:w-[4.5rem]' : 'lg:w-64'}`}
+                    ${tiroir ? '' : 'lg:static lg:translate-x-0'}
+                    ${open ? 'translate-x-0' : '-translate-x-full'}
+                    ${collapsed && !tiroir ? 'lg:w-[4.5rem]' : 'lg:w-64'}`}
       >
         <div
           className={`flex items-center gap-3 border-b border-white/10 p-5 ${

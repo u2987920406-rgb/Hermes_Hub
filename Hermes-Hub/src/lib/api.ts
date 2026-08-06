@@ -249,6 +249,12 @@ export const api = {
       '/orchestration/plan',
       { method: 'POST', body: body({ texte }) },
     ),
+  /** Le plan garde a cote d'un scenario. `null` quand il n'y en a pas - un
+      scenario ne du decomposeur n'en a jamais eu, et c'est un cas ordinaire. */
+  planDuPole: (pole: string) =>
+    request<{ plan: (PlanPropose & { etapes?: { id: string; agent: string }[] }) | null }>(
+      `/orchestration/plan/${enc(pole)}`,
+    ),
   poserPlan: (id: string, plan: PlanPropose) =>
     request<{ pole: string; titre: string }>('/orchestration/plan/poser', {
       method: 'POST',

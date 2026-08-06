@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **01:52**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **05:10**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -507,8 +507,13 @@ nommé.
 
 Vérifié au navigateur : l'accueil ne charge que `index.js`, et le morceau
 `StudioView.js` n'est demandé qu'en entrant dans le Studio. Aucune erreur.
-**Le changement fait trois lignes** — il est prêt, et il attend le chantier 4
-pour ne pas se mélanger au commit de l'accueil.
+~~**Le changement fait trois lignes** — il est prêt, et il attend le chantier 4
+pour ne pas se mélanger au commit de l'accueil.~~
+**✅ POSÉ LE 6 AOÛT, et remesuré sur le code du jour :** 593,6 → **387,8 ko**
+(−34,7 %), 177,2 → **110,5 ko** compressé, CSS 70,7 → 54,9 ko. Revérifié au
+navigateur, `performance.getEntriesByType('resource')` à l'appui : l'accueil ne
+tire que `index-*.js` et `index-*.css` ; `StudioView-*.js` et
+`StudioView-*.css` n'arrivent qu'en ouvrant le Studio.
 
 ---
 
@@ -600,7 +605,38 @@ la conversation**.
 - l'**indicateur d'attente** qui dit ce qu'il fait pendant les ~23 s *(F5)*.
   ✅ **Fait**, avec son plafond visible — voir la mesure ci-dessous ;
 - l'**historique** déménage à l'accueil, et le **retour au salut se nomme**
-  *(F4, C7)*. **Reste à faire.**
+  *(F4, C7)*. ✅ **Fait le 6 août, éprouvé à l'écran.** L'historique est un
+  bouton **« Conversations »** — dans la ligne « En direct » une fois qu'on a
+  parlé, rangé avec Projets et Coffre au salut. C'est la place que lui donnait
+  `PLAN-ORCHESTRATION-STUDIO.md` : *on relit là où l'on écrit.* Il quitte
+  Orchestration, il ne s'y double pas.
+  Et le retour **dit où il mène** : « Revenir à l'accueil » sur l'accueil,
+  « Nouvelle » dans le volet Conversation d'Orchestration, qui n'a pas de salut.
+  Un libellé unique aurait menti d'un côté ou de l'autre.
+  *Mesuré en franchissant la porte :* le compteur passe de 31 à 32 en revenant
+  au salut — le fil fermé est bien dans l'historique, ce que le bouton promet.
+
+#### Chantier 3 — ✅ **CLOS le 6 août 2026 à 04:20**
+
+Tous ses points sont faits. Restent, au passage, **F18, F19 et F20** — les trois
+frictions de l'attente, rattachées au chantier 3 au §4 et traitées le même
+jour :
+
+- **F18** — « le tableau » était un mot du dedans, dans deux messages :
+  `server/index.js` (le décomposeur qui n'a pas découpé) et le décompte de la
+  fenêtre de simulation. Les deux disent maintenant *ce qui rassure* plutôt que
+  *où c'est rangé* : « ta demande est enregistrée, elle ne se perdra pas » ;
+- **F19** — l'attente du plan dit désormais qu'on peut écrire pendant. Le champ
+  l'a toujours permis, personne ne l'essayait. *Non joué à l'écran :* il faut
+  qu'Hermès rende un plan, ce qui dépend du cerveau ;
+- **F20** — le message d'échec **porte le geste** : un bouton « Ouvrir dans le
+  Studio », à côté de la phrase. ✅ Éprouvé.
+  **⚠ Et le bouton menait à un écran vide — trouvé en le cliquant.** Une demande
+  qu'Hermès n'a pas découpée n'est pas un pôle : elle vit dans `isolees`, et le
+  Studio répondait « Aucun scénario ouvert ». Il en fait maintenant un scénario
+  d'une seule tâche, ce qu'elle est. *La leçon vaut la friction :* **un geste
+  ajouté doit être suivi jusqu'à son arrivée** — offrir un chemin qui ne mène
+  nulle part est pire que décrire un chemin qu'on laisse chercher.
 
 **Porte :** depuis le chat, une demande devient un scénario écrit sur le disque,
 en attente, sans qu'aucun agent ait été réveillé.
@@ -661,22 +697,60 @@ rendu de ce qu'on vient d'écrire.
 
 ---
 
-### Chantier 4 — Le Studio et son plan
+### Chantier 4 — Le Studio et son plan *(commencé le 6 août)*
 
-- le **panneau plan à gauche**, ses trois moments : prévu, en cours, passé ;
-- le **couplage** ligne ↔ nœud, dans les deux sens *(C3)* ;
-- le Studio **dans le cadre commun**, avec `Maximize2` pour grandir ;
-- l'**alerte dans la barre du scénario** en plein écran *(F13)* ;
-- **un seul bouton Lancer** — la validation de simulation disparaît *(F11)* ;
-- la **confrontation annoncé / rendu** en fin de run *(C8)* ;
+- le **chargement paresseux du Studio** *(V4)*. ✅ **Fait, et remesuré :**
+  JavaScript initial **593,6 → 387,8 ko** (−34,7 %), compressé **177,2 →
+  110,5 ko**, CSS initial 70,7 → 54,9 ko, avertissement Vite « > 500 ko »
+  disparu. Vérifié au navigateur : l'accueil ne charge que `index.js`, et
+  `StudioView-*.js` n'arrive qu'en entrant dans le Studio ;
+- le **panneau plan à gauche**, ses trois moments : prévu, en cours, passé.
+  ✅ **Fait, éprouvé à l'écran** — `PanneauPlan.tsx`. Permanent, donc il se
+  replie (`BoutonRepli`, état retenu dans `localStorage`), avec une recherche
+  au-delà de huit étapes. Il porte le **Résultat attendu**, lu dans le plan
+  gardé à côté du scénario : c'est la seule source qui connaisse les livrables
+  annoncés — ni le tableau d'Hermès ni le graphe ne les portent. La route
+  `GET /api/orchestration/plan/<pole>` a été ouverte pour ça, et
+  `lirePlanDuPole` cesse d'être un export mort ;
+- le **couplage** ligne ↔ nœud, dans les deux sens *(C3)*. ✅ **Fait, éprouvé
+  à l'écran dans les deux sens.**
+  **⚠ Et le premier essai ne se voyait pas.** La classe était bien posée,
+  `transform` valait bien `scale(1.04)` — mais une tâche qui attend son tour est
+  `data-etat="endormi"`, donc à 55 % d'opacité et désaturée : le surlignage se
+  battait contre le retrait et perdait. Il lève maintenant l'opacité et le
+  filtre. *Un couplage qui ne sort pas le nœud de la pénombre ne couple rien* ;
+- le Studio **dans le cadre commun**, avec `Maximize2` pour grandir. ✅ **Fait,
+  éprouvé à l'écran dans les deux sens.** Il en sortait toujours ; c'était vrai
+  de l'édition, faux du reste — on y passe aussi pour regarder tourner un
+  scénario. Le plein écran devient un geste, non retenu d'une session à
+  l'autre : un repli se retient, un agrandissement non ;
+- l'**alerte dans la barre du scénario** en plein écran *(F13)*. ✅ Déjà posée
+  au chantier 2 — elle est désormais **conditionnée au plein écran** : dans le
+  cadre, `App` pose déjà la sienne, et la grammaire est formelle, *une seule
+  ligne, jamais deux*. Le **hamburger** apparaît au même moment, et la barre
+  latérale se change en tiroir : plein écran, il n'y a plus de colonne à lui
+  donner ;
+- **un seul bouton Lancer** — la validation de simulation disparaît *(F11)*.
+  ✅ **Fait, éprouvé à l'écran.** Et **l'ordre comptait** : F11 ne tient que
+  parce que le panneau plan existe — *« le script est sous mes yeux, le regarder
+  EST l'ouvrir ; le bouton qui certifie que je l'ai vu ne certifie plus rien »*.
+  Le refus côté serveur tombe avec lui : `lancer()` **date l'accord** au lieu de
+  le réclamer. La trace reste écrite, c'est elle que `graphePerturbe` efface ;
+- la **confrontation annoncé / rendu** en fin de run *(C8)*. **Reste à faire** —
+  la moitié est là : le Résultat attendu est lu et affiché, il manque de le
+  mettre en regard des livrables ;
 - le plan dit **quand une tâche tombe sur l'agent par défaut**, et mène à la
-  création d'un spécialiste *(F17, C4)*.
+  création d'un spécialiste *(F17, C4)*. **Reste à faire.**
 
 La **découpe des fichiers** de `ARCHITECTURE.md` se fait ici, en écrivant — pas
-après.
+après. Faite au fur et à mesure, à la demande du cliquet : `LigneContexte.tsx`,
+`VoletHistorique.tsx`, `AttentePlan.tsx`, `DecompteDecoupage.tsx`,
+`PanneauPlan.tsx`, `PanneauNoeud.tsx`. Le Studio a désormais quatre pièces
+nommées — barre du scénario, plan, graphe, nœud.
 
 **Porte :** le parcours entier de la maquette se joue à la souris, du chat au
-livrable.
+livrable. **Pas encore franchie** : il reste C8 et C4, et le parcours n'a pas
+été rejoué de bout en bout.
 
 ---
 
@@ -720,31 +794,31 @@ ne s'évapore dans l'exécution.
 | F1 | La fenêtre du premier lancement recouvre un écran qui invite à écrire | *tranché le 4 août : on garde la fenêtre modale, telle quelle — aucun code à écrire* |
 | F2 | « ton équipe » désigne des inconnus | 3 — **✅ réglé le 5 août** : « Pose une question à Hermès. » en Discussion, et l'annuaire disparaît avec |
 | F3 | Le premier message efface tout | *voulu* — aucun |
-| F4 | Le retour au salut ne dit pas qu'il ramène | 3 |
-| F5 | 23 s de silence dans un chat | 3 |
+| F4 | Le retour au salut ne dit pas qu'il ramène | 3 — **✅ réglé le 6 août** : « Revenir à l'accueil », et l'historique juste à côté |
+| F5 | 23 s de silence dans un chat | 3 — ✅ réglé |
 | F6 | « pôle » est un mot du dedans | 2 — devient « scénario ». **Un titre était passé au travers (« 12 pôles »), corrigé le 5 août en franchissant la porte** |
-| F7 | « Modifier » ne promet rien de précis | 3 |
-| F8 | On quitte le fil et le fil n'en dit rien | 3 *(= C1)* |
+| F7 | « Modifier » ne promet rien de précis | 3 — ✅ réglé, « Reformuler la demande » |
+| F8 | On quitte le fil et le fil n'en dit rien | 3 *(= C1)* — ✅ réglé |
 | F9 | Rien ne dit ce qu'on peut toucher dans le graphe | 4 |
-| F10 | Graphe et plan arrivent ensemble | 4 *(réglé par C3)* |
-| F11 | Deux validations pour un acte | 4 — **tranché : un seul Lancer** |
+| F10 | Graphe et plan arrivent ensemble | 4 — **✅ réglé le 6 août par C3** |
+| F11 | Deux validations pour un acte | 4 — **✅ réglé le 6 août : un seul Lancer.** Le serveur date l'accord au clic |
 | F12 | L'autorisation n'arrive pas là où l'on regarde | 2 *(= C2)* |
-| F13 | Plein écran = plus de pastille d'alerte | 4 |
+| F13 | Plein écran = plus de pastille d'alerte | 4 — **✅ réglé le 6 août**, avec le hamburger et la barre latérale en tiroir |
 | F14 | Rien ne dit qu'un scénario a fini | 2 *(= C5)* |
 | F15 | Organigramme et graphe se ressemblent trop | 5 — réglé par la carte des compétences |
 | F16 | Le mot « Orchestration » | *reporté* |
 | F17 | Personne ne dit que l'équipe ne sait pas faire | 4 *(= C4)* |
-| F18 | « le tableau » est un mot du dedans, dans le jalon d'attente | 3 |
-| F19 | Rien ne dit qu'on peut écrire pendant qu'un plan se prépare | 3 |
-| F20 | Le message de dépassement décrit le chemin sans l'offrir | 3 |
-| C1 | La carte de plan porte son état dans le fil, et cite la demande | 3 |
-| C2 | L'autorisation apparaît là où l'on est | 2 |
-| C3 | Ligne du plan ↔ nœud du graphe | 4 |
+| F18 | « le tableau » est un mot du dedans, dans le jalon d'attente | 3 — **✅ réglé le 6 août**, aux deux endroits où le mot sortait |
+| F19 | Rien ne dit qu'on peut écrire pendant qu'un plan se prépare | 3 — **✅ écrit le 6 août**, *non joué à l'écran* |
+| F20 | Le message de dépassement décrit le chemin sans l'offrir | 3 — **✅ réglé le 6 août** : la phrase porte le bouton, et le bouton mène à un scénario d'une tâche |
+| C1 | La carte de plan porte son état dans le fil, et cite la demande | 3 — ✅ réglé |
+| C2 | L'autorisation apparaît là où l'on est | 2 — ✅ réglé |
+| C3 | Ligne du plan ↔ nœud du graphe | 4 — **✅ réglé le 6 août, dans les deux sens** |
 | C4 | Le plan mène à « créer un spécialiste » | 4 |
 | C5 | Un scénario fini laisse une trace persistante | 2 |
 | C6 | Planifier ici, gérer là — avec passerelle | 5 |
-| C7 | Le retour au salut se nomme et se voit | 3 |
-| C8 | Annoncé confronté au rendu | 4 |
+| C7 | Le retour au salut se nomme et se voit | 3 — **✅ réglé le 6 août** |
+| C8 | Annoncé confronté au rendu | 4 — **à moitié** : l'annoncé est lu et affiché dans le panneau plan, le rendu reste à mettre en regard |
 
 ---
 

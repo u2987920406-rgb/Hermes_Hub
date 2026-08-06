@@ -16,7 +16,6 @@
  */
 import {
   AlertTriangle,
-  History,
   MessageSquare,
   Network,
   Play,
@@ -48,7 +47,6 @@ import type {
   DemandeAutorisation,
   Equipe as EquipeType,
   EtatTache,
-  FilResume,
   Orchestration,
   Pole,
   Simulation,
@@ -96,12 +94,22 @@ const ETAT_DU_FLUX: Record<string, EtatNoeud> = {
   text: 'encours',
 }
 
-type Volet = 'historique' | 'conversation' | 'agents' | 'poles'
+type Volet = 'conversation' | 'agents' | 'poles'
 
 /**
- * L'historique ouvre la liste, la conversation la continue. Il est place
- * au-dessus parce qu'on ouvre une application sur ce qu'on a laisse en cours,
- * pas sur une page blanche.
+ * ⚠ L'HISTORIQUE N'EST PLUS ICI - il a demenage a l'accueil le 06/08/2026.
+ *
+ * Il occupait le premier volet, « parce qu'on ouvre une application sur ce
+ * qu'on a laisse en cours ». C'etait vrai du rang, faux de l'ecran :
+ * `PLAN-ORCHESTRATION-STUDIO.md` le dit sans detour - *« l'historique est reste
+ * du cote ou l'on n'ecrit plus. On ecrit a l'accueil, on relit dans
+ * Orchestration. Une memoire rangee loin de l'endroit ou elle se fabrique ne se
+ * consulte pas. »* Il est desormais un bouton dans la ligne « En direct », et
+ * au salut il se range avec Projets et Coffre. Voir `VoletHistorique.tsx`.
+ *
+ * ON NE LE LAISSE PAS ICI EN DOUBLE, et c'est delibere : deux surfaces qui
+ * disent la meme chose finissent par se contredire - c'est la regle qui a fait
+ * partir la bande « automatisation tombee » de l'accueil au chantier 2.
  */
 /**
  * Deux questions, deux volets - et c'est tout le sujet.
@@ -119,7 +127,6 @@ type Volet = 'historique' | 'conversation' | 'agents' | 'poles'
  * n'est qu'une facon de grouper des agents, et elle ne FAIT rien.
  */
 const VOLETS: { id: Volet; label: string; icon: typeof Users }[] = [
-  { id: 'historique', label: 'Historique', icon: History },
   { id: 'conversation', label: 'Conversation', icon: MessageSquare },
   { id: 'agents', label: 'Agents et equipes', icon: Users },
   { id: 'poles', label: 'Scenarios', icon: Network },
@@ -149,7 +156,14 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
   const [simu, setSimu] = useState<Simulation | null>(null)
   const [simuOccupee, setSimuOccupee] = useState(false)
   const [simuErreur, setSimuErreur] = useState<string | null>(null)
-  const [validation, setValidation] = useState(false)
+  /* ⚠ F11 : il n'y a plus d'etat de validation ici. Le bouton « Valider » de la
+     simulation a disparu le 06/08/2026 - le plan est desormais un panneau
+     permanent, donc « valider la simulation » ne gardait plus aucune porte. Le
+     serveur date l'accord au moment du clic sur Lancer. */
+  /** La demande qui n'a pas ete decoupee, et qui attend donc dans le Studio.
+      Elle existe pour porter le bouton de F20 : sans son identifiant, le
+      message ne pourrait que decrire le chemin. */
+  const [simuEchouee, setSimuEchouee] = useState<string | null>(null)
   const [demande, setDemande] = useState('')
 
   /** Les poles en train de tourner. L'etat vit cote serveur - ici on le relit
@@ -178,15 +192,6 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
     { genre: 'neuve' } | { genre: 'existante'; id: string } | null
   >(null)
 
-  /** La conversation a rouvrir : posee par l'historique, consommee par le
-      volet Conversation. Null = le direct. */
-  const [filAOuvrir, setFilAOuvrir] = useState<string | null>(null)
-  const [fils, setFils] = useState<FilResume[]>([])
-
-  const chargerFils = useCallback(async () => {
-    setFils(await api.conversations().catch(() => []))
-  }, [])
-
   const notifier = useHubStore((s) => s.notify)
 
   /** Meme raison qu'au Studio : un refus du serveur ne doit pas ressortir en
@@ -205,10 +210,6 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
     },
     [notifier],
   )
-
-  useEffect(() => {
-    if (volet === 'historique') void chargerFils()
-  }, [volet, chargerFils])
 
   const charger = useCallback(async () => {
     try {
@@ -346,6 +347,7 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
     setSimuOuverte(true)
     setSimu(null)
     setSimuErreur(null)
+    setSimuEchouee(null)
     setSimuOccupee(true)
     try {
       const plan = await api.demande(texte)
@@ -355,8 +357,13 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
       // introuvable », ce qui remplacait la vraie raison par une phrase qui
       // n'apprend rien. On s'arrete ici : la demande existe, elle attend dans le
       // Studio, et c'est ce qu'on dit.
+      //
+      // F20 : ON GARDE AUSSI OU ELLE ATTEND. La raison seule decrivait le chemin
+      // - « ouvre-la dans le Studio » - sans l'offrir, et `plan.pole` etait
+      // jete a la ligne suivante. Le retenir suffit a poser un bouton.
       if (!plan.decoupe) {
         setSimuErreur(plan.raison)
+        setSimuEchouee(plan.pole)
         setDemande('')
         void charger()
         return
@@ -372,20 +379,6 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
     }
   }, [demande, charger])
 
-  const valider = useCallback(async () => {
-    if (!simu) return
-    setValidation(true)
-    try {
-      await api.validerPole(simu.pole.id)
-      // On relit plutot que de bricoler l'etat en memoire : la validation est
-      // ecrite sur le disque, et c'est cette version-la qui fait foi.
-      setSimu(await api.simulation(simu.pole.id))
-    } catch (e) {
-      setSimuErreur(e instanceof Error ? e.message : String(e))
-    } finally {
-      setValidation(false)
-    }
-  }, [simu])
 
   /**
    * Lancer. Le serveur rend la main tout de suite - ce qui suit arrive par le
@@ -512,13 +505,7 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
               {/* Un fil de conversation n'a pas de quantite : seul ce qui se
                   compte porte un compteur. */}
               <span className="ml-auto hidden text-[10px] tabular-nums opacity-60 lg:inline">
-                {id === 'agents'
-                  ? agents.length
-                  : id === 'poles'
-                    ? poles.length
-                    : id === 'historique'
-                      ? fils.length || ''
-                      : ''}
+                {id === 'agents' ? agents.length : id === 'poles' ? poles.length : ''}
               </span>
             </button>
           ))}
@@ -528,32 +515,10 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
           {/* La conversation gere son propre defilement : elle garde le champ
               de saisie colle en bas pendant que le fil monte. */}
           {volet === 'conversation' && (
-            <Conversation
-              agents={agents}
-              equipes={equipes}
-              filAOuvrir={filAOuvrir}
-              onFilOuvert={() => setFilAOuvrir(null)}
-              onEveilChange={setEveilles}
-            />
+            <Conversation agents={agents} equipes={equipes} onEveilChange={setEveilles} />
           )}
 
-          {volet === 'historique' && (
-            <Historique
-              fils={fils}
-              agents={agents}
-              equipes={equipes}
-              onOuvrir={(id) => {
-                setFilAOuvrir(id)
-                setVolet('conversation')
-              }}
-              onJeter={async (id) => {
-                await agir('La suppression', () => api.supprimerConversation(id))
-                void chargerFils()
-              }}
-            />
-          )}
-
-          {volet !== 'conversation' && volet !== 'historique' && (
+          {volet !== 'conversation' && (
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="mx-auto max-w-4xl space-y-4">
               {erreur && (
@@ -814,14 +779,22 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
           simulation={simu}
           chargement={simuOccupee}
           erreur={simuErreur}
-          validation={validation}
+          // F20 : le message porte le geste. Sans ce rappel, il decrivait le
+          // chemin - « ouvre-la dans le Studio » - et laissait chercher.
+          onOuvrirEchouee={
+            simuEchouee
+              ? () => {
+                  setSimuOuverte(false)
+                  onStudio(simuEchouee)
+                }
+              : undefined
+          }
           chantier={chantiers.find((c) => c.pole === simu?.pole.id) || null}
           accords={accords.filter((d) => d.pole === simu?.pole.id)}
           onAccord={(demande, agent, option) => void repondreAccord(demande, agent, option)}
           lancement={lancement}
           onLancer={() => void lancer()}
           onArreter={() => void arreterPole()}
-          onValider={() => void valider()}
           // Un retour au banc ecrit sur le tableau : la simulation affichee ne
           // decrit plus rien tant qu'elle n'a pas ete rejouee.
           onRafraichir={() => simu && void simuler(simu.pole.id)}
@@ -836,142 +809,6 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
       )}
     </div>
   )
-}
-
-/**
- * L'historique, en pleine page.
- *
- * Il etait d'abord dans un tiroir du chat ; il a sa place ici, au meme rang
- * que la conversation qu'il prolonge. Une conversation ne se retrouve pas en
- * tapant, elle se retrouve en reconnaissant : l'interlocuteur, sa couleur, le
- * jour. Les trois filtres sont donc des boutons, et rien ne demande le clavier.
- */
-function Historique({
-  fils,
-  agents,
-  equipes,
-  onOuvrir,
-  onJeter,
-}: {
-  fils: FilResume[]
-  agents: Agent[]
-  equipes: EquipeType[]
-  onOuvrir: (id: string) => void
-  onJeter: (id: string) => void
-}) {
-  const [tri, setTri] = useState<'tous' | 'equipe' | 'agent'>('tous')
-  const visibles = fils.filter((f) => tri === 'tous' || f.portee === tri)
-
-  const couleurDe = (f: FilResume) => {
-    if (f.portee === 'equipe') {
-      const e = equipes.find((x) => x.nom.toLowerCase() === f.cible.toLowerCase())
-      return e?.couleur || 'ciel'
-    }
-    return agents.find((a) => a.id === f.cible)?.couleur || 'ardoise'
-  }
-
-  const ONGLETS: { id: 'tous' | 'equipe' | 'agent'; libelle: string }[] = [
-    { id: 'tous', libelle: 'Tout' },
-    { id: 'equipe', libelle: 'Equipes' },
-    { id: 'agent', libelle: 'Agents' },
-  ]
-
-  return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-      <div className="mx-auto max-w-4xl space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold">
-              {fils.length} conversation{fils.length > 1 ? 's' : ''}
-            </p>
-            <p className="text-xs muted">
-              Rangees par interlocuteur : une equipe, ou un agent pris a part.
-            </p>
-          </div>
-          <div className="flex gap-1">
-            {ONGLETS.map((o) => (
-              <button
-                key={o.id}
-                onClick={() => setTri(o.id)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                  tri === o.id
-                    ? 'bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'
-                    : 'muted hover:bg-slate-100 dark:hover:bg-navy-800'
-                }`}
-              >
-                {o.libelle}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {visibles.length === 0 ? (
-          <div className="card p-5 text-center">
-            <p className="text-sm font-medium">Aucune conversation gardee</p>
-            <p className="mx-auto mt-1 max-w-md text-xs muted">
-              Des que tu parles a quelqu un, le fil s ecrit tout seul et se retrouve ici -
-              reflexion et appels d outils compris.
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {visibles.map((f) => (
-              <div
-                key={f.id}
-                data-zone="ligne-historique"
-                style={{ '--agent': `var(--jeton-${couleurDe(f)})` } as CSSProperties}
-                className="card group relative overflow-hidden p-0"
-              >
-                <span
-                  className="pointer-events-none absolute inset-y-0 left-0 w-1"
-                  style={{ backgroundColor: 'var(--agent)' }}
-                />
-                <button
-                  onClick={() => onOuvrir(f.id)}
-                  className="rang-y block w-full pl-4 pr-9 text-left"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="text-[13px] font-semibold">{f.interlocuteur}</span>
-                    <span className="puce sens-neutre">
-                      {f.portee === 'equipe' ? 'equipe' : 'agent'}
-                    </span>
-                    {f.encours && <span className="puce puce-pleine sens-succes">en cours</span>}
-                    <span className="ml-auto text-[10px] muted">{quand(f.majLe)}</span>
-                  </span>
-                  <span className="mt-0.5 block truncate text-[11.5px] muted">{f.titre}</span>
-                  <span className="mt-1 block text-[10px] muted">
-                    {f.messages} message{f.messages > 1 ? 's' : ''}
-                    {f.participants.length > 1 ? ` - ${f.participants.length} agents` : ''}
-                  </span>
-                </button>
-                <button
-                  onClick={() => onJeter(f.id)}
-                  className="sens-danger absolute right-1.5 top-2.5 rounded p-1.5 opacity-0 transition-opacity group-hover:opacity-100 hover:[background:color-mix(in_srgb,var(--sens)_16%,transparent)]"
-                  title="Jeter cette conversation"
-                >
-                  <Trash2 className="teinte-sens h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-/** Une date lisible sans calcul mental. */
-function quand(ms: number) {
-  const jour = 86400000
-  const d = new Date(ms)
-  const aujourdhui = new Date()
-  const minuit = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate())
-  const ecart = minuit.getTime() - new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
-
-  if (ecart <= 0) return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-  if (ecart <= jour) return 'hier'
-  if (ecart < 7 * jour) return d.toLocaleDateString('fr-FR', { weekday: 'long' })
-  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
 }
 
 /**

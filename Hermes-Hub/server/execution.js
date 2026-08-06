@@ -39,7 +39,7 @@ import { Equipage } from './equipage.js'
 import { lireOrchestration } from './equipe.js'
 import { dernierMot, hermes } from './graphe.js'
 import { noterTache } from './compteurs.js'
-import { lireCapacites, lireFichiers, lireLivrables, lireValidation } from './simulation.js'
+import { lireCapacites, lireFichiers, lireLivrables, lireValidation, valider } from './simulation.js'
 import { HUB_DIR, WORKSPACE, readJson, sanitizeName, writeJson } from './workspace.js'
 
 /**
@@ -1122,9 +1122,26 @@ const chantiers = new Map()
  * Lance un pole. Rend la main tout de suite : le travail dure des minutes, et
  * il se raconte par le flux.
  *
- * La porte est verifiee ici, cote serveur, et pas seulement par un bouton grise
- * dans l'interface : c'est la seule facon qu'elle tienne aussi pour un appel
- * qui ne passerait pas par elle.
+ * ⚠ F11 - LANCER VAUT ACCORD, ET LA PORTE SEPAREE A DISPARU *(06/08/2026)*.
+ *
+ * Il fallait valider la simulation avant de pouvoir lancer, et ce refus etait
+ * prononce ICI plutot que par un bouton grise - la bonne facon de tenir une
+ * porte. Ce n'est pas le mecanisme qui a change d'avis, c'est ce qu'il gardait.
+ * La friction le dit mot pour mot : *« depuis que le script est un panneau
+ * PERMANENT plutot qu'une fenetre qu'on ouvre, valider la simulation n'a plus
+ * de porte a garder : le script est sous mes yeux, le regarder EST l'ouvrir. Le
+ * bouton qui certifie que je l'ai vu ne certifie plus rien. »*
+ *
+ * Le panneau plan est arrive le meme jour (`PanneauPlan.tsx`) : la condition
+ * est remplie, la porte tombe. **La regle qui compte est conservee entiere** -
+ * rien ne part sans un clic explicite, apres avoir eu la forme du travail sous
+ * les yeux. Deux gestes au total, pas trois : on valide le plan dans le chat,
+ * on lance dans le Studio.
+ *
+ * La trace, elle, RESTE ECRITE : `valider()` est appele ici, au moment du clic.
+ * Elle ne garde plus une porte, mais elle date l'accord - et c'est elle que
+ * `graphePerturbe` efface quand le graphe change, ce qui laisse au banc et aux
+ * versions un « valide le » qui dit la verite.
  */
 export async function lancer(poleId, { diffuser }) {
   const dejaLa = chantiers.get(poleId)
@@ -1148,13 +1165,8 @@ export async function lancer(poleId, { diffuser }) {
     throw err
   }
 
-  if (!lireValidation(poleId)) {
-    const err = new Error(
-      "Ce pole n'a pas ete valide. Ouvre sa simulation et valide-la avant de le lancer.",
-    )
-    err.status = 409
-    throw err
-  }
+  // Le clic EST l'accord : on le date au lieu de le reclamer.
+  if (!lireValidation(poleId)) valider(poleId)
 
   const chantier = new Chantier(pole, { diffuser })
   chantiers.set(poleId, chantier)

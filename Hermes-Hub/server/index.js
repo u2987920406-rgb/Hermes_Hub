@@ -81,7 +81,7 @@ import { comparer, listerVersions, lireVersion, marquerFavori, oublierVersion } 
 import { prevoirRetour, rejouer } from './retour.js'
 import { executer, preparer } from './masse.js'
 import { ecrireDisposition, lireDisposition, oublierDisposition } from './studio.js'
-import { poserScenario, preparerPlan } from './plan.js'
+import { lirePlanDuPole, poserScenario, preparerPlan } from './plan.js'
 import { clore, lire as lireConversation, lister as listerConversations, noter, supprimer as supprimerConversation } from './historique.js'
 import { ecrireBascule, lireBascule } from './modeles.js'
 import { projectFiles, vaultNote } from './templates.js'
@@ -1535,11 +1535,22 @@ async function decomposer(texte) {
   //
   // Elles rendaient toutes les trois un mot : « aucun decoupage », « la
   // decomposition a echoue ». Un mot n'aide personne, et surtout il cachait que
-  // **la demande existe quand meme** sur le tableau - l'utilisateur croyait
-  // avoir perdu sa phrase et la retapait. Chacune porte donc sa cause ET sa
-  // suite, parce que la suite est la meme et qu'elle n'etait ecrite nulle part :
-  // la tache attend dans le Studio, ou elle se decoupe a la main.
-  const suite = 'La demande est sur le tableau : ouvre-la dans le Studio pour la decouper a la main.'
+  // **la demande existe quand meme** - l'utilisateur croyait avoir perdu sa
+  // phrase et la retapait. Chacune porte donc sa cause ET sa suite, parce que
+  // la suite est la meme et qu'elle n'etait ecrite nulle part.
+  //
+  // ⚠ F18 - « LE TABLEAU » EST UN MOT DU DEDANS. La phrase disait « la demande
+  // est sur le tableau » : ca ne veut rien dire pour qui n'a jamais ouvert le
+  // kanban d'Hermes, et c'est justement le moment ou l'on a besoin d'etre
+  // rassure. Ce qu'il faut dire n'est pas OU c'est range, c'est **que ce n'est
+  // pas perdu**. Meme famille que « pole », traitee au chantier 2.
+  //
+  // ⚠ F20 - ET LA PHRASE NE PORTE PLUS LE CHEMIN. Elle disait « ouvre-la dans
+  // le Studio » sans qu'aucun bouton n'y mene : `ADM.md` le dit deja - une
+  // consigne ne remplace pas un chemin qui manque. Le geste est desormais un
+  // bouton, pose par l'interface a cote de ce message ; `pole` est rendu pour
+  // ca, meme quand le decoupage echoue.
+  const suite = 'Ta demande est enregistree, elle ne se perdra pas : tu peux la decouper a la main.'
   let raison = ''
   if (decoupe) raison = plan.reason || ''
   else if (dec.tue) {
@@ -1935,6 +1946,25 @@ async function handleApi(req, res, url) {
      * repondre.
      */
     if (rest[1] === 'plan') {
+      /**
+       * Relire le plan d'un scenario - lecture pure, aucun modele.
+       *
+       * `ecrirePlan` posait sur le disque depuis le 6 aout et **personne ne
+       * relisait** : `lirePlanDuPole` portait sa ligne dans
+       * `design/exports-morts.json`, exactement comme « une porte ouverte avant
+       * le geste qui l'emprunte ». Le geste, c'est le panneau plan du Studio :
+       * le RESULTAT ATTENDU n'existe nulle part ailleurs - ni dans le tableau
+       * d'Hermes, ni dans le graphe - et sans lui la confrontation annonce /
+       * rendu de C8 n'aura rien a comparer.
+       *
+       * `null` quand il n'y en a pas, et c'est un cas ordinaire : un scenario
+       * ne du decomposeur, ou pose avant cette date, n'a jamais eu de plan.
+       * Le panneau se rabat alors sur le graphe seul.
+       */
+      if (rest[2] && method === 'GET') {
+        return sendJson(res, 200, { plan: lirePlanDuPole(decodeURIComponent(rest[2])) })
+      }
+
       // Proposer. Un seul appel modele, et il n'ecrit RIEN : ni tache, ni
       // fichier, ni reveil. C'est ce qui permet de refuser sans rien defaire.
       if (!rest[2] && method === 'POST') {

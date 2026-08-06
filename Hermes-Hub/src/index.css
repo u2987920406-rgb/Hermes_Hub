@@ -286,6 +286,29 @@
     transition-duration: calc(var(--noeud-succes) * var(--graphe-mouvement));
   }
 
+  /* C3 - LE NOEUD DONT ON SURVOLE LA LIGNE DANS LE PLAN.
+     La classe est posee par React Flow sur son enveloppe, pas sur la carte :
+     `.noeud-vif` est donc un ANCETRE de `.noeud-agent`, et c'est pourquoi la
+     regle vise l'enfant.
+
+     ⚠ `opacity` ET `filter` SONT LA POUR UNE RAISON MESUREE, pas par exces de
+     zele. Premier essai a l'ecran, le 06/08/2026 : la classe etait bien posee,
+     `transform` valait bien `scale(1.04)`, et **on ne voyait rien**. Une tache
+     qui attend son tour est `data-etat="endormi"`, donc a 55 % d'opacite et
+     desaturee - le surlignage se battait contre le retrait et perdait. Le
+     couplage doit sortir le noeud de la penombre, sinon il ne couple rien.
+
+     Ce qu'il ne fait toujours pas : changer la couleur ou l'etat. Survoler une
+     ligne n'est pas un evenement du scenario, et un noeud qui prendrait l'air
+     « en cours » sous le curseur mentirait sur ce qui se passe. */
+  .noeud-vif .noeud-agent {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 2px var(--agent);
+    opacity: 1;
+    filter: none;
+    z-index: 3;
+  }
+
   /* Une secousse, PUIS PLUS RIEN. La bordure rouge reste, elle. */
   .noeud-agent[data-etat='erreur'] {
     border-color: var(--danger);

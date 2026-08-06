@@ -35,6 +35,7 @@ import type { CSSProperties } from 'react'
 import { cleAccord } from '../lib/accords'
 import { useEchap } from '../hooks/useEchap'
 import { BancEssai } from './BancEssai'
+import { DecompteDecoupage } from './DecompteDecoupage'
 import type {
   Chantier,
   DemandeAutorisation,
@@ -49,10 +50,18 @@ interface Props {
       celle-ci va de vingt secondes a trois minutes - d'ou le decompte. */
   chargement?: boolean
   erreur?: string | null
-  onValider: () => void
+  /**
+   * F20 - LE MESSAGE PORTE LE GESTE, IL NE LE DECRIT PLUS.
+   *
+   * Quand Hermes ne decoupe pas, la demande existe quand meme et se reprend a
+   * la main dans le Studio. Le message le disait tres bien, et il n'y avait
+   * aucun bouton : `ADM.md` a deja la lecon - **une consigne ne remplace pas un
+   * chemin qui manque.** Absent quand il n'y a nulle part ou aller ; un bouton
+   * qui ne mene a rien est pire que pas de bouton.
+   */
+  onOuvrirEchouee?: () => void
   onModifier: () => void
   onFermer: () => void
-  validation?: boolean
   /** Le chantier de ce pole, s'il tourne en ce moment. */
   chantier?: Chantier | null
   /** Ce qu'un agent au travail attend de toi pour continuer. */
@@ -87,10 +96,9 @@ export function FenetreSimulation({
   simulation,
   chargement,
   erreur,
-  onValider,
+  onOuvrirEchouee,
   onModifier,
   onFermer,
-  validation,
   chantier,
   accords,
   onAccord,
@@ -145,11 +153,17 @@ export function FenetreSimulation({
           {(accords || []).map((d) => (
             <Accord key={cleAccord(d)} demande={d} onRepondre={onAccord} />
           ))}
-          {chargement && <EnAttente />}
+          {chargement && <DecompteDecoupage />}
           {erreur && (
             <div className="bandeau sens-danger">
               <AlertTriangle className="h-4 w-4 flex-none teinte-sens" />
-              <span>{erreur}</span>
+              <span className="min-w-0 flex-1">{erreur}</span>
+              {onOuvrirEchouee && (
+                <button onClick={onOuvrirEchouee} className="btn-ghost flex-none px-2.5 py-1 text-[11px]">
+                  Ouvrir dans le Studio
+                  <ArrowRight className="ml-1 inline h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           )}
           {simulation && !chargement && <Corps simulation={simulation} compact={compact} />}
@@ -167,10 +181,8 @@ export function FenetreSimulation({
         {simulation && !chargement && (
           <PiedDePage
             simulation={simulation}
-            validation={validation}
             chantier={chantier}
             lancement={lancement}
-            onValider={onValider}
             onModifier={onModifier}
             onLancer={onLancer}
             onArreter={onArreter}
@@ -237,125 +249,6 @@ function Entete({
       </button>
     </div>
   )
-}
-
-/**
- * Le plafond du serveur, en secondes.
- *
- * Duplique depuis `DELAI_DECOUPAGE` dans `server/index.js` - le decompte doit
- * annoncer la coupure AVANT qu'elle arrive, donc avant tout aller-retour. Les
- * deux commentaires se tiennent la main : changer l'un sans l'autre ferait
- * mentir le decompte de la pire facon, en promettant du temps qui n'existe
- * plus.
- */
-const PLAFOND_DECOUPAGE_S = 180
-
-/**
- * La zone ordinaire de la jauge : ou tombent la plupart des essais.
- *
- * Recalibree le 02/08/2026 au soir, et l'ancien calibrage merite d'etre raconte
- * parce qu'il explique pourquoi cette constante existe. Elle valait `[20, 96]`,
- * tiree de quatre essais a 19,7 s, 26,4 s, 95,8 s et 270 s - un ecart de 1 a 14
- * sur la meme phrase. Le coupable n'etait pas le modele mais la reflexion
- * cachee : l'orchestrateur tournait a `reasoning_effort: medium`. Pose a `none`,
- * quatre essais rendent 21, 19, 20 et 27 s. L'ecart tombe a 1,4.
- *
- * D'ou ces bornes-ci, larges d'une dizaine de secondes au lieu de quatre-vingts.
- * Depasser la borne haute n'est toujours pas une panne - c'est le quatrieme
- * essai - mais ca veut maintenant dire quelque chose, ce qu'une zone couvrant
- * la moitie de la jauge ne pouvait plus faire.
- */
-const ORDINAIRE_S = [19, 30]
-
-/**
- * Le decompte d'une commande longue.
- *
- * L'ancien panneau annoncait « une trentaine de secondes ». La mesure l'a
- * dementi : la meme demande, sur le meme cerveau, a pris 19,7 s puis 270 s.
- * Une duree annoncee qu'on depasse est pire que pas de duree du tout - a la
- * quarantieme seconde, l'utilisateur sait qu'on lui a menti, et il relance,
- * ce qui double l'attente.
- *
- * On n'annonce donc plus rien : **on compte**. Le chiffre monte, la jauge
- * avance vers un plafond nomme, et la zone ordinaire dit ou tombent la plupart
- * des essais sans promettre que celui-ci en fera partie.
- *
- * Le decompte est tenu par le navigateur, pas par le serveur. Ce n'est pas une
- * economie de trafic : c'est que l'onglet est la seule piece dont on soit sur
- * qu'elle ne soit pas occupee. Un decompte servi par la machine qui travaille
- * s'arreterait exactement quand on a besoin de lui.
- */
-function EnAttente() {
-  const [depuis] = useState(() => Date.now())
-  const [maintenant, setMaintenant] = useState(depuis)
-
-  useEffect(() => {
-    const battement = setInterval(() => setMaintenant(Date.now()), 200)
-    return () => clearInterval(battement)
-  }, [])
-
-  const ecoule = (maintenant - depuis) / 1000
-  const part = Math.min(ecoule / PLAFOND_DECOUPAGE_S, 1)
-
-  // La zone ordinaire est bornee par le plafond, et ce n'est pas une precaution
-  // theorique : en abaissant le plafond a 12 s pour eprouver la coupure, la
-  // borne « 20 s » s'est affichee a droite du repere de coupe, hors de la
-  // jauge. Deux constantes qui se contredisent doivent se contredire en silence
-  // plutot qu'a l'ecran.
-  const bas = Math.min(ORDINAIRE_S[0], PLAFOND_DECOUPAGE_S)
-  const haut = Math.min(ORDINAIRE_S[1], PLAFOND_DECOUPAGE_S)
-  const auDela = ecoule > haut
-
-  return (
-    <div
-      data-zone="decompte-decoupage"
-      className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center"
-    >
-      <Loader2 className="h-6 w-6 animate-spin text-sky-500" />
-      <p className="text-sm font-medium">Hermes decoupe ta demande</p>
-
-      {/* `tabular-nums` seul suffit a figer la largeur des chiffres : la chasse
-          fixe, elle, ecarte aussi l'espace avant l'unite et fait tache. */}
-      <p className="text-3xl font-semibold tabular-nums">{horloge(ecoule)}</p>
-
-      {/* La jauge dit trois choses d'un coup : ou on en est, ou tombent les
-          essais ordinaires, et ou le serveur coupera. */}
-      <div className="w-full max-w-sm">
-        <div className="relative h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-navy-800">
-          <div
-            className="absolute inset-y-0 bg-slate-300/70 dark:bg-navy-700"
-            style={{
-              left: `${(bas / PLAFOND_DECOUPAGE_S) * 100}%`,
-              width: `${((haut - bas) / PLAFOND_DECOUPAGE_S) * 100}%`,
-            }}
-          />
-          <div
-            className="absolute inset-y-0 left-0 rounded-full bg-sky-500 transition-[width] duration-200 ease-linear"
-            style={{ width: `${part * 100}%` }}
-          />
-        </div>
-        <div className="mt-1 flex justify-between text-[10px] tabular-nums muted">
-          <span>{bas} s</span>
-          <span>la plupart des essais</span>
-          <span>coupe a {PLAFOND_DECOUPAGE_S} s</span>
-        </div>
-      </div>
-
-      <p className="max-w-sm text-xs muted">
-        {auDela
-          ? `Plus long que d habitude, et ce n est pas une panne : le meme cerveau ne met jamais exactement le meme temps. Au-dela de ${PLAFOND_DECOUPAGE_S} s le Hub arrete, et la demande reste sur le tableau a decouper a la main.`
-          : 'C est le seul moment ou un modele travaille : ensuite tout est lu sur le disque, et rien ne s execute avant ton accord.'}
-      </p>
-    </div>
-  )
-}
-
-/** `12,4 s` en dessous de la minute, `2 min 05` au-dessus - on ne lit pas
-    « 125,3 s » d'un coup d'oeil. */
-function horloge(s: number) {
-  if (s < 60) return `${s.toFixed(1).replace('.', ',')} s`
-  const m = Math.floor(s / 60)
-  return `${m} min ${String(Math.floor(s % 60)).padStart(2, '0')}`
 }
 
 function Corps({ simulation, compact }: { simulation: Simulation; compact: boolean }) {
@@ -573,26 +466,37 @@ function Etape({ tache, compact }: { tache: TacheSimulee; compact: boolean }) {
  * refus est aussi prononce par le serveur : un bouton absent ne protege que
  * ceux qui passent par le bouton.
  */
+/**
+ * F11 - UN SEUL BOUTON, ET C'EST « LANCER ».
+ *
+ * Ce pied portait « Valider » puis « Lancer », donc deux validations pour un
+ * seul acte - et trois avec celle du plan dans le chat. Le raisonnement qui
+ * l'enleve est dans `FRICTIONS-PARCOURS.md` : *« depuis que le script est un
+ * panneau permanent plutot qu'une fenetre qu'on ouvre, valider la simulation
+ * n'a plus de porte a garder : le script est sous mes yeux, le regarder EST
+ * l'ouvrir. Le bouton qui certifie que je l'ai vu ne certifie plus rien. »*
+ *
+ * **La regle qui compte est conservee entiere** : rien ne part sans un clic
+ * explicite, apres avoir eu la forme du travail sous les yeux. Deux gestes -
+ * valider le plan dans le chat, lancer dans le Studio - deux moments, deux
+ * objets, un bouton chacun. C'est le serveur qui date l'accord au moment du
+ * clic ; voir `lancer()` dans `server/execution.js`.
+ */
 function PiedDePage({
   simulation,
-  validation,
   chantier,
   lancement,
-  onValider,
   onModifier,
   onLancer,
   onArreter,
 }: {
   simulation: Simulation
-  validation?: boolean
   chantier?: Chantier | null
   lancement?: boolean
-  onValider: () => void
   onModifier: () => void
   onLancer: () => void
   onArreter: () => void
 }) {
-  const deja = !!simulation.validation
   const tourne = !!chantier?.actif
   const total = simulation.vagues.reduce((n, v) => n + v.taches.length, 0)
   const faites = chantier?.faites.length || 0
@@ -609,10 +513,8 @@ function PiedDePage({
               ? `- ${chantier.enCours.map((t) => t.titre).join(', ')}`
               : '- en attente de la prochaine tache'}
           </>
-        ) : deja ? (
-          'Ce scenario est valide. Lancer reveille les agents un par un, dans l ordre du graphe.'
         ) : (
-          'Valider ouvre la porte - aucun agent ne demarre a cet instant.'
+          'Lancer reveille les agents un par un, dans l ordre du graphe. Ce clic vaut accord : rien n a demarre jusqu ici.'
         )}
       </p>
       <div className="flex gap-2">
@@ -622,32 +524,21 @@ function PiedDePage({
             Modifier
           </button>
         )}
-        {!deja && (
-          <button className="btn-primary text-xs" onClick={onValider} disabled={validation}>
-            {validation ? (
+        {tourne ? (
+          <button className="btn-ghost text-xs" onClick={onArreter}>
+            <Square className="mr-1.5 inline h-3.5 w-3.5" />
+            Arreter
+          </button>
+        ) : (
+          <button className="btn-primary text-xs" onClick={onLancer} disabled={lancement}>
+            {lancement ? (
               <Loader2 className="mr-1.5 inline h-3.5 w-3.5 animate-spin" />
             ) : (
-              <Check className="mr-1.5 inline h-3.5 w-3.5" />
+              <Play className="mr-1.5 inline h-3.5 w-3.5" />
             )}
-            Valider
+            Lancer
           </button>
         )}
-        {deja &&
-          (tourne ? (
-            <button className="btn-ghost text-xs" onClick={onArreter}>
-              <Square className="mr-1.5 inline h-3.5 w-3.5" />
-              Arreter
-            </button>
-          ) : (
-            <button className="btn-primary text-xs" onClick={onLancer} disabled={lancement}>
-              {lancement ? (
-                <Loader2 className="mr-1.5 inline h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Play className="mr-1.5 inline h-3.5 w-3.5" />
-              )}
-              Lancer
-            </button>
-          ))}
       </div>
     </div>
   )

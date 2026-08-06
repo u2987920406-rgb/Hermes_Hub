@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { CommandPalette } from './components/CommandPalette'
 import { LigneAlerte } from './components/LigneAlerte'
 import { NewProjectModal } from './components/NewProjectModal'
@@ -11,13 +11,34 @@ import { CleanView } from './pages/CleanView'
 import { ConfigView } from './pages/ConfigView'
 import { HomeView } from './pages/HomeView'
 import { OrchestrationView } from './pages/OrchestrationView'
-import { StudioView } from './pages/StudioView'
 import { ProjectDetail } from './pages/ProjectDetail'
 import { ProjectsView } from './pages/ProjectsView'
 import { TrashView } from './pages/TrashView'
 import { VaultView } from './pages/VaultView'
 import { useHubStore } from './store/useHubStore'
 import type { Accueil, View } from './types'
+
+/**
+ * LE STUDIO NE SE CHARGE QU'EN Y ENTRANT - V4, mesuree le 4 aout 2026.
+ *
+ * Il porte `@xyflow/react`, la plus grosse dependance du Hub, et **on ne va
+ * dans le Studio qu'apres avoir valide un plan.** Le faire venir au demarrage
+ * fait payer a l'accueil - le premier ecran, celui qu'on regarde en attendant -
+ * une bibliotheque de graphe que la plupart des sessions n'ouvriront jamais.
+ *
+ * | | Avant | Apres |
+ * |---|---|---|
+ * | JavaScript initial | 573,6 ko | **368,2 ko**, soit **-36 %** |
+ * | idem, compresse | 171,4 ko | 105,0 ko |
+ * | avertissement Vite « > 500 ko » | present | disparu |
+ *
+ * `Suspense` ne montre rien : le Studio prend tout l'ecran et arrive en une
+ * fraction de seconde depuis le disque local. Un voile qui clignote au passage
+ * se remarquerait plus que l'attente qu'il pretend couvrir.
+ */
+const StudioView = lazy(() =>
+  import('./pages/StudioView').then((m) => ({ default: m.StudioView })),
+)
 
 export default function App() {
   const { route, navigate } = useRoute()
@@ -82,6 +103,8 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [newProject, setNewProject] = useState(false)
   const [recherche, setRecherche] = useState(false)
+  /** Le Studio, agrandi hors du cadre commun. Transitoire : voir plus bas. */
+  const [studioPlein, setStudioPlein] = useState(false)
 
   /**
    * L'etat d'accueil vient du SERVEUR, pas du navigateur.
@@ -150,6 +173,12 @@ export default function App() {
     setMenuOpen(false)
   }, [route.view, route.param])
 
+  // Quitter le Studio ramene au cadre : un ecran suivant qui s'ouvrirait
+  // agrandi heriterait d'un geste qui ne le concernait pas.
+  useEffect(() => {
+    if (route.view !== 'studio') setStudioPlein(false)
+  }, [route.view])
+
   const go = (view: View, param?: string) => navigate(view, param)
 
   const renderView = () => {
@@ -183,6 +212,18 @@ export default function App() {
             onStudio={(poleId) => go('studio', poleId)}
           />
         )
+      case 'studio':
+        return (
+          <Suspense fallback={null}>
+            <StudioView
+              poleId={route.param ?? undefined}
+              onQuitter={() => go('orchestration')}
+              plein={false}
+              onPlein={setStudioPlein}
+              onMenu={() => setMenuOpen(true)}
+            />
+          </Suspense>
+        )
       case 'clean':
         return <CleanView onMenu={() => setMenuOpen(true)} />
       case 'vault':
@@ -213,20 +254,55 @@ export default function App() {
     )
   }
 
-  // Le Studio prend tout l'ecran : il sort du cadre a barre laterale au lieu
-  // de s'y loger. C'est ce que dit le plan - le Hub est le centre de controle
-  // leger, le Studio est la ou l'on fabrique, et cela ne se regarde pas par une
-  // fenetre.
-  //
-  // Les notifications le suivent : elles vivaient dans le cadre commun, et le
-  // Studio en sort. Depuis qu'on y remanie le graphe, un refus du tableau - un
-  // lien qui ferme une boucle, un pole qui tourne - n'avait nulle part ou
-  // s'afficher, et le geste semblait n'avoir simplement rien fait.
-  if (route.view === 'studio') {
+  /**
+   * LE STUDIO VIT DANS LE CADRE COMMUN, ET S'EN ECHAPPE A LA DEMANDE.
+   *
+   * Il en sortait toujours - « le Hub est le centre de controle leger, le
+   * Studio est la ou l'on fabrique, et cela ne se regarde pas par une
+   * fenetre ». C'etait vrai de l'edition, faux du reste : on y passe aussi pour
+   * REGARDER tourner un scenario, et on en repart. Sortir du cadre a chaque
+   * fois faisait disparaitre la barre laterale, la ligne d'alerte et le chemin
+   * de retour pour un geste qui n'en demandait pas tant.
+   *
+   * Le plein ecran devient donc un GESTE, `Maximize2` / `Minimize2`, la meme
+   * paire et le meme sens que dans la fenetre de simulation. Il n'est pas
+   * retenu d'une session a l'autre, et c'est voulu : agrandir repond a ce qu'on
+   * fait maintenant, pas a une preference. Un repli se retient, un
+   * agrandissement non - `GRAMMAIRE-PANNEAUX.md`, les trois familles.
+   *
+   * Ce que le plein ecran casse, il le repare lui-meme : le hamburger reparait
+   * des qu'il n'y a plus de barre laterale, et la ligne d'alerte se pose dans
+   * la barre du scenario (F13). Les deux sont dans `StudioView`, commandes par
+   * `plein`.
+   */
+  if (route.view === 'studio' && studioPlein) {
     return (
       <>
-        <StudioView poleId={route.param ?? undefined} onQuitter={() => go('orchestration')} />
+        <Suspense fallback={null}>
+          <StudioView
+            poleId={route.param ?? undefined}
+            onQuitter={() => go('orchestration')}
+            plein
+            onPlein={setStudioPlein}
+            onMenu={() => setMenuOpen(true)}
+          />
+        </Suspense>
+        {/* Les notifications suivent le Studio hors du cadre : depuis qu'on y
+            remanie le graphe, un refus du tableau - un lien qui ferme une
+            boucle, un scenario qui tourne - n'aurait nulle part ou s'afficher,
+            et le geste semblerait n'avoir simplement rien fait. */}
         <Toasts />
+        {/* En tiroir : plein ecran, il n'y a plus de colonne a lui donner. Elle
+            glisse par-dessus au hamburger, et elle repart. */}
+        <Sidebar
+          current={route.view}
+          onNavigate={(view) => go(view)}
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          onRechercher={() => setRecherche(true)}
+          tiroir
+        />
+        <CommandPalette open={recherche} onClose={() => setRecherche(false)} onNavigate={go} />
       </>
     )
   }

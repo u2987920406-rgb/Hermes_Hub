@@ -4,6 +4,7 @@ import type {
   AccordEnAttente,
   AppConfig,
   EtatAutomatisations,
+  FilResume,
   ModeConversation,
   Project,
   ProjectStatus,
@@ -80,6 +81,22 @@ interface HubState {
    * raconter la meme chose.
    */
   demandes: AccordEnAttente[]
+
+  /**
+   * Les conversations gardees, et si leur volet est ouvert.
+   *
+   * MEME RAISON QUE `demandes` : trois surfaces les lisent. Elles ont vecu en
+   * double - dans `Conversation` et dans `OrchestrationView`, chacune avec son
+   * appel - donc deux listes du meme serveur relues a des moments differents.
+   * Et `historiqueOuvert` est ici parce que le bouton et le volet ne sont pas
+   * rendus par le meme ecran : l'accueil pose le premier, la conversation pose
+   * le second - seule elle sait rejouer un fil.
+   */
+  fils: FilResume[]
+  rafraichirFils: () => Promise<void>
+  historiqueOuvert: boolean
+  ouvrirHistorique: () => void
+  fermerHistorique: () => void
 
   /** Les scenarios finis qu'on n'a pas encore ecartes. Voir `ScenarioFini`. */
   scenariosFinis: ScenarioFini[]
@@ -207,6 +224,8 @@ export const useHubStore = create<HubState>((set, get) => {
     trash: [],
     accords: 0,
     demandes: [],
+    fils: [],
+    historiqueOuvert: false,
     scenariosFinis: lireTraces(),
     automatisations: null,
     alerteEssai: false,
@@ -241,6 +260,20 @@ export const useHubStore = create<HubState>((set, get) => {
     },
 
     basculerAlerteEssai: () => set((s) => ({ alerteEssai: !s.alerteEssai })),
+
+    // Silencieux, comme les accords : un historique qui ne repond pas ne doit
+    // pas jeter une notification a chaque tour fini.
+    rafraichirFils: async () => {
+      set({ fils: await api.conversations().catch(() => get().fils) })
+    },
+
+    // On relit en ouvrant : le compte du bouton peut dater du dernier tour, la
+    // liste qu'on deroule ne le doit pas.
+    ouvrirHistorique: () => {
+      void get().rafraichirFils()
+      set({ historiqueOuvert: true })
+    },
+    fermerHistorique: () => set({ historiqueOuvert: false }),
 
     chargerMode: async () => {
       set({ modeConversation: sur(await api.modeConversation().catch(() => null)) })

@@ -1,4 +1,5 @@
 {
+  "StudioView": "FAUX POSITIF, pas une dette : le Studio est charge par `lazy(() => import(...))` depuis App.tsx (V4, -36 % de JavaScript initial). Le detecteur compare des NOMS dans les clauses d'import, et un import dynamique n'en a pas. C'est la grossierete assumee de sa detection - voir son commentaire en tete de design/verifier.mjs. A retirer le jour ou il saurait lire un import() ; pas avant, sinon il criera a chaque passage.",
   "Capacite": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
   "EtapePlan": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
   "EtatMemoireEquipe": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
@@ -6,7 +7,6 @@
   "Propagation": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
   "RoleAgent": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
   "Route": "herite du chantier 2 (src/hooks/useRoute.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
-  "Tache": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
   "Toast": "herite du chantier 2 (src/store/useHubStore.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
   "ToastKind": "herite du chantier 2 (src/store/useHubStore.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",
   "TourMoi": "herite du chantier 2 (src/types/index.ts) - jamais importe : a trancher le jour ou l'on touche ce domaine",

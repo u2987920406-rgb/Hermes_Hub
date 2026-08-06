@@ -1,4 +1,4 @@
-﻿/**
+/**
  * La conversation a mentions.
  *
  * `@redacteur resume ce fichier` ne reveille que lui. Sans mention, c'est
@@ -20,6 +20,7 @@ import {
   ChevronDown,
   CornerDownRight,
   Filter,
+  Home,
   Loader2,
   Moon,
   Plus,
@@ -34,10 +35,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { cleAccord, sansAccord } from '../lib/accords'
 import { api } from '../lib/api'
-import { AttentePlan, CartePlan } from './CartePlan'
+import { AttentePlan } from './AttentePlan'
+import { CartePlan } from './CartePlan'
 import { ChampRecherche, aplatir } from './ChampRecherche'
 import { usePlan } from '../hooks/usePlan'
 import { InterrupteurMode } from './InterrupteurMode'
+import { LigneContexte } from './LigneContexte'
+import { VoletHistorique } from './VoletHistorique'
 import { useHubStore } from '../store/useHubStore'
 import { GENRES_OUTIL } from '../types'
 import type {
@@ -46,7 +50,6 @@ import type {
   DemandeAutorisation,
   Equipe,
   EvenementChat,
-  FilResume,
   Tour,
   TourAgent,
   TourDelegation,
@@ -59,10 +62,6 @@ interface Props {
   /** Les equipes constituees : elles servent a reduire la barre a ceux qui
       travaillent ensemble, et a les appeler d'un bloc. */
   equipes?: Equipe[]
-  /** Une conversation a rouvrir, choisie dans le volet Historique. */
-  filAOuvrir?: string | null
-  /** Previent que la demande a ete honoree, pour qu'elle ne se rejoue pas. */
-  onFilOuvert?: () => void
   /** Remonte l'etat d'eveil pour que les autres volets le voient. */
   onEveilChange?: (eveilles: string[]) => void
   /**
@@ -86,8 +85,6 @@ interface Props {
 export function Conversation({
   agents,
   equipes = [],
-  filAOuvrir,
-  onFilOuvert,
   onEveilChange,
   accueil,
   accueilDessous,
@@ -122,8 +119,14 @@ export function Conversation({
    * ou les evenements qui arrivent s'ajoutent au fil affiche. En relisant une
    * conversation passee, on ne veut pas voir une reponse d'aujourd'hui s'y
    * glisser.
+   *
+   * LA LISTE, ELLE, EST DANS LE MAGASIN - le bouton de l'accueil en affiche le
+   * compte et le volet la deroule, donc trois surfaces la lisent. Elle a vecu
+   * ici ET dans `OrchestrationView`, deux copies du meme serveur rafraichies a
+   * des moments differents.
    */
-  const [fils, setFils] = useState<FilResume[]>([])
+  const fils = useHubStore((s) => s.fils)
+  const rafraichirFils = useHubStore((s) => s.rafraichirFils)
   const [filVu, setFilVu] = useState<string | null>(null)
   /** L'annuaire complet, replie par defaut : la place appartient au fil. */
   const [deplie, setDeplie] = useState(false)
@@ -227,31 +230,9 @@ export function Conversation({
     filVuRef.current = filVu
   }, [filVu])
 
-  const rafraichirFils = useCallback(async () => {
-    setFils(await api.conversations().catch(() => []))
-  }, [])
-
   useEffect(() => {
     void rafraichirFils()
   }, [rafraichirFils])
-
-  // L'historique demande d'ouvrir un fil : on le rejoue, une fois.
-  useEffect(() => {
-    if (!filAOuvrir) return
-    void (async () => {
-      try {
-        const fil = await api.conversation(filAOuvrir)
-        setTours(construire(fil.evenements))
-        setFilVu(filAOuvrir)
-        filVuRef.current = filAOuvrir
-      } catch (e) {
-        setErreur(e instanceof Error ? e.message : String(e))
-      } finally {
-        onFilOuvert?.()
-      }
-    })()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filAOuvrir])
 
   const appliquer = useCallback((e: EvenementChat) => {
     const agent = e.agent || 'default'
@@ -641,44 +622,14 @@ export function Conversation({
   return (
     <div className="flex flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Une seule ligne de contexte : ce qu'on regarde, et de quoi repartir
-            a zero. L'historique lui-meme vit dans le menu, a cote de la
-            Conversation - pas dans un tiroir qui mange la largeur du fil.
-
-            Elle s'absente du salut : « En direct » n'annonce rien tant que
-            rien n'a ete dit, et une barre de plus au-dessus d'un ecran qu'on
-            veut nu se remarque d'autant. */}
         {!centre && (
-        <div className="flex flex-none items-center gap-2 border-b border-slate-200 px-4 py-1.5 dark:border-navy-800">
-          {filOuvert ? (
-            <>
-              <span className="min-w-0 flex-1 truncate text-xs font-medium">
-                {filOuvert.interlocuteur} — {filOuvert.titre}
-              </span>
-              <button onClick={revenirAuDirect} className="btn-ghost px-2.5 py-1 text-[11px]">
-                <Radio className="mr-1 inline h-3.5 w-3.5" />
-                Revenir au direct
-              </button>
-            </>
-          ) : (
-            <>
-              <span className="flex min-w-0 flex-1 items-center gap-1.5 text-xs muted">
-                <Radio className="h-3.5 w-3.5 flex-none" />
-                En direct
-              </span>
-              {tours.length > 0 && (
-                <button
-                  onClick={() => void nouvelleConversation()}
-                  className="btn-ghost px-2.5 py-1 text-[11px]"
-                  title="Repartir sur une conversation neuve"
-                >
-                  <Plus className="mr-1 inline h-3.5 w-3.5" />
-                  Nouvelle
-                </button>
-              )}
-            </>
-          )}
-        </div>
+          <LigneContexte
+            filOuvert={filOuvert}
+            vide={tours.length === 0}
+            surLAccueil={Boolean(accueil)}
+            onDirect={revenirAuDirect}
+            onNeuve={() => void nouvelleConversation()}
+          />
         )}
 
       {/* Le salut prend la place du fil, colle en bas de son espace - donc
@@ -996,6 +947,23 @@ export function Conversation({
         </div>
       )}
       </div>
+
+      {/* Le volet est pose ICI et nulle part ailleurs : rejouer un fil demande
+          `construire()` et le magasin de tours, que seule la conversation tient.
+          Le bouton, lui, peut vivre sur deux ecrans - c'est le magasin qui les
+          relie, pas une prop qui traverserait l'accueil. */}
+      <VoletHistorique
+        agents={agents}
+        equipes={equipes}
+        onOuvrir={(id) => void ouvrirFil(id)}
+        onJeter={async (id) => {
+          await api.supprimerConversation(id).catch(() => null)
+          // Le fil qu'on relisait vient de disparaitre : rester dessus
+          // afficherait une conversation qui n'existe plus.
+          if (filVu === id) revenirAuDirect()
+          void rafraichirFils()
+        }}
+      />
     </div>
   )
 }
