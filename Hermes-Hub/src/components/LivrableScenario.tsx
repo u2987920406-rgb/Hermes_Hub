@@ -11,15 +11,25 @@
  * dans l'API et ne s'affichait nulle part. Un pole qui produit un livrable
  * introuvable n'a pas fini son travail - il l'a perdu.
  *
- * TROIS ETATS, ET ILS NE DISENT PAS LA MEME CHOSE :
+ * QUATRE ETATS, ET ILS NE DISENT PAS LA MEME CHOSE :
  *
  *   - pas de dossier : le pole n'a jamais tourne. Ce n'est pas un probleme, et
  *     on ne montre rien ;
- *   - un dossier vide : il a tourne et n'a RIEN ecrit. C'en est peut-etre un,
- *     et ca se dit ;
+ *   - un dossier vide PENDANT QUE CA TOURNE : rien n'est encore ecrit, et c'est
+ *     l'etat normal des premieres minutes ;
+ *   - un dossier vide UNE FOIS ARRETE : il a tourne et n'a RIEN ecrit. C'en est
+ *     peut-etre un, et ca se dit ;
  *   - des fichiers : on les nomme, avec leur poids.
  *
  * Confondre les deux premiers ferait passer un pole sterile pour un pole neuf.
+ *
+ * ⚠ LE QUATRIEME ETAT A ETE PAYE A LA RECETTE DU 6 AOUT. Le bloc affichait
+ * « Le scenario a tourne mais il n'a rien ecrit ici » DES LE LANCEMENT, au
+ * passe, pendant que la premiere tache demarrait : `!livrable?.dossier` prenait
+ * « le dossier existe » pour « il a tourne », alors que le dossier est cree
+ * AVANT le premier agent. `BilanRendu`, ecrit le meme jour, avait la precaution
+ * (`aTourne && !enCours`) ; celui-ci ne l'avait pas. Une phrase alarmante au
+ * pire moment - voir `RECETTE-6-AOUT.md`, R9.
  *
  * ⚠ CE BLOC NE LIT PLUS LE DOSSIER LUI-MEME - c'est le Studio qui le lit, et il
  * le passe. Depuis C8 (6 aout), le bilan « Annonce / rendu » du panneau plan
@@ -43,9 +53,12 @@ function poids(octets: number) {
 export function LivrableScenario({
   poleId,
   livrable,
+  enCours,
 }: {
   poleId: string
   livrable: Livrable | null
+  /** Le scenario tourne en ce moment. Sans ca, le vide se raconte au passe. */
+  enCours: boolean
 }) {
   const [occupe, setOccupe] = useState(false)
   const notifier = useHubStore((s) => s.notify)
@@ -68,7 +81,9 @@ export function LivrableScenario({
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-xs font-semibold">
           {livrable.fichiers.length === 0
-            ? 'Aucun fichier produit'
+            ? enCours
+              ? 'Rien d ecrit pour l instant'
+              : 'Aucun fichier produit'
             : `${livrable.fichiers.length} fichier${livrable.fichiers.length > 1 ? 's' : ''} produit${
                 livrable.fichiers.length > 1 ? 's' : ''
               }`}
@@ -86,10 +101,18 @@ export function LivrableScenario({
       <p className="mb-3 break-all font-mono text-[10px] muted">{livrable.dossier}</p>
 
       {livrable.fichiers.length === 0 ? (
-        <p className="text-[11px] text-amber-600 dark:text-amber-400">
-          Le scenario a tourne mais n a rien ecrit ici. Ses taches ont peut-etre rendu du texte plutot
-          que des fichiers - ou elles ont ecrit ailleurs.
-        </p>
+        enCours ? (
+          // Pas d'ambre ici : ce vide-la n'est pas un probleme, c'est le debut.
+          <p className="text-[11px] muted">
+            Le dossier est pret et le scenario travaille. Les fichiers apparaitront ici au fur et a
+            mesure que les taches rendent.
+          </p>
+        ) : (
+          <p className="text-[11px] text-amber-600 dark:text-amber-400">
+            Le scenario a tourne mais n a rien ecrit ici. Ses taches ont peut-etre rendu du texte
+            plutot que des fichiers - ou elles ont ecrit ailleurs.
+          </p>
+        )
       ) : (
         <ul className="space-y-1">
           {livrable.fichiers.map((f) => (

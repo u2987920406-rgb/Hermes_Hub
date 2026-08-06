@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **21:15**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **22:01**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -898,12 +898,60 @@ modifie une automatisation — sans jamais ouvrir de terminal.
 
 ---
 
-### Chantier 6 — La recette
+### Chantier 6 — La recette · **jouée le 6 août 2026, 21:25–21:43**
 
 Le parcours joué en entier, à la souris, par quelqu'un qui n'a pas participé si
 possible. Les frictions restantes repartent à l'étape 1 de la méthode.
 
 **Porte :** l'annoncé correspond au rendu, et personne n'est resté coincé.
+
+🔴 **NON FRANCHIE, et sur les deux moitiés.** Le compte rendu complet est dans
+**`RECETTE-6-AOUT.md`** — quatorze frictions, ce qui n'a pas été vérifié dit en
+tête, et deux relevés que la recette a corrigés d'elle-même. Ne pas le résumer
+ici : il périmerait en double.
+
+- l'annoncé (`hokkaido-fevrier.pdf`) **n'a pas été rendu** — mais le produit **le
+  dit lui-même**, chiffré : « 0 SUR 1 », le fichier barré, les trois fichiers en
+  plus nommés. C'est la moitié qui va bien, et c'est C8 qui la tient ;
+- **je suis resté coincé** à l'étape 3 sur 5, devant une tâche « À cadrer » sans
+  aucune sortie.
+
+**Sept frictions du parcours sont fermées, vues à l'écran** : F4, F5, F6, F7, F9,
+F10, F12.
+
+---
+
+### Chantier 7 — L'arrêt · **le prochain**
+
+Les trois frictions graves de la recette n'en font qu'une : **quand ça s'arrête,
+le client est seul.** Elles se traitent ensemble, dans cet ordre.
+
+- **Donner une sortie à « À cadrer »** *(R1)*. C'est le cul-de-sac et le moins
+  cher : le remède existe déjà pour `blocked` — la route `debloquerTache` refuse
+  `triage` (`cannot unblock … not blocked/scheduled?`) et le panneau n'offre alors
+  que « Retirer du scénario », c'est-à-dire **supprimer une étape du plan du
+  client**. Et « Lancer » reste actif, ne lance rien, ne dit rien.
+- **Faire du bruit à l'arrêt** *(R3)*. La ligne du haut sait annoncer « a fini » ;
+  elle ne dit rien de « s'est arrêté ». **F14 n'est donc fermée que pour les
+  fins** — or l'arrêt est le cas où l'on a le plus besoin d'être prévenu.
+- **Dire pourquoi** *(R10)*. `#bloquer` reçoit une `raison` et la diffuse déjà
+  (`execution.js`) ; le panneau de la tâche ne l'affiche nulle part et se contente
+  de « corrige ce qui l'a fait échouer ». Il faut aussi un simple clic pour
+  l'ouvrir — le double-clic ne se devine pas.
+
+**Porte :** un scénario qui s'arrête se signale tout seul, dit pourquoi, et offre
+un geste qui ne détruit rien.
+
+**Deux questions à trancher avant de coder** — elles ne sont pas dans le Hub, et
+c'est pour ça qu'elles ne sont pas dans la liste ci-dessus :
+
+- **R4, le double chemin.** Hermès a lancé `delegate batch (3 tasks)` **avant**
+  que le plan soit proposé : deux jeux de fichiers, à deux endroits, pour une
+  seule demande — mesuré sur le disque. Empêche-t-on Hermès de déléguer quand un
+  découpage est en route, ou assume-t-on les deux chemins **en les affichant** ?
+- **R5, le parallèle promis.** Le COMMENT du plan annonce trois agents « en
+  parallèle » ; les cinq liens sont une chaîne stricte. C'est le décomposeur qui
+  écrit les deux, et il se contredit dans le même document.
 
 ---
 
@@ -1183,7 +1231,7 @@ Plan en fin de scénario — c'est C8, et la maquette le montre déjà.
 ### ⚠ À TRANCHER AVANT DE LIVRER — la distribution du greffon *(5 août, 03:15)*
 
 **Ce point n'est pas « à rouvrir après » comme les autres : il conditionne la
-livraison.** Il est posé ici parce qu'il ne relève d'aucun des six chantiers, et
+livraison.** Il est posé ici parce qu'il ne relève d'aucun des sept chantiers, et
 qu'il n'appartient à personne tant qu'on ne l'a pas nommé.
 
 La garantie du mode Discussion tient par **deux pièces** (voir §2, V2, et le
@@ -1230,7 +1278,7 @@ client une garantie dont personne n'aurait réglé le débit.
 
 **La mémoire de contexte** — les trois étages, les quatre crans, l'archivage par
 projet. Tout est décidé et écrit en section 8 de
-`PLAN-ORCHESTRATION-STUDIO.md`, et **rien n'en dépend dans les six chantiers
+`PLAN-ORCHESTRATION-STUDIO.md`, et **rien n'en dépend dans les sept chantiers
 ci-dessus.** C'est un projet en soi, qui touche le serveur, le Coffre et le
 curateur. À reprendre quand la refonte sera livrée et éprouvée.
 

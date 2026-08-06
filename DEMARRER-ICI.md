@@ -1,6 +1,6 @@
 # Démarrer une séance sur Hermès Hub
 
-> ⏱ **Achevé** le 4 août 2026 à **14:42** · **révisé** le 5 août 2026 à **18:15**
+> ⏱ **Achevé** le 4 août 2026 à **14:42** · **révisé** le 6 août 2026 à **22:01**
 > détail : `git log --follow -- DEMARRER-ICI.md`
 > **Le document le plus récent l'emporte.** Compare cette ligne avant d'appliquer.
 
@@ -23,12 +23,13 @@ ce qui est livré aux clients.
 
 | # | Fichier | Ce qu'on y trouve |
 |---|---|---|
-| 1 | `PLAN-DE-TRAVAIL.md` | **l'état exact, les six chantiers, l'ordre.** Commence toujours par lui |
+| 1 | `PLAN-DE-TRAVAIL.md` | **l'état exact, les sept chantiers, l'ordre.** Commence toujours par lui — le 7e est né de la recette du 6 août |
 | 2 | `git log -1` — **ici même**, ce dossier est la racine du dépôt | le point de reprise réel, dans la ligne « Ensuite : » |
 | 3 | `PLAN-ORCHESTRATION-STUDIO.md` | le **pourquoi** de chaque décision, et la mémoire à trois étages (§8) |
 | 3 bis | `VISION-STUDIO.md` | la vision du Studio et de l'Orchestration, partiellement arbitrée. **Entré dans le dépôt le 4 août** — il dormait sur le Bureau |
 | 4 | `maquette-parcours.html` | **la maquette validée. Elle fait foi en cas de doute** |
 | 5 | `FRICTIONS-PARCOURS.md` | les 20 frictions et 8 couplages, numérotés |
+| 5 bis | `RECETTE-6-AOUT.md` | **le parcours joué pour de vrai** (6 août, 21:25–21:43) : sept frictions fermées, quatorze trouvées, la porte du chantier 6 non franchie et pourquoi. Le seul document où le produit est jugé sur ce qu'il a fait, pas sur ce qu'il promet |
 | 6 | `GRAMMAIRE-PANNEAUX.md` | replier / fermer / agrandir, et la conduite de l'attente |
 | 7 | `Hermes-Hub/ARCHITECTURE.md` | la règle de découpe et le cliquet |
 | 8 | `Hermes-Hub/DESIGN.md` | **à lire avant de toucher à l'interface** — index des zones |

@@ -1035,7 +1035,7 @@ function Studio({ poleId, onQuitter, plein, onPlein, onMenu }: Props) {
             plutot qu'une boite vide qui ferait croire a une perte. */}
         {!tacheChoisie && poleId && (
           <div className="absolute right-3 top-3 max-h-[calc(100%-1.5rem)] w-80 overflow-y-auto">
-            <LivrableScenario poleId={poleId} livrable={livrable} />
+            <LivrableScenario poleId={poleId} livrable={livrable} enCours={!!chantier?.actif} />
           </div>
         )}
 
