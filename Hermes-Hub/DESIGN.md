@@ -170,7 +170,9 @@ obligerait le Hub a connaitre un texte que l'installateur possede.
 | Ce que tu vois | Zone a grep | Molettes | Sinon |
 |---|---|---|---|
 | L'ecran entier, sans barre laterale | `studio` | — | `StudioView.tsx` |
-| Le plan, a gauche du graphe | `panneau-plan` | — | `PanneauPlan.tsx` — **permanent, donc il se REPLIE** (`BoutonRepli`, etat retenu). Survoler une ligne allume son noeud, cliquer une ligne y amene : c'est C3, et c'est ce qui fait un instrument de deux affichages. Le « Resultat attendu » vient du plan garde sur le disque, pas du graphe |
+| Le plan, a gauche du graphe | `panneau-plan` | — | `PanneauPlan.tsx` — **permanent, donc il se REPLIE** (`BoutonRepli`, etat retenu). Survoler une ligne allume son noeud, cliquer une ligne y amene : c'est C3, et c'est ce qui fait un instrument de deux affichages. Il porte deux blocs en bas, `trou-competence` et `bilan-rendu`, qui ne paraissent jamais ensemble — l'un avant le lancement, l'autre apres |
+| « Personne n'est designe pour 2 etapes », en bas du plan | `trou-competence` | — | `TrouCompetence.tsx` — C4/F17, **avant le lancement seulement**. Il porte son propre remede : la fiche de creation d'agent, avec le libelle « Creer un specialiste ». La demande en tete de pole ne compte pas — elle revient a Hermes par nature |
+| « Annonce / rendu », tout en bas du plan | `bilan-rendu` | — | `BilanRendu.tsx` — C8, **apres le lancement seulement**. Le meme bloc dit « Resultat attendu » avant, et confronte apres. Un fichier rendu sous un autre nom part dans « en plus » : on ne rapproche jamais deux noms au plus ressemblant |
 | Une case du canevas | `noeud-studio` | `--agent-lisere-noeud`, `--agent-point` | `NoeudStudio.tsx` |
 | Le noeud allume parce que sa ligne est survolee | — | — | classe `.noeud-vif` dans `index.css` : elle souleve et cerne, elle ne change ni la couleur ni l'etat |
 | Les reglages d'un noeud, a droite | `panneau-noeud` | `--agent-point` | `PanneauNoeud.tsx` — **convoque, donc il se FERME.** Le couple avec `panneau-plan` est le meilleur exemple de la regle |
@@ -243,6 +245,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `bandeau-profil` | `src/components/PremiereFois.tsx` |
 | `barre-saisie` | `src/components/Conversation.tsx` |
 | `bascule-proposee` | `src/components/CartePlan.tsx` |
+| `bilan-rendu` | `src/components/BilanRendu.tsx` |
 | `boite-demande` | `src/pages/OrchestrationView.tsx` |
 | `bouton-repli` | `src/components/BoutonRepli.tsx` |
 | `brouillon-tache` | `src/pages/StudioView.tsx` |
@@ -303,6 +306,7 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `studio` | `src/pages/StudioView.tsx` |
 | `trace-delegation` | `src/components/Conversation.tsx` |
 | `trace-refus` | `src/components/Conversation.tsx` |
+| `trou-competence` | `src/components/TrouCompetence.tsx` |
 | `vignette-equipe` | `src/pages/OrchestrationView.tsx` |
 | `vignette-scenario` | `src/pages/OrchestrationView.tsx` |
 | `volet-alertes` | `src/components/VoletAlertes.tsx` |

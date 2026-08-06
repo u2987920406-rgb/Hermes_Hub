@@ -76,7 +76,7 @@ import {
 } from './planification.js'
 import { ecrireReglage, lireReglage } from './laissez-passer.js'
 import { ecrireMode, enDiscussion, lireGreffon, lireMode } from './mode-conversation.js'
-import { annulerValidation, simuler, valider } from './simulation.js'
+import { annulerValidation, simuler } from './simulation.js'
 import { comparer, listerVersions, lireVersion, marquerFavori, oublierVersion } from './versions.js'
 import { prevoirRetour, rejouer } from './retour.js'
 import { executer, preparer } from './masse.js'
@@ -2142,19 +2142,11 @@ async function handleApi(req, res, url) {
       if (method === 'DELETE') return sendJson(res, 200, oublierCompteurs(pole))
     }
 
-    // La porte. Elle s'ouvre, elle ne pousse personne a travers : valider
-    // n'execute rien, c'est un autre geste qui lancera le travail.
-    if (rest[1] === 'validation') {
-      const body = method === 'POST' ? await readBody(req) : {}
-      const pole = String(body.pole || url.searchParams.get('pole') || '')
-      if (!pole) {
-        const err = new Error('Pole non precise')
-        err.status = 400
-        throw err
-      }
-      if (method === 'POST') return sendJson(res, 200, valider(pole, body.empreinte))
-      if (method === 'DELETE') return sendJson(res, 200, annulerValidation(pole))
-    }
+    // La porte n'a plus de route a elle, et c'est F11 : depuis que le plan est
+    // un panneau permanent, « valider la simulation » ne garde plus rien - le
+    // regarder EST l'ouvrir. `lancer()` DATE donc l'accord au lieu de le
+    // reclamer, et personne, ici, n'a plus a le demander separement. La trace
+    // reste ecrite : c'est elle que `graphePerturbe` efface plus haut.
 
     // Le banc d'essai. Aucun de ces gestes ne touche au tableau : on lit des
     // photos, on en marque une, on en oublie une. Revenir a l'une d'elles est

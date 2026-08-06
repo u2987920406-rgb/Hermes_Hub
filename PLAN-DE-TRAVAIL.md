@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **05:10**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **14:35**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -736,21 +736,126 @@ rendu de ce qu'on vient d'écrire.
   EST l'ouvrir ; le bouton qui certifie que je l'ai vu ne certifie plus rien »*.
   Le refus côté serveur tombe avec lui : `lancer()` **date l'accord** au lieu de
   le réclamer. La trace reste écrite, c'est elle que `graphePerturbe` efface ;
-- la **confrontation annoncé / rendu** en fin de run *(C8)*. **Reste à faire** —
-  la moitié est là : le Résultat attendu est lu et affiché, il manque de le
-  mettre en regard des livrables ;
+- la **confrontation annoncé / rendu** en fin de run *(C8)*. ✅ **Faite,
+  éprouvée à l'écran** — `BilanRendu.tsx`. **Un seul bloc, deux natures** : il
+  annonce « Résultat attendu » avant, il constate « Annoncé / rendu » après.
+  Trois conditions pour basculer, et chacune évite un mensonge : le scénario a
+  tourné *(sinon un plan jamais lancé afficherait un bilan tout rouge)*, rien
+  n'est en cours *(sinon on poserait « pas rendu » sur un fichier qui s'écrit)*,
+  et quelque chose a été annoncé *(sinon il n'y a pas de moitié gauche)*.
+  **Ce qui est rendu sans avoir été annoncé est montré, jamais apparié** — un
+  `veille-2026-08-04.pdf` là où `veille.pdf` était promis part dans « en plus ».
+  Rapprocher deux chaînes est une devinette, et le dépôt l'a déjà tranché sur
+  les noms d'agents ; ici elle ferait passer un livrable manquant pour un
+  livrable tenu, exactement ce que ce bilan existe pour empêcher ;
 - le plan dit **quand une tâche tombe sur l'agent par défaut**, et mène à la
-  création d'un spécialiste *(F17, C4)*. **Reste à faire.**
+  création d'un spécialiste *(F17, C4)*. ✅ **Fait, éprouvé à l'écran dans ses
+  deux branches** — `TrouCompetence.tsx`. Il porte son propre remède : la fiche
+  de création d'agent de l'équipe, avec le libellé « Créer un spécialiste »,
+  **pas une seconde fiche** — un agent se décrit de la même façon d'où qu'on
+  parte. Avant le lancement seulement, et c'est la symétrie de C8 : avant, le
+  trou — il reste quelque chose à faire ; après, le bilan — il reste à juger.
+  **⚠ Et la demande en tête de pôle est exclue** : elle revient à Hermès par
+  nature, la compter ferait crier au manque sur tous les scénarios, tout le
+  temps — et une alerte permanente ne s'alerte plus. C'est ce que le contrôle
+  négatif a vérifié : `t_c8f85f39`, dont seule la tête est sur Hermès, n'affiche
+  aucun bloc ;
+- les **deux orphelins du §6** rattachés à ce chantier, tranchés le 6 août :
+  pas de **mode réflexion** *(un mode ne se replie ni ne se ferme, et le besoin
+  est déjà servi par `data-etat` et par C8)*, et la **relecture par
+  l'orchestrateur** revient par C4/F17, qui en est exactement la forme. Voir
+  `ADM.md`.
 
 La **découpe des fichiers** de `ARCHITECTURE.md` se fait ici, en écrivant — pas
 après. Faite au fur et à mesure, à la demande du cliquet : `LigneContexte.tsx`,
 `VoletHistorique.tsx`, `AttentePlan.tsx`, `DecompteDecoupage.tsx`,
-`PanneauPlan.tsx`, `PanneauNoeud.tsx`. Le Studio a désormais quatre pièces
-nommées — barre du scénario, plan, graphe, nœud.
+`PanneauPlan.tsx`, `PanneauNoeud.tsx`, puis `BilanRendu.tsx` et
+`TrouCompetence.tsx`. Le Studio a désormais quatre pièces nommées — barre du
+scénario, plan, graphe, nœud — et le plan trois : ses lignes, le trou, le bilan.
+
+*Le cliquet a mordu au bon endroit :* `PanneauPlan` est passé de 248 à **409
+lignes** en recevant C8 et C4, ce qui est exactement le seuil d'`ARCHITECTURE.md`
+— « un fichier répond à une seule question ». Il en portait trois. Découpé, il
+retombe à 255.
+
+**Une dette réglée au passage :** `api.validerPole` et la route
+`POST /orchestration/validation` n'avaient plus d'appelant depuis F11. Les deux
+sont retirées. `valider()` reste, côté serveur — c'est `lancer()` qui l'appelle
+pour **dater** l'accord, et c'est cette trace que `graphePerturbe` efface. Le
+type `Validation` cesse d'être exporté : le détecteur l'a signalé dans la même
+passe, et il avait raison.
+
+#### Ce que la vérification à l'écran a corrigé — 6 août 2026
+
+**Le bilan se coupait en deux colonnes.** Premier essai fidèle à la maquette :
+le libellé à gauche, le fichier poussé à droite. Les noms de la maquette
+tenaient en douze caractères ; les vrais n'y tiennent pas. Dans les 256 px du
+panneau, **les deux se coupaient** — « l analyse chiffre… » face à
+« analyse_performan… ». Or c'est le **nom** qui identifie un livrable ; le
+libellé ne fait que le décrire. Le nom est passé sur sa propre ligne, en
+premier. *Ce qu'on ne peut pas lire en entier, on le met en dessous, pas à côté.*
+
+**Et `F19` a enfin été joué** — c'était la dernière dette écrite mais non vue.
+La carte dit, mot pour mot : *« Je regarde si ça mérite un plan… 0 s / 90 s —
+tu peux continuer à écrire pendant ce temps. »*
+⚠ **Il a fallu passer par le champ, et c'est une leçon de banc d'essai.** Poster
+sur `/api/chat/message` ne déclenche jamais la carte : `mettreDeCote()` est
+appelé **à l'envoi depuis l'interface**, et sans lui `usePlan` n'a rien à
+proposer. Un raccourci qui saute la surface saute aussi ce que la surface fait.
 
 **Porte :** le parcours entier de la maquette se joue à la souris, du chat au
-livrable. **Pas encore franchie** : il reste C8 et C4, et le parcours n'a pas
-été rejoué de bout en bout.
+livrable. ✅ **Franchie le 6 août 2026 à 14:20**, en une seule traite et sur le
+bac à sable : une demande écrite dans le champ, Hermès qui **redemande une
+précision** au lieu de planifier — puis la carte de plan, trois étapes, validée ;
+le scénario posé sans qu'aucun agent ne se réveille ; le Studio qui montre le
+plan, le **trou de compétence** sur l'étape 1 et le **résultat attendu** ;
+« Lancer » ; trois agents qui travaillent 21 minutes ; et le bilan :
+
+```
+ANNONCE / RENDU                                     1 SUR 1
+  ✓  note-velo-ville.pdf      Note de synthese finale en PDF
+  4 fichiers en plus : note-velo-ville.html, note-velo-ville.md,
+                       sources-velo-ville.md, test.txt
+```
+
+*Dire où la vérification s'arrête.* La branche **« pas rendu »** n'apparaît pas
+ci-dessus — ce run a tenu sa promesse. Elle a été éprouvée séparément, sur un
+plan **posé à la main** pour un scénario ancien : trois livrables annoncés dont
+un absent et un annoncé avec un chemin, ce qui a donné « 2 sur 3 » et validé le
+rapprochement par nom nu. Ce plan d'essai a été **retiré du bac à sable** une
+fois vu : une fausse donnée rangée à côté des vraies finit par être relue comme
+vraie.
+
+### ⚠ Le Hub entier meurt d'un tube rompu *(6 août, trouvé en franchissant la porte)*
+
+**Le serveur s'est arrêté net pendant le run**, emportant les trois agents avec
+lui :
+
+```
+Error: write EPIPE ... Emitted 'error' event on Socket instance
+```
+
+`PontAcp` écrit les trames JSON-RPC dans `child.stdin`. **Ce tube n'avait aucun
+écouteur `'error'`** — seul le *processus* en avait un, et il ne couvre que le
+spawn. Quand le processus d'Hermès part, la première écriture suivante émet
+`'error'` sur un flux que personne n'écoute, et Node tue le Hub.
+
+**Le piège est que le code avait l'air protégé.** `#envoyer` vérifiait
+`this.child` ; `#repondre` entourait l'appel d'un `try/catch`. Aucun des deux ne
+sert : **`write()` sur un tube rompu ne lève pas** — il rend `false` et signale
+la panne plus tard, en asynchrone. Un `catch` synchrone n'attrape rien
+d'asynchrone.
+
+*Corrigé*, en deux moitiés : un écouteur `'error'` sur `child.stdin`, et un test
+`writable` dans `#envoyer` qui transforme la panne en refus rattrapable — d'où
+une erreur propre au lieu d'un appel qui pend jusqu'au délai de dix minutes.
+Deux tests neufs (`server/acp.test.js`), et le fichier dit lui-même ce qu'il
+n'éprouve pas : l'écouteur est posé dans `demarrer()`, qui lance un vrai Hermès,
+et *« un test qui passe par le verbe finit par toucher le poste »*.
+
+**Ce n'est pas une régression de ce chantier** — c'est l'état d'aujourd'hui,
+découvert en jouant pour de vrai. Chez un client, n'importe quel agent qui tombe
+mal emportait le Hub.
 
 ---
 
@@ -807,18 +912,18 @@ ne s'évapore dans l'exécution.
 | F14 | Rien ne dit qu'un scénario a fini | 2 *(= C5)* |
 | F15 | Organigramme et graphe se ressemblent trop | 5 — réglé par la carte des compétences |
 | F16 | Le mot « Orchestration » | *reporté* |
-| F17 | Personne ne dit que l'équipe ne sait pas faire | 4 *(= C4)* |
+| F17 | Personne ne dit que l'équipe ne sait pas faire | 4 *(= C4)* — **✅ réglé le 6 août** : le plan nomme les étapes qui reviennent à l'agent par défaut, la tête de pôle exclue |
 | F18 | « le tableau » est un mot du dedans, dans le jalon d'attente | 3 — **✅ réglé le 6 août**, aux deux endroits où le mot sortait |
-| F19 | Rien ne dit qu'on peut écrire pendant qu'un plan se prépare | 3 — **✅ écrit le 6 août**, *non joué à l'écran* |
+| F19 | Rien ne dit qu'on peut écrire pendant qu'un plan se prépare | 3 — **✅ réglé, et joué à l'écran le 6 août** : « 0 s / 90 s — tu peux continuer à écrire pendant ce temps » |
 | F20 | Le message de dépassement décrit le chemin sans l'offrir | 3 — **✅ réglé le 6 août** : la phrase porte le bouton, et le bouton mène à un scénario d'une tâche |
 | C1 | La carte de plan porte son état dans le fil, et cite la demande | 3 — ✅ réglé |
 | C2 | L'autorisation apparaît là où l'on est | 2 — ✅ réglé |
 | C3 | Ligne du plan ↔ nœud du graphe | 4 — **✅ réglé le 6 août, dans les deux sens** |
-| C4 | Le plan mène à « créer un spécialiste » | 4 |
+| C4 | Le plan mène à « créer un spécialiste » | 4 — **✅ réglé le 6 août** : le constat porte le geste, et c'est la fiche de l'équipe, pas une seconde |
 | C5 | Un scénario fini laisse une trace persistante | 2 |
 | C6 | Planifier ici, gérer là — avec passerelle | 5 |
 | C7 | Le retour au salut se nomme et se voit | 3 — **✅ réglé le 6 août** |
-| C8 | Annoncé confronté au rendu | 4 — **à moitié** : l'annoncé est lu et affiché dans le panneau plan, le rendu reste à mettre en regard |
+| C8 | Annoncé confronté au rendu | 4 — **✅ réglé le 6 août** : un seul bloc, deux natures — il annonce avant, il confronte après, et ne rapproche jamais deux noms au plus ressemblant |
 
 ---
 
@@ -882,15 +987,25 @@ seule de ses onze décisions traverse intacte**. Deux ne sont pas contredites �
 elles ont perdu ce qui les portait, et ce sont donc des décisions à **reprendre**,
 pas des acquis :
 
-3. **Le mode réflexion du Studio** — « le graphe montre où ça a bloqué, le
+3. ~~**Le mode réflexion du Studio** — « le graphe montre où ça a bloqué, le
    journal où ça a dérapé, fermé par défaut ». Il n'apparaît **nulle part** dans
    la maquette, la grammaire ni les frictions. Et son argument reposait sur la
    paire graphe / journal : le journal n'ayant plus de surface, la moitié tombe.
-   *À trancher au chantier 4 : garde-t-on un mode diagnostic, et sur quoi ?*
-4. **La relecture par l'orchestrateur** — « il propose, il ne modifie jamais,
+   *À trancher au chantier 4 : garde-t-on un mode diagnostic, et sur quoi ?*~~
+   **✅ Tranché le 6 août : non, pas de mode.** Un mode est une seconde lecture
+   du même écran, et la grammaire n'en a pas la place — il ne se replie ni ne se
+   ferme, il se *retient*, et on oublie dans lequel on est. Le besoin est servi
+   par deux pièces qui existent : `data-etat` sur les nœuds pour *où ça a
+   bloqué*, et le bilan annoncé / rendu *(C8)* pour *ce qui manque*. Rien à
+   écrire. Voir `ADM.md`, « Les deux orphelins de `VISION-STUDIO.md` ».
+4. ~~**La relecture par l'orchestrateur** — « il propose, il ne modifie jamais,
    chaque remarque est un bouton à accepter ». Le principe reste juste ; son
    bouton a disparu avec la décision « un seul Lancer » *(F11)*.
-   *À trancher au chantier 4 : une relecture revient-elle, et par quelle porte ?*
+   *À trancher au chantier 4 : une relecture revient-elle, et par quelle porte ?*~~
+   **✅ Tranché le 6 août : elle revient, et sa porte est déjà au plan.**
+   **C4 / F17 en est exactement la forme** — une remarque, un bouton, aucune
+   modification d'office. Pas de pièce à part : deux endroits où l'orchestrateur
+   parle feraient deux voix pour une.
 
 Et un troisième point qui n'est pas ouvert mais **déplacé**, noté ici pour qu'on
 ne le recrée pas au mauvais endroit : le **journal de livraisons** n'a plus de

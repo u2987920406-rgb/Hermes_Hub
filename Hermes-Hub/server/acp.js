@@ -148,6 +148,30 @@ export class PontAcp extends EventEmitter {
       if (texte) console.log('[acp]', texte.split('\n').slice(-2).join(' | '))
     })
 
+    /**
+     * ⚠ LE TUBE D'ENTREE A SON PROPRE 'error', ET SANS LUI LE HUB MEURT.
+     *
+     * Trouve le 06/08/2026 en jouant un scenario jusqu'au bout : le serveur
+     * s'est arrete net sur `Error: write EPIPE ... Unhandled 'error' event`, et
+     * avec lui TOUS les agents, pas seulement celui dont le tube etait rompu.
+     *
+     * Le piege est que le code AVAIT l'air protege. `#envoyer` verifie
+     * `this.child`, et `#repondre` entoure l'appel d'un `try/catch`. Aucun des
+     * deux ne sert ici : `write()` sur un tube rompu **ne leve pas** - il rend
+     * `false` et signale la panne plus tard, en emettant 'error' sur le flux.
+     * Un `catch` synchrone ne peut rien attraper d'asynchrone, et un flux qui
+     * emet 'error' sans ecouteur tue le processus. C'est la regle de Node, pas
+     * un cas limite.
+     *
+     * `this.child.on('error')` ne couvre que le spawn - le processus, pas ses
+     * tubes. Il en faut un par tube qu'on ecrit.
+     *
+     * Ce n'est pas une panne a annoncer : le tube ne se rompt que parce que le
+     * processus est parti, et `exit` juste en dessous dit deja ce qu'il faut
+     * dire. En parler deux fois ferait deux bandeaux pour un seul evenement.
+     */
+    this.child.stdin.on('error', () => {})
+
     this.child.on('error', (err) => {
       this.emettre({ type: 'panne', message: "Hermes n'a pas pu demarrer : " + err.message })
       this.#arreter()
@@ -238,7 +262,11 @@ export class PontAcp extends EventEmitter {
   }
 
   #envoyer(objet) {
-    if (!this.child) throw new Error('Session Hermes fermee')
+    // `writable` en plus de `child` : entre la mort du processus et son `exit`,
+    // `this.child` est encore pose alors que le tube est deja ferme. Sans ce
+    // second test, on ecrit dans le vide et on compte sur le garde-fou du tube.
+    // Mieux vaut une erreur qui se rattrape qu'un evenement qu'on avale.
+    if (!this.child || !this.child.stdin.writable) throw new Error('Session Hermes fermee')
     this.child.stdin.write(JSON.stringify(objet) + '\n')
   }
 

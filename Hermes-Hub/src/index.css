@@ -138,6 +138,17 @@
     background: color-mix(in srgb, var(--sens) 7%, transparent);
   }
 
+  /* Une ligne du bilan « Annonce / rendu » : meme vocabulaire, format tableau.
+     La teinte est a 9 % et non a 16 % comme la puce - il y en a une PAR LIGNE,
+     et un bilan de six lignes a 16 % serait un aplat, donc plus rien qui
+     ressorte. Declaree avant les `sens-*`, comme `.puce` : a specificite egale
+     c'est l'ordre du fichier qui tranche, et c'est le sens qui doit gagner. */
+  .ligne-bilan {
+    --sens: var(--neutre);
+    @apply flex items-start gap-1.5 px-2 py-1.5 text-[11px];
+    background: color-mix(in srgb, var(--sens) 9%, transparent);
+  }
+
   .sens-succes {
     --sens: var(--succes);
   }

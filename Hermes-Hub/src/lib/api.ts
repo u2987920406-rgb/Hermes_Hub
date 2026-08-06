@@ -40,7 +40,6 @@ import type {
   Simulation,
   Skin,
   Stats,
-  Validation,
   TrashItem,
   VaultFolder,
   VaultNote,
@@ -272,12 +271,6 @@ export const api = {
       method: 'POST',
       body: body({ id }),
     }),
-  validerPole: (pole: string, empreinte?: string) =>
-    request<Validation>('/orchestration/validation', {
-      method: 'POST',
-      body: body({ pole, empreinte }),
-    }),
-
   // Ce que le pole a coute la derniere fois. Appel separe de `simulation` :
   // l'une annonce, l'autre constate, et on ne les affiche pas au meme endroit.
   compteurs: (pole: string) =>

@@ -324,7 +324,11 @@ export interface VagueSimulee {
   reveilCumule: number
 }
 
-export interface Validation {
+/** La trace de l'accord, dans `Simulation`. N'est plus exportee depuis F11
+    (6 aout 2026) : plus personne ne valide separement, donc plus personne ne
+    nomme ce type au-dehors. Ce que `lancer()` date reste lisible par la
+    simulation, et le detecteur d'exports morts a raison de refuser l'autre. */
+interface Validation {
   valideLe: number
   empreinte: string | null
 }

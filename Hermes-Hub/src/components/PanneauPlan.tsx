@@ -22,17 +22,21 @@
  * deux affichages cote a cote au lieu d'un instrument (F10) : on regarde l'un,
  * puis l'autre, et on refait le rapprochement de tete a chaque fois.
  *
- * LE RESULTAT ATTENDU N'EST PAS DECORATIF. C'est la seule part du plan qui
- * permette de juger apres coup - sans elle, un scenario en echec partiel
- * ressemble exactement a un scenario reussi. Il vient du plan garde sur le
- * disque (`server/plan.js`), la seule source qui le porte : ni le tableau
- * d'Hermes ni le graphe ne connaissent les livrables annonces.
+ * DEUX BLOCS EN BAS, ET LEUR PLACE EST CE QUI COMPTE ICI. Le plan ne se contente
+ * pas de lister : il porte ce qui manque AVANT (`TrouCompetence`, C4/F17) et ce
+ * qui a ete tenu APRES (`BilanRendu`, C8). Les deux vivent dans ce panneau
+ * plutot qu'ailleurs parce que c'est le seul endroit qui connaisse l'ANNONCE -
+ * ni le tableau d'Hermes ni le graphe ne portent les livrables promis. Ils ne
+ * paraissent jamais ensemble : l'un ne vit qu'avant le lancement, l'autre
+ * qu'apres. Leur raison detaillee est dans leur propre fichier.
  */
 import { Check, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { BilanRendu } from './BilanRendu'
 import { BoutonRepli } from './BoutonRepli'
 import { ChampRecherche, aplatir } from './ChampRecherche'
+import { TrouCompetence } from './TrouCompetence'
 import type { Agent, EtatTache, Tache } from '../types'
 
 /** Ce qu'une ligne raconte : prevu, en cours, passe. */
@@ -54,6 +58,18 @@ interface Props {
   /** Les livrables annonces par le plan. Vide quand le scenario n'en a pas -
       un scenario ne du decomposeur n'a jamais eu de plan ecrit. */
   resultat: { fichier: string; quoi: string }[]
+  /** Ce que le scenario a REELLEMENT ecrit dans son dossier (C8). */
+  rendus: { nom: string; octets: number }[]
+  /** Le scenario a-t-il tourne au moins une fois ? Le serveur le sait par le
+      dossier du pole, qui n'existe pas avant. Sans cette question, un plan
+      valide mais jamais lance afficherait un bilan tout rouge - il annoncerait
+      un echec la ou il n'y a qu'une attente. */
+  aTourne: boolean
+  /** L'identifiant du pole. Sa tache de tete EST la demande, et elle revient a
+      Hermes par nature : elle ne compte pas comme un trou de competence (C4). */
+  demande: string | null
+  /** Un specialiste vient d'etre cree : le Studio relit son annuaire. */
+  onAgentCree: () => void
   /** Le noeud choisi dans le graphe. Fait defiler la ligne correspondante (C3). */
   choisi: string | null
   onChoisir: (id: string) => void
@@ -68,6 +84,10 @@ export function PanneauPlan({
   agents,
   rangs,
   resultat,
+  rendus,
+  aTourne,
+  demande,
+  onAgentCree,
   choisi,
   onChoisir,
   onSurvoler,
@@ -214,33 +234,20 @@ export function PanneauPlan({
           })
         )}
 
-        {/*
-          LE RESULTAT ATTENDU, en bas et separe : ce n'est pas une etape de
-          plus, c'est ce a quoi on comparera. Absent quand le plan n'annonce
-          rien - on n'invente pas de livrable a sa place, sinon la
-          confrontation de fin de run serait FAUSSE plutot qu'absente, et
-          c'est le pire des deux : on croirait pouvoir juger.
-        */}
-        {resultat.length > 0 && (
-          <div className="mt-3 border-t border-slate-200 px-1 pt-3 dark:border-navy-800">
-            <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[0.09em] muted">
-              Resultat attendu
-            </span>
-            <div className="flex flex-col gap-1">
-              {resultat.map((r, i) => (
-                <span key={i} className="text-[11px] leading-snug">
-                  <code
-                    className="rounded px-1.5 py-px text-[10.5px]"
-                    style={{ background: 'var(--surlignage, rgba(128,128,128,.14))' }}
-                  >
-                    {r.fichier}
-                  </code>
-                  {r.quoi && <span className="muted"> — {r.quoi}</span>}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Le trou d'abord, le bilan ensuite - et ils ne paraissent jamais
+            ensemble : l'un ne vit qu'avant le lancement, l'autre qu'apres. */}
+        <TrouCompetence
+          taches={taches}
+          demande={demande}
+          aTourne={aTourne}
+          onAgentCree={onAgentCree}
+        />
+        <BilanRendu
+          resultat={resultat}
+          rendus={rendus}
+          aTourne={aTourne}
+          enCours={taches.some((t) => t.etat === 'running')}
+        />
       </div>
     </aside>
   )

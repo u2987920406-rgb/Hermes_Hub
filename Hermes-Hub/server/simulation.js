@@ -489,8 +489,12 @@ export function lireValidation(poleId) {
 }
 
 /**
- * Valide un pole - et rien de plus. Aucune execution ne part d'ici : la
- * validation ouvre la porte, elle ne pousse personne a travers.
+ * Date l'accord - et rien de plus. Aucune execution ne part d'ici.
+ *
+ * Depuis F11 (6 aout 2026) son seul appelant est `lancer()`, au moment du clic :
+ * le plan etant un panneau permanent, il n'y a plus de geste separe qui certifie
+ * qu'on l'a regarde. Ce qui reste est la TRACE, et elle sert encore - c'est elle
+ * que `graphePerturbe` efface quand le graphe change sous l'accord.
  */
 export function valider(poleId, empreinte) {
   const tout = toutesValidations()

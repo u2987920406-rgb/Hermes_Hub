@@ -26,7 +26,14 @@ const EXEMPLE =
   'Comptabilite. Lit les journaux et les releves, en tire les ecarts chiffres et les ' +
   'justifie. Ne redige pas le rapport final et ne met pas en page.'
 
-export function NouvelAgent({ onFait }: { onFait: () => void }) {
+/**
+ * `libelle` existe pour C4 / F17 : dans le panneau plan, ce meme formulaire
+ * repond a « personne ne sait faire cette etape », et le bouton doit dire ca -
+ * « Creer un specialiste » - plutot que « Nouvel agent ». Le formulaire, lui,
+ * ne bouge pas : deux fiches de creation pour un seul geste, c'est deux endroits
+ * a corriger le jour ou la description change de regle.
+ */
+export function NouvelAgent({ onFait, libelle }: { onFait: () => void; libelle?: string }) {
   const [ouvert, setOuvert] = useState(false)
   const [nom, setNom] = useState('')
   const [description, setDescription] = useState('')
@@ -57,7 +64,7 @@ export function NouvelAgent({ onFait }: { onFait: () => void }) {
         title="Ajouter un agent a l equipe"
       >
         <UserPlus className="h-3.5 w-3.5" />
-        Nouvel agent
+        {libelle || 'Nouvel agent'}
       </button>
     )
   }

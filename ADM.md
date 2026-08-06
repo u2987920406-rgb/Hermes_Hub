@@ -282,6 +282,127 @@ lancer dans le Studio.
 friction dont l'argument repose sur une pièce non encore posée ne se règle pas
 avant elle.
 
+### Un `try/catch` ne rattrape pas une panne annoncée plus tard *(06/08/2026)*
+Le Hub est mort en plein run — `write EPIPE`, *unhandled 'error' event* — et
+avec lui les trois agents qui travaillaient. La cause : `PontAcp` écrit ses
+trames dans `child.stdin`, et **ce tube n'avait pas d'écouteur `'error'`**.
+Celui posé sur le *processus* ne couvre que le spawn.
+
+**Ce qui rend le cas instructif, c'est que le code avait l'air protégé.**
+`#envoyer` vérifiait que l'enfant existait, `#repondre` entourait l'appel d'un
+`try/catch`. Deux gardes visibles, zéro garde réelle : **`write()` sur un tube
+rompu ne lève pas.** Il rend `false` et signale la panne au tour suivant de la
+boucle, en émettant `'error'` sur le flux. Un `catch` synchrone ne peut rien
+attraper d'asynchrone, et un flux qui émet `'error'` sans écouteur tue le
+processus — c'est la règle de Node, pas un cas limite.
+
+*La règle à retenir, et elle dépasse ce fichier :* **un garde-fou se juge sur le
+mode de défaillance, pas sur sa forme.** Devant un `try/catch`, la question
+n'est pas « y a-t-il une garde » mais « la panne arrive-t-elle par où la garde
+regarde ». Ici elle arrivait par un autre chemin, et le `catch` servait surtout
+à rassurer celui qui relisait.
+
+*Et une conséquence de portée :* un tube rompu appartient à **un** agent ; le
+processus qui meurt les sert **tous**. Toute panne non rattrapée dans le pont
+ACP a ce facteur d'amplification, et c'est ce qui la rend grave chez un client.
+
+### Un raccourci qui saute la surface saute ce que la surface fait *(06/08/2026)*
+F19 — la phrase « tu peux continuer à écrire pendant ce temps » — était écrite
+depuis la veille et n'avait jamais été vue. Pour la faire paraître, la demande a
+été postée directement sur `/api/chat/message`, ce qui est plus rapide que de
+taper dans le champ. **La carte n'est jamais venue, et rien n'a échoué :** le
+verdict « est-ce un chantier ? » part de `mettreDeCote()`, appelé **à l'envoi
+depuis l'interface**. Sans lui, `usePlan` n'a rien en attente, donc rien à
+proposer. Hermès répondait, déléguait, le fil se remplissait — tout marchait
+sauf ce qu'on regardait.
+
+**Un banc d'essai qui court-circuite l'interface n'éprouve pas le produit.** La
+règle vaut au-delà d'ici : dès qu'un raccourci contourne une surface, il faut se
+demander ce que cette surface faisait en plus de transmettre. Souvent, c'est
+exactement la chose qu'on cherchait à voir.
+
+### Un seul bloc, deux natures : il annonce avant, il constate après *(06/08/2026)*
+Le « Résultat attendu » du panneau plan devient « Annoncé / rendu » quand le
+scénario a fini. Ce n'est pas deux surfaces qui se remplacent, c'est **la même
+part du plan à deux moments** — et c'est ce qui fait qu'on la retrouve où on
+l'avait laissée. Trois conditions pour basculer, et chacune évite un mensonge
+précis : le scénario a tourné *(sinon un plan validé mais jamais lancé
+afficherait un bilan tout rouge, c'est-à-dire un échec là où il n'y a qu'une
+attente)*, rien n'est en cours *(sinon on poserait « pas rendu » sur un fichier
+qui s'écrit à la seconde même)*, et quelque chose a été **annoncé** *(sinon il
+n'y a pas de moitié gauche, et on n'invente pas de livrable pour avoir l'air
+complet — une confrontation fausse est pire qu'une confrontation absente, parce
+qu'on croirait pouvoir juger)*.
+
+### On montre les deux noms, on ne les apparie jamais *(06/08/2026)*
+Un fichier rendu que le plan n'annonçait pas part dans « en plus ». Il n'est
+**jamais** rapproché d'un livrable manquant, même quand la ressemblance saute
+aux yeux — `veille-2026-08-04.pdf` face à `veille.pdf` promis. Le dépôt avait
+déjà tranché ce cas sur les noms d'agents : *« rapprocher deux chaînes est une
+devinette, et une devinette qui se trompe donne le travail à quelqu'un d'autre
+sans que ça se voie. »* Ici elle ferait pire — elle ferait passer un livrable
+manquant pour un livrable tenu, **exactement ce que ce bilan existe pour
+empêcher**. Les deux lignes sous les yeux, l'œil tranche en une seconde ; la
+machine, elle, se tairait sur son doute.
+
+*La seule normalisation admise est celle qui ne suppose rien :* le nom nu, en
+minuscules. Le plan annonce parfois un chemin, le disque rend un nom, et
+Windows ne distingue pas la casse — ce sont des faits, pas des paris.
+
+### Ce qui revient à Hermès par nature n'est pas un manque *(06/08/2026)*
+C4/F17 signale les étapes qui tombent sur l'agent par défaut. **La demande en
+tête de pôle en est toujours une**, et elle ne compte pas : c'est Hermès qui a
+découpé, il figure en tête de tout scénario. La compter ferait crier au manque
+sur **tous** les scénarios, tout le temps — et une alerte permanente ne s'alerte
+plus, c'est la même règle que « si tout est plein, plus rien ne ressort ».
+
+*Vérifié par un contrôle négatif, et c'est ce qui le prouve :* un scénario dont
+seule la tête revient à Hermès n'affiche aucun bloc. Sans ce contrôle, on aurait
+tenu pour juste un bloc qui s'affiche toujours.
+
+### Le libellé change, le formulaire jamais *(06/08/2026)*
+« Créer un spécialiste » ouvre **la fiche de création d'agent de l'équipe**, pas
+une seconde faite pour l'occasion. Seul le libellé du bouton dit d'où l'on
+vient. Deux fiches pour un seul geste, ce serait deux endroits à corriger le
+jour où la règle de description change — et c'est cette règle qui décide si un
+agent reçoit du travail ou reste oisif.
+
+*Prix assumé, vu à l'écran :* dans les 256 px du panneau plan, la fiche est
+serrée — l'exemple d'identifiant se coupe. Elle reste utilisable ; l'élargir
+demanderait soit un panneau plus large, soit une fenêtre, et les deux sont des
+décisions de dessin, pas un réglage.
+
+### Les deux orphelins de `VISION-STUDIO.md` sont refusés comme pièces, gardés comme besoins *(06/08/2026)*
+Sur onze décisions de ce document, une seule avait traversé intacte la
+confrontation du 4 août. Deux n'étaient pas contredites — elles avaient perdu ce
+qui les portait, et le §6 du plan les gardait *« à trancher au chantier 4 »*.
+Tranchées ici, et **dans le même sens : le besoin est réel, la pièce séparée ne
+l'est pas.**
+
+**Le mode réflexion du Studio** — « le graphe montre où ça a bloqué, le journal
+où ça a dérapé ». Son argument reposait sur une **paire**, et il en manque une
+moitié : le journal de livraisons n'a plus de colonne depuis la refonte. Reste
+qu'un mode est **une seconde lecture du même écran**, et la grammaire n'en a pas
+la place : une chose permanente se replie, une chose convoquée se ferme — un
+mode ne fait ni l'un ni l'autre, il se *retient*, et on oublie dans lequel on
+est. Le besoin, lui, est déjà servi à deux endroits qui existent : le graphe
+porte `data-etat` par nœud, donc *où ça a bloqué* se voit sans rien allumer ; et
+le bilan annoncé / rendu *(C8)* dit ce qui manque à la fin. **Rien à écrire.**
+
+**La relecture par l'orchestrateur** — « il propose, il ne modifie jamais, chaque
+remarque est un bouton à accepter ». Le principe reste juste ; son bouton est
+parti avec F11. Il n'a pas besoin d'en retrouver un : **C4 / F17 en est
+exactement la forme** — le plan remarque qu'une étape tombe sur l'agent par
+défaut, et propose de créer un spécialiste. Une remarque, un bouton, aucune
+modification d'office. En faire une pièce à part donnerait deux endroits où
+l'orchestrateur parle, pour une seule voix.
+
+*Ce qui vaut au-delà d'ici :* **une décision orpheline se juge sur son besoin,
+pas sur sa forme.** Les deux formes proposées étaient mortes ; les deux besoins
+étaient vivants, et déjà logés ailleurs. C'est le cas ordinaire — et c'est
+pourquoi on remonte les orphelins au lieu de les laisser dans le document
+périmé, où ils auraient été relus un jour comme des acquis.
+
 ### On bascule à l'envoi, pas au retour du serveur *(04/08/2026)*
 Le message n'entre dans le fil que lorsque le serveur l'inscrit et le renvoie.
 En s'en remettant au fil, le salut serait resté affiché pendant l'aller-retour :

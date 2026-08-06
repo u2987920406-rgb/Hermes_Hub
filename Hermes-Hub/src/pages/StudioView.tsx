@@ -86,6 +86,7 @@ import type {
   Chantier,
   Compteurs,
   EtatTache,
+  Livrable,
   Pole,
   Simulation,
   Tache,
@@ -258,10 +259,21 @@ function Studio({ poleId, onQuitter, plein, onPlein, onMenu }: Props) {
       quand il n'y en a pas - un scenario ne du decomposeur n'a jamais eu de
       plan ecrit, et on n'en invente pas. */
   const [resultat, setResultat] = useState<{ fichier: string; quoi: string }[]>([])
+  /**
+   * CE QUI A ETE RENDU - lu ICI, et une seule fois pour deux surfaces.
+   *
+   * Le bilan C8 du panneau plan et l'encart « fichiers produits » du canevas
+   * racontent la meme chose. Les laisser lire chacun de son cote, c'est
+   * exactement la panne du 5 aout : deux sources pour une verite, elles
+   * divergent, et celle qu'on regarde n'est pas celle qui a raison. Une seule
+   * lecture, dans `charger()`, donc rafraichie par le meme evenement que le
+   * reste du scenario.
+   */
+  const [livrable, setLivrable] = useState<Livrable | null>(null)
 
   const charger = useCallback(async () => {
     if (!poleId) return
-    const [orch, d, ch, cp] = await Promise.all([
+    const [orch, d, ch, cp, lv] = await Promise.all([
       api.orchestration(),
       fetch(`/api/orchestration/disposition?pole=${encodeURIComponent(poleId)}`)
         .then((r) => r.json())
@@ -271,9 +283,14 @@ function Studio({ poleId, onQuitter, plein, onPlein, onMenu }: Props) {
       // de vides, et les noeuds n'affichent alors rien - c'est voulu : il n'y a
       // rien a dire tant que rien n'a eu lieu.
       api.compteurs(poleId).catch(() => null),
+      // Le dossier du pole. `dossier` a null veut dire « il n'a jamais tourne »
+      // - et une demande isolee, qui n'est pas un pole du tableau, rend 404 :
+      // dans les deux cas il n'y a rien a confronter, et c'est la meme reponse.
+      api.livrablePole(poleId).catch(() => null),
     ])
     dispo.current = d.noeuds || {}
     setCompteurs(cp)
+    setLivrable(lv)
     setAgents(orch.agents)
     const p = orch.poles.find((x) => x.id === poleId) || seule(orch.isolees, poleId)
     setPole(p)
@@ -918,6 +935,10 @@ function Studio({ poleId, onQuitter, plein, onPlein, onMenu }: Props) {
             agents={agents}
             rangs={rangs}
             resultat={resultat}
+            rendus={livrable?.fichiers || []}
+            aTourne={!!livrable?.dossier}
+            demande={pole.id}
+            onAgentCree={() => void charger()}
             choisi={choisi}
             onChoisir={allerAuNoeud}
             onSurvoler={setSurvole}
@@ -963,7 +984,7 @@ function Studio({ poleId, onQuitter, plein, onPlein, onMenu }: Props) {
             plutot qu'une boite vide qui ferait croire a une perte. */}
         {!tacheChoisie && poleId && (
           <div className="absolute right-3 top-3 max-h-[calc(100%-1.5rem)] w-80 overflow-y-auto">
-            <LivrableScenario poleId={poleId} actif={!!chantier?.actif} />
+            <LivrableScenario poleId={poleId} livrable={livrable} />
           </div>
         )}
 

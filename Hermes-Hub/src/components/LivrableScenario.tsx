@@ -20,9 +20,15 @@
  *   - des fichiers : on les nomme, avec leur poids.
  *
  * Confondre les deux premiers ferait passer un pole sterile pour un pole neuf.
+ *
+ * ⚠ CE BLOC NE LIT PLUS LE DOSSIER LUI-MEME - c'est le Studio qui le lit, et il
+ * le passe. Depuis C8 (6 aout), le bilan « Annonce / rendu » du panneau plan
+ * raconte la meme chose que cet encart. Deux lectures independantes pour une
+ * seule verite, c'est la panne du 5 aout mot pour mot : elles divergent, et
+ * celle qu'on regarde n'est pas celle qui a raison.
  */
 import { FolderOpen, FileText } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Attente } from './Attente'
 import { api } from '../lib/api'
 import { useHubStore } from '../store/useHubStore'
@@ -34,24 +40,15 @@ function poids(octets: number) {
   return `${octets} o`
 }
 
-export function LivrableScenario({ poleId, actif }: { poleId: string; actif: boolean }) {
-  const [livrable, setLivrable] = useState<Livrable | null>(null)
+export function LivrableScenario({
+  poleId,
+  livrable,
+}: {
+  poleId: string
+  livrable: Livrable | null
+}) {
   const [occupe, setOccupe] = useState(false)
   const notifier = useHubStore((s) => s.notify)
-
-  const charger = useCallback(async () => {
-    try {
-      setLivrable(await api.livrablePole(poleId))
-    } catch {
-      setLivrable(null)
-    }
-  }, [poleId])
-
-  // Relu quand le pole s'arrete : c'est a la derniere tache que le dossier
-  // prend sa forme definitive, et c'est ce moment-la qu'on regarde.
-  useEffect(() => {
-    void charger()
-  }, [charger, actif])
 
   if (!livrable?.dossier) return null
 
