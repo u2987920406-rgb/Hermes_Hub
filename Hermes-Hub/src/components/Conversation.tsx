@@ -626,7 +626,6 @@ export function Conversation({
           <LigneContexte
             filOuvert={filOuvert}
             vide={tours.length === 0}
-            surLAccueil={Boolean(accueil)}
             onDirect={revenirAuDirect}
             onNeuve={() => void nouvelleConversation()}
           />

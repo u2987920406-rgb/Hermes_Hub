@@ -282,6 +282,23 @@ lancer dans le Studio.
 friction dont l'argument repose sur une pièce non encore posée ne se règle pas
 avant elle.
 
+### Un geste retiré se suit jusqu'à ce qu'il emporte *(06/08/2026)*
+Retirer la boîte « Décris ce que tu veux » paraissait être une suppression de
+trois lignes. Elle emporte `preparer()`, donc `api.demande`, donc la route et
+`decomposer()` — **et F20.** Le bouton « Ouvrir dans le Studio » d'un découpage
+raté n'existait que sur ce chemin, parce que lui seul laissait une tâche
+orpheline à ouvrir. Le chat échoue sans rien créer : sa phrase nomme le Studio
+sans pouvoir l'offrir, et la friction est rouverte.
+
+*C'est le miroir exact de la règle du matin* — « un geste ajouté se suit jusqu'à
+son arrivée ». **Un geste retiré se suit jusqu'à ce qu'il emporte**, et ce qu'il
+emporte n'est presque jamais ce qu'on avait en tête : on pense au bouton, on
+oublie la friction qu'il réglait.
+
+*Le réflexe qui le rend visible :* avant de supprimer, chercher ce qui n'était
+**vrai que grâce à** ce qu'on supprime. Ni le compilateur ni les tests ne le
+disent — F20 n'a pas de test, c'est une phrase et un bouton.
+
 ### Ce qu'on n'écrit pas ne peut écraser personne *(06/08/2026)*
 Le cerveau de chaque agent se choisit désormais à la souris, et **le Hub n'écrit
 rien dans les profils d'Hermès.** Le choix vit dans `.hub/cerveau.json`, ACP

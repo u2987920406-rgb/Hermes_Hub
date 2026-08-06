@@ -15,8 +15,8 @@
  * lus dans son tableau kanban.
  */
 import {
+  AlarmClock,
   AlertTriangle,
-  MessageSquare,
   Network,
   Play,
   RefreshCw,
@@ -27,7 +27,7 @@ import {
 import { useCallback, useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Attente } from '../components/Attente'
-import { Conversation } from '../components/Conversation'
+import { Automatisations } from '../components/Automatisations'
 import { EditeurEquipe } from '../components/EditeurEquipe'
 import { FenetreSimulation } from '../components/FenetreSimulation'
 import { Modal } from '../components/Modal'
@@ -95,7 +95,7 @@ const ETAT_DU_FLUX: Record<string, EtatNoeud> = {
   text: 'encours',
 }
 
-type Volet = 'conversation' | 'agents' | 'poles'
+type Volet = 'agents' | 'poles' | 'automatisations'
 
 /**
  * ⚠ L'HISTORIQUE N'EST PLUS ICI - il a demenage a l'accueil le 06/08/2026.
@@ -127,10 +127,31 @@ type Volet = 'conversation' | 'agents' | 'poles'
  * poses la avant elles : c'est la meme question - « qui ai-je ? ». Une equipe
  * n'est qu'une facon de grouper des agents, et elle ne FAIT rien.
  */
+/**
+ * TROIS VOLETS, ET LA CONVERSATION N'EN EST PLUS UN *(6 aout 2026)*.
+ *
+ * Elle vivait ici en double : on ecrit a l'accueil depuis la refonte du 4 aout,
+ * et un second champ de saisie dans Orchestration faisait deux endroits pour un
+ * geste. Meme regle qui a fait partir la bande d'alerte de l'accueil au
+ * chantier 2, et l'historique d'Orchestration au chantier 3 - **on ecrit la ou
+ * l'on ecrit, on gere ici.**
+ *
+ * Les automatisations montent a leur place, celle que le plan leur donne au
+ * chantier 5.
+ *
+ * ⚠ ET AUJOURD'HUI C'EST UN DOUBLON ASSUME, PAS UNE DISTINCTION. Vu a l'ecran
+ * le 6 aout : c'est le MEME composant qu'a l'accueil, titre compris -
+ * « Automatisations en cours ». C6 veut « planifier ici, gerer la », donc deux
+ * surfaces qui repondent a deux questions ; il en manque la moitie, parce que
+ * « planifier depuis le Studio » n'existe pas encore et que l'accueil devrait
+ * alors ne garder que ce qui ECHOUE. Tant que ce n'est pas tranche, la regle du
+ * depot est enfreinte ici en connaissance de cause - et ecrite, plutot que
+ * decouverte dans trois mois.
+ */
 const VOLETS: { id: Volet; label: string; icon: typeof Users }[] = [
-  { id: 'conversation', label: 'Conversation', icon: MessageSquare },
   { id: 'agents', label: 'Agents et equipes', icon: Users },
   { id: 'poles', label: 'Scenarios', icon: Network },
+  { id: 'automatisations', label: 'Automatisations', icon: AlarmClock },
 ]
 
 /** Ce qui est ouvert par-dessus : l'organigramme de l'equipe, ou celui d'un pole. */
@@ -142,9 +163,16 @@ type Ouvert =
 export function OrchestrationView({ onMenu, onStudio }: Props) {
   const [data, setData] = useState<Orchestration | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
-  const [volet, setVolet] = useState<Volet>('conversation')
-  /** Remonte de la conversation : les agents dont le processus tourne. */
-  const [eveilles, setEveilles] = useState<string[]>([])
+  // On ouvre Orchestration sur l'equipe : c'est la reponse a « qui ai-je ? »,
+  // et c'est ce qu'on vient chercher ici depuis que la conversation vit a
+  // l'accueil.
+  const [volet, setVolet] = useState<Volet>('agents')
+  /* ⚠ L'ETAT `eveilles` EST PARTI AVEC LA CONVERSATION. Il n'etait rempli que
+     par elle - `onEveilChange` -, et il servait a marquer un agent eveille en
+     plus de ce que le serveur en disait. Le serveur le sait deja seul
+     (`equipage.eveilles()`), donc c'etait une seconde source pour une meme
+     verite : celle qui ne se remplissait plus aurait fait croire tout le monde
+     endormi. */
   const [ouvert, setOuvert] = useState<Ouvert | null>(null)
 
   /**
@@ -161,11 +189,6 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
      simulation a disparu le 06/08/2026 - le plan est desormais un panneau
      permanent, donc « valider la simulation » ne gardait plus aucune porte. Le
      serveur date l'accord au moment du clic sur Lancer. */
-  /** La demande qui n'a pas ete decoupee, et qui attend donc dans le Studio.
-      Elle existe pour porter le bouton de F20 : sans son identifiant, le
-      message ne pourrait que decrire le chemin. */
-  const [simuEchouee, setSimuEchouee] = useState<string | null>(null)
-  const [demande, setDemande] = useState('')
 
   /** Les poles en train de tourner. L'etat vit cote serveur - ici on le relit
       quand quelque chose bouge, plutot que d'en tenir une seconde copie qui
@@ -338,48 +361,21 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
     }
   }, [])
 
-  /**
-   * Le parcours complet : la phrase devient un graphe, le graphe est rejoue.
-   * L'appel modele est ici et nulle part ailleurs - ce qui suit est local.
+  /*
+   * ⚠ `preparer()` EST PARTI AVEC LA BOITE, le 6 aout 2026 - et il emporte le
+   * seul appel a `/api/demande`, donc au decomposeur d'Hermes. Le chat fait le
+   * meme travail autrement, et mieux : il LIT un plan, on le valide, et le
+   * scenario pose est exactement celui qu'on a lu. L'ancien chemin appelait
+   * `kanban decompose` puis faisait valider un graphe que personne n'avait vu.
+   *
+   * ⚠ ET F20 PART AVEC LUI. Le bouton « Ouvrir dans le Studio » d'un decoupage
+   * rate n'existait que sur ce chemin : `plan.pole` retenait la tache orpheline
+   * laissee sur le tableau, et il y avait donc quelque chose a ouvrir. Le chat
+   * echoue autrement - Hermes repond sans etape, RIEN n'est cree, et il n'y a
+   * rien a ouvrir. Sa phrase dit pourtant « ouvre le Studio pour la construire a
+   * la main », c'est-a-dire qu'elle decrit un chemin sans l'offrir : F20 mot
+   * pour mot. La friction est ROUVERTE, pas reglee - voir le plan.
    */
-  const preparer = useCallback(async () => {
-    const texte = demande.trim()
-    if (!texte) return
-    setSimuOuverte(true)
-    setSimu(null)
-    setSimuErreur(null)
-    setSimuEchouee(null)
-    setSimuOccupee(true)
-    try {
-      const plan = await api.demande(texte)
-
-      // Un decoupage qui echoue laisse une tache seule sur le tableau - et une
-      // tache sans enfant n'est pas un pole. Simuler la rendait donc « Pole
-      // introuvable », ce qui remplacait la vraie raison par une phrase qui
-      // n'apprend rien. On s'arrete ici : la demande existe, elle attend dans le
-      // Studio, et c'est ce qu'on dit.
-      //
-      // F20 : ON GARDE AUSSI OU ELLE ATTEND. La raison seule decrivait le chemin
-      // - « ouvre-la dans le Studio » - sans l'offrir, et `plan.pole` etait
-      // jete a la ligne suivante. Le retenir suffit a poser un bouton.
-      if (!plan.decoupe) {
-        setSimuErreur(plan.raison)
-        setSimuEchouee(plan.pole)
-        setDemande('')
-        void charger()
-        return
-      }
-
-      setSimu(await api.simulation(plan.pole))
-      setDemande('')
-      void charger()
-    } catch (e) {
-      setSimuErreur(e instanceof Error ? e.message : String(e))
-    } finally {
-      setSimuOccupee(false)
-    }
-  }, [demande, charger])
-
 
   /**
    * Lancer. Le serveur rend la main tout de suite - ce qui suit arrive par le
@@ -410,7 +406,8 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
   // le sait en direct), ou une tache du tableau lui est confiee. Les deux
   // comptent, et la lecture du tableau ne rafraichit qu'a la demande.
   const bruts = data?.agents || []
-  const agents = bruts.map((a) => ({ ...a, eveille: a.eveille || eveilles.includes(a.id) }))
+  // `a.eveille` vient du serveur, et il suffit : c'est lui qui tient les ponts.
+  const agents = bruts
   const poles = data?.poles || []
   const equipes = data?.equipes || []
   const prets = agents.filter((a) => a.pretAServir).length
@@ -515,11 +512,6 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           {/* La conversation gere son propre defilement : elle garde le champ
               de saisie colle en bas pendant que le fil monte. */}
-          {volet === 'conversation' && (
-            <Conversation agents={agents} equipes={equipes} onEveilChange={setEveilles} />
-          )}
-
-          {volet !== 'conversation' && (
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="mx-auto max-w-4xl space-y-4">
               {erreur && (
@@ -641,12 +633,19 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
 
               {volet === 'poles' && (
                 <>
-                  <BoiteDemande
-                    valeur={demande}
-                    onChange={setDemande}
-                    onPreparer={() => void preparer()}
-                    occupee={simuOccupee}
-                  />
+                  {/* ⚠ LA BOITE « DECRIS CE QUE TU VEUX » EST PARTIE le 6 aout
+                      2026, et pas avant : c'etait l'avertissement du §5 du
+                      plan, le seul de tout le document. Elle a ete pendant des
+                      mois LE SEUL chemin pour creer un scenario - la retirer
+                      trop tot aurait enleve au produit sa fonction principale,
+                      et personne ne s'en serait apercu tant qu'on ne cherche
+                      pas a en creer un.
+
+                      Le chat le fait maintenant de bout en bout, mesure : une
+                      demande tapee a l'accueil devient un plan, valide, pose
+                      sans reveiller personne, et joue jusqu'au livrable. Le
+                      chemin de secours peut donc partir - deux portes pour un
+                      geste, c'est deux endroits ou l'on peut se tromper. */}
 
                   {/* Le pole avait un compteur la ou l'equipe avait une
                       definition - « 2 poles - aucun en cours ». Un compteur
@@ -703,9 +702,14 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
                   )}
                 </>
               )}
+
+              {/* C6 - « planifier ici, gerer la ». L'accueil montre ce qui
+                  TOURNE, parce qu'un echec doit remonter la ou l'on regarde ;
+                  ce volet porte la gestion. Deux surfaces, deux questions - ce
+                  n'est un doublon que si elles disent la meme chose. */}
+              {volet === 'automatisations' && <Automatisations />}
             </div>
           </div>
-          )}
         </div>
       </div>
 
@@ -788,16 +792,6 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
           simulation={simu}
           chargement={simuOccupee}
           erreur={simuErreur}
-          // F20 : le message porte le geste. Sans ce rappel, il decrivait le
-          // chemin - « ouvre-la dans le Studio » - et laissait chercher.
-          onOuvrirEchouee={
-            simuEchouee
-              ? () => {
-                  setSimuOuverte(false)
-                  onStudio(simuEchouee)
-                }
-              : undefined
-          }
           chantier={chantiers.find((c) => c.pole === simu?.pole.id) || null}
           accords={accords.filter((d) => d.pole === simu?.pole.id)}
           onAccord={(demande, agent, option) => void repondreAccord(demande, agent, option)}
@@ -807,12 +801,11 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
           // Un retour au banc ecrit sur le tableau : la simulation affichee ne
           // decrit plus rien tant qu'elle n'a pas ete rejouee.
           onRafraichir={() => simu && void simuler(simu.pole.id)}
-          onModifier={() => {
-            // « Modifier » renvoie a la conversation : c'est la qu'on reformule
-            // une demande, pas dans un formulaire de plus.
-            setSimuOuverte(false)
-            setVolet('conversation')
-          }}
+          // ⚠ « Modifier » ne renvoie plus au volet Conversation : il n'existe
+          // plus. On reformule a l'accueil, la ou l'on ecrit - et la fenetre se
+          // contente donc de se fermer, sans promettre un endroit qu'elle ne
+          // peut pas ouvrir depuis ici.
+          onModifier={() => setSimuOuverte(false)}
           onFermer={() => setSimuOuverte(false)}
         />
       )}
@@ -820,98 +813,6 @@ export function OrchestrationView({ onMenu, onStudio }: Props) {
   )
 }
 
-/**
- * La porte d'entree du mode assiste : une phrase en francais, rien de plus.
- *
- * Elle vit au-dessus des poles parce que c'est de la qu'ils naissent - et
- * qu'une liste vide sans moyen de la remplir est un cul-de-sac.
- */
-function BoiteDemande({
-  valeur,
-  onChange,
-  onPreparer,
-  occupee,
-}: {
-  valeur: string
-  onChange: (v: string) => void
-  onPreparer: () => void
-  occupee: boolean
-}) {
-  /**
-   * Ce qu'on avait deja fait de ce genre.
-   *
-   * La proactivite promise par le plan, et elle est deliberement timide : on
-   * MONTRE ce qui avait marche, on ne substitue rien. Rejouer automatiquement
-   * une forme sur une demande qui n'est pas tout a fait la meme donnerait un
-   * plan que personne n'a demande, et personne ne saurait pourquoi.
-   *
-   * On interroge apres une pause : chaque frappe declencherait une lecture du
-   * Coffre, et la fiche clignoterait pendant qu'on ecrit.
-   */
-  const [proches, setProches] = useState<Competence[]>([])
-  useEffect(() => {
-    const t = valeur.trim()
-    if (t.length < 12) {
-      setProches([])
-      return
-    }
-    const minuteur = setTimeout(() => {
-      void api
-        .competences(t)
-        .then(setProches)
-        .catch(() => setProches([]))
-    }, 600)
-    return () => clearTimeout(minuteur)
-  }, [valeur])
-
-  return (
-    <div data-zone="boite-demande" className="card space-y-2 p-3.5">
-      <div className="flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-amber-500" />
-        <p className="text-sm font-semibold">Decris ce que tu veux</p>
-      </div>
-      <textarea
-        value={valeur}
-        onChange={(e) => onChange(e.target.value)}
-        rows={2}
-        placeholder="cherche sur les 5 sites les plus tendance les nouveautes IA du moment, fais-moi un resume sous forme de tableau, plus un PDF"
-        className="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs leading-relaxed outline-none focus:border-sky-400 dark:border-navy-700 dark:bg-navy-900"
-      />
-      <div className="flex items-center gap-3">
-        <p className="min-w-0 flex-1 text-[11px] muted">
-          Hermes decoupe la demande en taches liees, puis la simulation te la montre. Rien ne
-          s execute avant ton accord.
-        </p>
-        <button
-          className="btn-primary flex-none text-xs"
-          onClick={onPreparer}
-          disabled={occupee || !valeur.trim()}
-        >
-          Preparer le plan
-        </button>
-      </div>
-
-      {/* Ce qu'on avait deja fait de ce genre. La fiche est dans le Coffre :
-          on donne son nom et sa forme, l'utilisateur juge. */}
-      {proches.length > 0 && (
-        <div className="rounded-lg border border-sky-200 bg-sky-50 p-2.5 dark:border-sky-500/30 dark:bg-sky-500/10">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-sky-700 dark:text-sky-300">
-            Deja fait de ce genre
-          </p>
-          {proches.map((c) => (
-            <p key={c.fichier} className="mt-1 text-[11px] leading-relaxed">
-              <span className="font-medium">{c.titre}</span>
-              <span className="muted">
-                {' '}
-                - {c.etapes} etape{c.etapes > 1 ? 's' : ''}, fiche dans le Coffre
-              </span>
-            </p>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
 
 // -----------------------------------------------------------------------------
 // Traductions vers le graphe

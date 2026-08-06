@@ -83,7 +83,6 @@ pour le nommer quand on veut demander une modification.
 | Le formulaire « Brancher un outil » | `nouvel-outil` | — | idem |
 | Une vignette de scenario | `vignette-scenario` | `--agent-lisere-vignette` | idem |
 | Une vignette d'equipe | `vignette-equipe` | `--agent-lisere-vignette` | idem |
-| Le champ « Decris ce que tu veux » | `boite-demande` | — | idem |
 | Les autorisations en attente, en haut du scenario | `accords-orchestration` | — | idem |
 | La fenetre de simulation | `fenetre-simulation` | — | `FenetreSimulation.tsx` |
 | Le decompte pendant qu-Hermes decoupe | `decompte-decoupage` | — | idem, `PLAFOND_DECOUPAGE_S` |
@@ -250,7 +249,6 @@ sont de la prose - et que la meme commande verifie sans les reecrire.
 | `barre-saisie` | `src/components/Conversation.tsx` |
 | `bascule-proposee` | `src/components/CartePlan.tsx` |
 | `bilan-rendu` | `src/components/BilanRendu.tsx` |
-| `boite-demande` | `src/pages/OrchestrationView.tsx` |
 | `bouton-repli` | `src/components/BoutonRepli.tsx` |
 | `brouillon-tache` | `src/pages/StudioView.tsx` |
 | `bulle-agent` | `src/components/Conversation.tsx` |

@@ -12,14 +12,13 @@
  * d'autant. Le bouton d'historique ne disparait pas pour autant : il se range
  * alors avec Projets et Coffre, sous le champ - voir `HomeView`.
  */
-import { Home, Plus, Radio } from 'lucide-react'
+import { Home, Radio } from 'lucide-react'
 import { BoutonHistorique } from './VoletHistorique'
 import type { FilResume } from '../types'
 
 export function LigneContexte({
   filOuvert,
   vide,
-  surLAccueil,
   onDirect,
   onNeuve,
 }: {
@@ -27,13 +26,6 @@ export function LigneContexte({
   filOuvert: FilResume | null
   /** Rien n'a encore ete dit dans ce fil : pas de quoi en repartir. */
   vide: boolean
-  /**
-   * Y a-t-il un salut derriere ce fil ?
-   *
-   * C'est ce qui decide du libelle du retour, et rien d'autre. Voir plus bas :
-   * la meme action ne se nomme pas pareil selon qu'elle ramene quelque part.
-   */
-  surLAccueil: boolean
   onDirect: () => void
   onNeuve: () => void
 }) {
@@ -75,10 +67,18 @@ export function LigneContexte({
              * genre dont on ne se plaint jamais - on ne dit pas « je n'ai pas
              * trouve », on croit que ca n'existe pas.
              *
-             * IL DIT DONC OU IL MENE, ET SEULEMENT LA OU IL Y MENE. Sur
+             * ~~IL DIT DONC OU IL MENE, ET SEULEMENT LA OU IL Y MENE. Sur
              * l'accueil il ramene au salut ; dans le volet Conversation
              * d'Orchestration, qui n'a pas de salut, « Nouvelle » reste exact.
-             * Un libelle unique aurait menti d'un cote ou de l'autre.
+             * Un libelle unique aurait menti d'un cote ou de l'autre.~~
+             *
+             * ⚠ IL N'Y A PLUS QU'UN COTE, depuis le 6 aout : le volet
+             * Conversation d'Orchestration a ete retire - on ecrit a l'accueil,
+             * un second champ de saisie faisait deux endroits pour un geste. La
+             * seule surface restante A un salut, donc le libelle unique ne ment
+             * plus a personne, et le ternaire qui les departageait etait devenu
+             * une branche morte. **La regle reste vraie ; c'est le cas qui a
+             * disparu.**
              *
              * Le fil, lui, ne se perd pas - il rejoint l'historique, dont le
              * bouton est juste a gauche. C'est ce voisinage qui rend le geste
@@ -87,23 +87,10 @@ export function LigneContexte({
             <button
               onClick={onNeuve}
               className="btn-ghost px-2.5 py-1 text-[11px]"
-              title={
-                surLAccueil
-                  ? 'Ferme cette conversation et ramene le salut, les raccourcis et ce qui tourne. Le fil reste dans tes conversations.'
-                  : 'Repartir sur une conversation neuve'
-              }
+              title="Ferme cette conversation et ramene le salut, les raccourcis et ce qui tourne. Le fil reste dans tes conversations."
             >
-              {surLAccueil ? (
-                <>
-                  <Home className="mr-1 inline h-3.5 w-3.5" />
-                  Revenir a l accueil
-                </>
-              ) : (
-                <>
-                  <Plus className="mr-1 inline h-3.5 w-3.5" />
-                  Nouvelle
-                </>
-              )}
+              <Home className="mr-1 inline h-3.5 w-3.5" />
+              Revenir a l accueil
             </button>
           )}
         </>

@@ -1,6 +1,6 @@
 # Le plan du plan — Hermès Hub, refonte Orchestration / Studio
 
-> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **14:14**
+> ⏱ **Achevé** le 4 août 2026 à **16:20** · **révisé** le 6 août 2026 à **16:14**
 > détail : `git log --follow -- PLAN-DE-TRAVAIL.md`
 > **C'est le document le plus récent de la refonte : il l'emporte sur tous les
 > autres**, `VISION-STUDIO.md` (2 août) en premier.
@@ -863,9 +863,17 @@ mal emportait le Hub.
 
 **Et pas avant** : voir l'avertissement du §5.
 
-- retirer le volet **Conversation** ;
-- retirer la **boîte « Décris ce que tu veux »** — le chat l'a remplacée ;
-- trois volets : **Agents et équipes**, **Scénarios**, **Automatisations** ;
+- retirer le volet **Conversation** ; ✅ **fait le 6 août** — il faisait deux
+  champs de saisie pour un geste, et Orchestration ouvre désormais sur l'équipe ;
+- retirer la **boîte « Décris ce que tu veux »** — le chat l'a remplacée.
+  ✅ **Fait le 6 août**, et **pas avant** : c'était le seul avertissement du
+  §5. Conséquences suivies jusqu'au bout — `preparer()` part avec elle, donc
+  `api.demande`, donc la route `/api/demande` et `decomposer()` **n'ont plus
+  d'appelant** *(à balayer, voir juste en dessous)* ; et l'état `eveilles`
+  d'Orchestration disparaît, le serveur étant déjà seul à savoir qui est
+  éveillé ;
+- trois volets : **Agents et équipes**, **Scénarios**, **Automatisations**.
+  ✅ **Faits, vus à l'écran.**
 - l'**organigramme de compétences**, bâti depuis les vraies données : le
   **déclaré** vient de `hermes profile describe`, le **prouvé** de
   `lireCompetences()` (Coffre). **Pas** du dossier `skills/` d'un profil — voir
@@ -915,7 +923,7 @@ ne s'évapore dans l'exécution.
 | F17 | Personne ne dit que l'équipe ne sait pas faire | 4 *(= C4)* — **✅ réglé le 6 août** : le plan nomme les étapes qui reviennent à l'agent par défaut, la tête de pôle exclue |
 | F18 | « le tableau » est un mot du dedans, dans le jalon d'attente | 3 — **✅ réglé le 6 août**, aux deux endroits où le mot sortait |
 | F19 | Rien ne dit qu'on peut écrire pendant qu'un plan se prépare | 3 — **✅ réglé, et joué à l'écran le 6 août** : « 0 s / 90 s — tu peux continuer à écrire pendant ce temps » |
-| F20 | Le message de dépassement décrit le chemin sans l'offrir | 3 — **✅ réglé le 6 août** : la phrase porte le bouton, et le bouton mène à un scénario d'une tâche |
+| F20 | Le message de dépassement décrit le chemin sans l'offrir | 3 — ~~✅ réglé le 6 août~~ **⚠ ROUVERTE le 6 août au soir : le bouton n'existait que sur le chemin de la boîte, retirée depuis. Voir §6** |
 | C1 | La carte de plan porte son état dans le fil, et cite la demande | 3 — ✅ réglé |
 | C2 | L'autorisation apparaît là où l'on est | 2 — ✅ réglé |
 | C3 | Ligne du plan ↔ nœud du graphe | 4 — **✅ réglé le 6 août, dans les deux sens** |
@@ -945,6 +953,51 @@ Studio, alors que c'est le chantier le plus simple des trois.
 ## 6. Ce qui reste ouvert
 
 Deux questions, aucune bloquante.
+
+### ⚠ F20 est rouverte, et c'est le retrait de la boîte qui l'a rouverte *(6 août)*
+
+**Trouvé en suivant le retrait jusqu'au bout, pas après coup.** Le bouton
+« Ouvrir dans le Studio » d'un découpage raté n'a **jamais existé que sur le
+chemin de la boîte** : `/api/demande` laissait une tâche orpheline sur le
+tableau, `plan.pole` en gardait l'identifiant, et il y avait donc quelque chose à
+ouvrir.
+
+Le chat échoue autrement. Hermès répond sans étape, `plan.js` refuse — *« il n'y
+aurait rien à valider, et le scénario posé serait vide »* — et **rien n'est
+créé**. Sa phrase dit pourtant *« ou ouvre le Studio pour la construire à la
+main »* : elle **décrit un chemin sans l'offrir**, ce qui est la définition
+exacte de F20.
+
+*Et le bouton évident ne marche pas :* ouvrir le Studio sans pôle mène à
+« Aucun scénario ouvert » — l'écran vide corrigé le matin même. La question est
+donc de dessin, pas de branchement : **que doit offrir le Hub quand Hermès rend
+un plan sans étapes ?** Reformuler dans le champ ? Un Studio qui sait naître
+vide ? Rien, et une phrase qui ne promet pas ?
+
+*À trancher avant de clore le chantier 5.*
+
+### Trois choses à balayer, nées du même retrait *(6 août)*
+
+- **`api.demande`, la route `/api/demande` et `decomposer()`** n'ont plus aucun
+  appelant. C'est le **dernier chemin qui passe par `hermes kanban decompose`** :
+  le supprimer retire une capacité du produit, même si plus personne ne peut
+  l'atteindre. *Décision de kuchu, comme la distribution du greffon* ;
+- **`FenetreSimulation.onOuvrirEchouee`** est retiré côté appelant ; la prop
+  optionnelle reste, sans personne pour la remplir ;
+- **le détecteur d'exports morts ne voit rien de tout ça.** Il compare des noms
+  dans les clauses d'`import`, et `api.demande` est une **propriété d'objet**.
+  Quatrième cas en deux jours après `validerPole`, `competences` et
+  `modifierAgent`. *La garde censée empêcher le code mort ne regarde pas là où il
+  s'accumule* — à instruire séparément.
+
+### ⚠ Les automatisations sont en double, et c'est écrit plutôt que subi *(6 août)*
+
+Le volet d'Orchestration rend **le même composant que l'accueil**, titre compris.
+C6 veut « planifier ici, gérer là » — deux surfaces pour deux questions — mais il
+en manque la moitié : « planifier depuis le Studio » n'existe pas, et l'accueil
+devrait alors ne garder que ce qui **échoue**. La règle du dépôt — *deux surfaces
+qui disent la même chose finissent par se contredire* — est donc enfreinte ici en
+connaissance de cause, le temps de trancher.
 
 ### Deux orphelins remontés de `CONFRONTATION-HERMES-WEBUI.md`, le 5 août à 18:10
 
